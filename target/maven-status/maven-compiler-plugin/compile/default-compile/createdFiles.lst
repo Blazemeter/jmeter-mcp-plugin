@@ -1,0 +1,15 @@
+io/github/jmeter/mcp/sampler/McpOperation.class
+io/github/jmeter/mcp/client/JsonMappers.class
+io/github/jmeter/mcp/client/McpSdkLogSilencer.class
+io/github/jmeter/mcp/config/gui/McpClientConfigGui.class
+io/github/jmeter/mcp/client/McpClientFactory.class
+io/github/jmeter/mcp/client/McpClientFactory$1.class
+io/github/jmeter/mcp/config/McpClientConfig.class
+io/github/jmeter/mcp/client/McpClientRegistry.class
+io/github/jmeter/mcp/config/gui/McpClientConfigGui$1.class
+io/github/jmeter/mcp/sampler/McpSampler.class
+io/github/jmeter/mcp/sampler/McpSampler$1.class
+io/github/jmeter/mcp/sampler/gui/McpSamplerGui$1.class
+io/github/jmeter/mcp/client/TransportType.class
+io/github/jmeter/mcp/client/McpClientSettings.class
+io/github/jmeter/mcp/sampler/gui/McpSamplerGui.class

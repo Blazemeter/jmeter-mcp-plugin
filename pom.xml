@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.github.jmeter</groupId>
+    <artifactId>jmeter-mcp-plugin</artifactId>
+    <version>0.1.0</version>
+    <packaging>jar</packaging>
+
+    <name>JMeter MCP Plugin</name>
+    <description>
+        Apache JMeter plugin that integrates the official Model Context Protocol
+        (MCP) Java SDK. Provides a Configuration Element and a Sampler to
+        connect to MCP servers over STDIO, SSE and Streamable HTTP transports.
+    </description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+
+        <mcp.sdk.version>1.1.1</mcp.sdk.version>
+        <jmeter.version>5.6.3</jmeter.version>
+        <slf4j.version>2.0.16</slf4j.version>
+        <!-- Jackson 3.0.x reuses the legacy 'jackson-annotations' artifact
+             but calls methods (e.g. OptBoolean isRequired()) added in 2.17+.
+             We pin to the version the Jackson 3.0.3 BOM specifies. -->
+        <jackson.annotations.version>2.20</jackson.annotations.version>
+        <!-- Prefix applied to relocated 3rd-party packages inside the shaded
+             JAR so we don't clash with JMeter's older copies (e.g. JMeter
+             5.6.3 ships jackson-annotations 2.16.1 in lib/ which wins the
+             classloader race against anything in lib/ext/). -->
+        <shaded.prefix>io.github.jmeter.mcp.shaded</shaded.prefix>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.modelcontextprotocol.sdk</groupId>
+                <artifactId>mcp-bom</artifactId>
+                <version>${mcp.sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Force jackson-annotations to match what Jackson 3.0.3 needs
+                 (JMeter 5.6.3 transitively pulls 2.16.1 which is too old). -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.annotations.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Official MCP Java SDK: includes STDIO, SSE and Streamable HTTP
+             client transports and Jackson 3.x JSON. -->
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.jmeter</groupId>
+            <artifactId>ApacheJMeter_core</artifactId>
+            <version>${jmeter.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jmeter</groupId>
+            <artifactId>ApacheJMeter_java</artifactId>
+            <version>${jmeter.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.artifactId}-${project.version}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+
+            <!-- Shade so MCP SDK + Jackson 3 are bundled into a single JAR
+                 dropped into JMETER_HOME/lib/ext. JMeter classes are provided
+                 by the host JMeter installation. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>org.apache.jmeter:*</exclude>
+                                    <exclude>org.slf4j:*</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/versions/*/module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <!-- Relocate only the third-party packages that
+                                 collide with JMeter 5.6.3's lib/ classloader,
+                                 which loads lib/ BEFORE lib/ext/. Relocating
+                                 minimally limits the blast radius. -->
+                            <relocations>
+                                <!-- JMeter ships jackson-annotations-2.16.1
+                                     which lacks 'OptBoolean isRequired()'
+                                     required by Jackson 3.0.3 databind. -->
+                                <relocation>
+                                    <pattern>com.fasterxml.jackson.annotation</pattern>
+                                    <shadedPattern>${shaded.prefix}.com.fasterxml.jackson.annotation</shadedPattern>
+                                </relocation>
+                                <!-- JMeter ships reactive-streams-1.0.4 too;
+                                     same version today, but isolating insulates
+                                     us from future drift on either side. -->
+                                <relocation>
+                                    <pattern>org.reactivestreams</pattern>
+                                    <shadedPattern>${shaded.prefix}.org.reactivestreams</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer
+                                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Implementation-Title>${project.name}</Implementation-Title>
+                                        <Implementation-Version>${project.version}</Implementation-Version>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
