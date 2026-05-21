@@ -1,8 +1,6 @@
 package io.github.jmeter.mcp.client;
 
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.modelcontextprotocol.client.McpSyncClient;
@@ -46,31 +44,6 @@ public final class McpClientRegistry {
             throw new IllegalArgumentException("MCP client name must not be empty");
         }
         deferredSettings.put(name, settings);
-    }
-
-    /**
-     * Register a pre-built client (advanced / tests). Replaces any existing
-     * client for the same name.
-     */
-    public void register(String name, McpSyncClient client) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("MCP client name must not be empty");
-        }
-        Object lock = connectLocks.computeIfAbsent(name, k -> new Object());
-        synchronized (lock) {
-            McpSyncClient previous = clients.put(name, client);
-            if (previous != null) {
-                LOG.warn("Replacing existing MCP client registered as '{}'", name);
-                closeQuietly(previous);
-            }
-        }
-    }
-
-    public McpSyncClient get(String name) {
-        if (name == null) {
-            return null;
-        }
-        return clients.get(name);
     }
 
     /**
@@ -118,16 +91,6 @@ public final class McpClientRegistry {
             }
         }
         connectLocks.remove(name, lock);
-    }
-
-    /** Close and remove every registered client and pending settings. */
-    public void clear() {
-        Set<String> names = new HashSet<>();
-        names.addAll(deferredSettings.keySet());
-        names.addAll(clients.keySet());
-        for (String name : names) {
-            remove(name);
-        }
     }
 
     private static void closeQuietly(McpSyncClient client) {

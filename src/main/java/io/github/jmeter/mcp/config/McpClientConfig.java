@@ -6,8 +6,6 @@ import io.github.jmeter.mcp.client.TransportType;
 import org.apache.jmeter.config.ConfigElement;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.testelement.TestStateListener;
-import org.apache.jmeter.threads.JMeterContextService;
-import org.apache.jmeter.threads.JMeterVariables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,13 +91,6 @@ public class McpClientConfig extends ConfigTestElement
             LOG.info("Registering MCP client '{}' (transport {}; lazy connect on first sampler)",
                     registryName, settings.getTransport());
             McpClientRegistry.getInstance().registerDeferred(registryName, settings);
-
-            // Expose the registered name in a JMeter variable so non-MCP
-            // elements (e.g. JSR223 scripts) can fetch the client by name.
-            JMeterVariables vars = JMeterContextService.getContext().getVariables();
-            if (vars != null) {
-                vars.put("mcp.client." + registryName, registryName);
-            }
         } catch (RuntimeException ex) {
             LOG.error("Failed to register MCP client '{}': {}",
                     registryName, ex.getMessage(), ex);
