@@ -1,7 +1,11 @@
 package io.github.jmeter.mcp.client;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import io.modelcontextprotocol.client.McpSyncClient;
 import org.slf4j.Logger;
@@ -13,20 +17,30 @@ import org.slf4j.LoggerFactory;
  *
  * <p>JMeter clones config elements per thread, but the underlying connection
  * is heavy and must be shared. {@link #registerDeferred(String, McpClientSettings)}
- * is invoked from {@code testStarted()} (fast — no network I/O). The first
- * sampler that calls {@link #getOrConnect(String)} performs the actual
- * transport setup and {@code initialize()} so the GUI thread is not blocked
- * for tens of seconds before JMeter flips to the &quot;running&quot; state.
+ * stores settings during {@code testStarted()} when lazy connect is configured.
+ * {@link #connectOnStartup(String, McpClientSettings)} registers settings and
+ * schedules connect on a background thread so {@code testStarted()} returns
+ * immediately (same responsiveness as lazy init). The first sampler that calls
+ * {@link #getOrConnect(String)} waits for that background connect or performs
+ * lazy connect if startup connect was not requested.
  */
 public final class McpClientRegistry {
 
     private static final Logger LOG = LoggerFactory.getLogger(McpClientRegistry.class);
+
+    private static final ExecutorService CONNECT_EXECUTOR = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "mcp-client-connect");
+        t.setDaemon(true);
+        return t;
+    });
 
     private static final McpClientRegistry INSTANCE = new McpClientRegistry();
 
     private final Map<String, McpClientSettings> deferredSettings = new ConcurrentHashMap<>();
     private final Map<String, McpSyncClient> clients = new ConcurrentHashMap<>();
     private final Map<String, Object> connectLocks = new ConcurrentHashMap<>();
+    private final Map<String, CompletableFuture<McpSyncClient>> pendingConnects =
+            new ConcurrentHashMap<>();
 
     private McpClientRegistry() {
     }
@@ -47,6 +61,15 @@ public final class McpClientRegistry {
     }
 
     /**
+     * Register settings and schedule connect on a background thread. Does not
+     * block {@code testStarted()}.
+     */
+    public void connectOnStartup(String name, McpClientSettings settings) {
+        registerDeferred(name, settings);
+        pendingConnects.computeIfAbsent(name, this::scheduleConnect);
+    }
+
+    /**
      * Returns an initialized client, creating it on first use from deferred
      * settings registered via {@link #registerDeferred(String, McpClientSettings)}.
      */
@@ -58,9 +81,34 @@ public final class McpClientRegistry {
         if (existing != null) {
             return existing;
         }
+        CompletableFuture<McpSyncClient> pending = pendingConnects.get(name);
+        if (pending != null) {
+            try {
+                return pending.get();
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted waiting for MCP client '" + name + "'", ex);
+            } catch (ExecutionException ex) {
+                pendingConnects.remove(name, pending);
+                Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                if (cause instanceof RuntimeException) {
+                    throw (RuntimeException) cause;
+                }
+                throw new RuntimeException(cause);
+            }
+        }
+        return connectClient(name, "lazy init");
+    }
+
+    private CompletableFuture<McpSyncClient> scheduleConnect(String name) {
+        return CompletableFuture.supplyAsync(
+                () -> connectClient(name, "startup connect"), CONNECT_EXECUTOR);
+    }
+
+    private McpSyncClient connectClient(String name, String reason) {
         Object lock = connectLocks.computeIfAbsent(name, k -> new Object());
         synchronized (lock) {
-            existing = clients.get(name);
+            McpSyncClient existing = clients.get(name);
             if (existing != null) {
                 return existing;
             }
@@ -68,10 +116,14 @@ public final class McpClientRegistry {
             if (settings == null) {
                 return null;
             }
-            LOG.info("Connecting MCP client '{}' (lazy init, transport {})",
-                    name, settings.getTransport());
+            LOG.info("Connecting MCP client '{}' ({}, transport {})",
+                    name, reason, settings.getTransport());
             McpSdkLogSilencer.ensureApplied();
             McpSyncClient client = McpClientFactory.buildAndInitialize(settings);
+            if (!deferredSettings.containsKey(name)) {
+                closeQuietly(client);
+                return null;
+            }
             clients.put(name, client);
             return client;
         }
@@ -84,6 +136,7 @@ public final class McpClientRegistry {
         }
         Object lock = connectLocks.computeIfAbsent(name, k -> new Object());
         synchronized (lock) {
+            pendingConnects.remove(name);
             deferredSettings.remove(name);
             McpSyncClient client = clients.remove(name);
             if (client != null) {

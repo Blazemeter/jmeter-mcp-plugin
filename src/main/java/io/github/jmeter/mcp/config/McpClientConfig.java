@@ -13,10 +13,12 @@ import org.slf4j.LoggerFactory;
  * JMeter Configuration Element that owns the lifecycle of a shared
  * {@link McpSyncClient} for the duration of a test run.
  *
- * <p>On {@link #testStarted()} this element only registers connection settings
- * (no blocking I/O). The first {@code MCP Sampler} that references the same
- * {@link #NAME} performs transport setup, {@code initialize()}, and caches the
- * {@link McpSyncClient}. The client is closed in {@link #testEnded()}.
+ * <p>On {@link #testStarted()} this element registers connection settings in
+ * {@link McpClientRegistry}. When {@link #CONNECT_ON_STARTUP} is enabled it
+ * also schedules connect on a background thread during {@code testStarted()}
+ * (without blocking the engine). Otherwise the first {@code MCP Sampler} that
+ * references the same {@link #NAME} performs connect and {@code initialize()}.
+ * The client is closed in {@link #testEnded()}.
  */
 public class McpClientConfig extends ConfigTestElement
         implements ConfigElement, TestStateListener {
@@ -36,6 +38,7 @@ public class McpClientConfig extends ConfigTestElement
     public static final String CLIENT_VERSION = "McpClientConfig.clientVersion";
     public static final String REQUEST_TIMEOUT_MS = "McpClientConfig.requestTimeoutMs";
     public static final String INIT_TIMEOUT_MS = "McpClientConfig.initTimeoutMs";
+    public static final String CONNECT_ON_STARTUP = "McpClientConfig.connectOnStartup";
 
     public McpClientSettings toSettings() {
         McpClientSettings s = new McpClientSettings();
@@ -51,6 +54,7 @@ public class McpClientConfig extends ConfigTestElement
         s.setClientVersion(getPropertyAsString(CLIENT_VERSION, "0.1.0"));
         s.setRequestTimeoutMillis(getPropertyAsLong(REQUEST_TIMEOUT_MS, 30_000L));
         s.setInitializationTimeoutMillis(getPropertyAsLong(INIT_TIMEOUT_MS, 30_000L));
+        s.setConnectOnStartup(getPropertyAsBoolean(CONNECT_ON_STARTUP, false));
         return s;
     }
 
@@ -88,9 +92,15 @@ public class McpClientConfig extends ConfigTestElement
         McpClientSettings settings = toSettings();
         String registryName = settings.getName();
         try {
-            LOG.info("Registering MCP client '{}' (transport {}; lazy connect on first sampler)",
-                    registryName, settings.getTransport());
-            McpClientRegistry.getInstance().registerDeferred(registryName, settings);
+            if (settings.isConnectOnStartup()) {
+                LOG.info("Scheduling MCP client '{}' connect on test start (transport {})",
+                        registryName, settings.getTransport());
+                McpClientRegistry.getInstance().connectOnStartup(registryName, settings);
+            } else {
+                LOG.info("Registering MCP client '{}' (transport {}; lazy connect on first sampler)",
+                        registryName, settings.getTransport());
+                McpClientRegistry.getInstance().registerDeferred(registryName, settings);
+            }
         } catch (RuntimeException ex) {
             LOG.error("Failed to register MCP client '{}': {}",
                     registryName, ex.getMessage(), ex);

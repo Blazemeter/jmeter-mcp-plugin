@@ -7,6 +7,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 
 import javax.swing.BorderFactory;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -35,6 +36,8 @@ public class McpClientConfigGui extends AbstractConfigGui {
     private final JTextField nameField = new JTextField(20);
     private final JComboBox<TransportType> transportCombo =
             new JComboBox<>(TransportType.values());
+    private final JCheckBox connectOnStartupCheck =
+            new JCheckBox("Connect on test start (otherwise wait for first sampler)");
 
     private final JTextField serverUrlField = new JTextField(30);
     private final JTextField endpointField = new JTextField(20);
@@ -90,6 +93,7 @@ public class McpClientConfigGui extends AbstractConfigGui {
 
         addRow(p, c, 0, "Variable Name:", nameField);
         addRow(p, c, 1, "Transport:", transportCombo);
+        addRow(p, c, 2, "", connectOnStartupCheck);
         return p;
     }
 
@@ -204,6 +208,7 @@ public class McpClientConfigGui extends AbstractConfigGui {
                 parseLongOrDefault(requestTimeoutField.getText(), 30_000L));
         cfg.setProperty(McpClientConfig.INIT_TIMEOUT_MS,
                 parseLongOrDefault(initTimeoutField.getText(), 30_000L));
+        cfg.setProperty(McpClientConfig.CONNECT_ON_STARTUP, connectOnStartupCheck.isSelected());
     }
 
     @Override
@@ -230,6 +235,8 @@ public class McpClientConfigGui extends AbstractConfigGui {
                 cfg.getPropertyAsLong(McpClientConfig.REQUEST_TIMEOUT_MS, 30_000L)));
         initTimeoutField.setText(String.valueOf(
                 cfg.getPropertyAsLong(McpClientConfig.INIT_TIMEOUT_MS, 30_000L)));
+        connectOnStartupCheck.setSelected(
+                cfg.getPropertyAsBoolean(McpClientConfig.CONNECT_ON_STARTUP, false));
         showSelectedTransport();
     }
 
@@ -247,6 +254,7 @@ public class McpClientConfigGui extends AbstractConfigGui {
         clientVersionField.setText("0.1.0");
         requestTimeoutField.setText("30000");
         initTimeoutField.setText("30000");
+        connectOnStartupCheck.setSelected(false);
         showSelectedTransport();
     }
 

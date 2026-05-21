@@ -32,6 +32,9 @@ public final class McpClientSettings implements Serializable {
     private long requestTimeoutMillis = 30_000L;
     private long initializationTimeoutMillis = 30_000L;
 
+    /** When true, schedule connect during {@code testStarted()} instead of on first sampler use. */
+    private boolean connectOnStartup = false;
+
     public String getName() {
         return name;
     }
@@ -118,5 +121,13 @@ public final class McpClientSettings implements Serializable {
 
     public void setInitializationTimeoutMillis(long initializationTimeoutMillis) {
         this.initializationTimeoutMillis = initializationTimeoutMillis;
+    }
+
+    public boolean isConnectOnStartup() {
+        return connectOnStartup;
+    }
+
+    public void setConnectOnStartup(boolean connectOnStartup) {
+        this.connectOnStartup = connectOnStartup;
     }
 }
