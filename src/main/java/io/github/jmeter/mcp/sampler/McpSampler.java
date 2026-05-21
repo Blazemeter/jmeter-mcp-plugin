@@ -61,10 +61,10 @@ public class McpSampler extends AbstractSampler {
             }
 
             Object operationResult = invoke(client, operation);
-            Map<String, Object> envelope = buildResponseEnvelope(client, operation, operationResult);
-            String responseText = toJson(envelope);
+            String responseBody = toPrettyJson(operationResult);
 
-            result.setResponseData(responseText, "UTF-8");
+            result.setResponseHeaders(buildResponseHeaders(client, operation));
+            result.setResponseData(responseBody, "UTF-8");
             result.setDataEncoding("UTF-8");
             result.setResponseCodeOK();
             result.setResponseMessageOK();
@@ -86,16 +86,30 @@ public class McpSampler extends AbstractSampler {
     }
 
     /**
-     * Wraps the operation result with the MCP session / initialize handshake so
-     * View Results Tree and reports contain the same data the SDK logs at INFO
-     * from {@code LifecycleInitializer} (protocol, capabilities, server info,
-     * instructions).
+     * Builds HTTP-style response headers with MCP session metadata so View
+     * Results Tree shows handshake data separately from the operation body.
      */
-    private static Map<String, Object> buildResponseEnvelope(McpSyncClient client,
-            McpOperation operation, Object operationResult) {
-        Map<String, Object> root = new LinkedHashMap<>();
-        root.put("operation", operation.name());
+    private static String buildResponseHeaders(McpSyncClient client, McpOperation operation) {
+        StringBuilder headers = new StringBuilder();
+        appendHeader(headers, "X-MCP-Operation", operation.name());
+        appendHeader(headers, "X-MCP-Session", toJson(buildSessionMetadata(client)));
+        appendHeader(headers, "Content-Type", CONTENT_TYPE_JSON);
+        return headers.toString();
+    }
 
+    private static void appendHeader(StringBuilder headers, String name, String value) {
+        if (headers.length() > 0) {
+            headers.append('\n');
+        }
+        headers.append(name).append(": ").append(value);
+    }
+
+    /**
+     * Session / initialize handshake (protocol, capabilities, server info,
+     * instructions) — same content the SDK logs at INFO from
+     * {@code LifecycleInitializer}.
+     */
+    private static Map<String, Object> buildSessionMetadata(McpSyncClient client) {
         Map<String, Object> session = new LinkedHashMap<>();
         session.put("initialized", client.isInitialized());
 
@@ -113,9 +127,7 @@ public class McpSampler extends AbstractSampler {
             session.put("capabilities", client.getServerCapabilities());
             session.put("instructions", client.getServerInstructions());
         }
-        root.put("session", session);
-        root.put("result", operationResult);
-        return root;
+        return session;
     }
 
     private Object invoke(McpSyncClient client, McpOperation op) {
@@ -198,6 +210,19 @@ public class McpSampler extends AbstractSampler {
             LOG.debug("Falling back to toString() for {}: {}",
                     value.getClass().getName(), ex.getMessage());
             return String.valueOf(value);
+        }
+    }
+
+    private static String toPrettyJson(Object value) {
+        if (value == null) {
+            return "null";
+        }
+        try {
+            return JsonMappers.writeValueAsPrettyString(value);
+        } catch (IOException | RuntimeException ex) {
+            LOG.debug("Falling back to compact JSON for {}: {}",
+                    value.getClass().getName(), ex.getMessage());
+            return toJson(value);
         }
     }
 

@@ -66,18 +66,19 @@ Restart JMeter. You should see:
      - `READ_RESOURCE` — fill in **Resource URI**.
      - `GET_PROMPT` — fill in **Prompt Name** and (optional) JSON **Arguments**.
 
-3. Add a listener (e.g. *View Results Tree*) to inspect the JSON-serialized
-   responses returned by the MCP server.
+3. Add a listener (e.g. *View Results Tree*) to inspect responses returned by
+   the MCP server.
 
-Each successful sample response is a JSON object with:
+Each successful sample splits metadata and payload:
 
-- **`operation`** — the sampler operation name (e.g. `PING`, `LIST_TOOLS`).
-- **`session`** — MCP handshake from `initialize`: `protocolVersion`,
-  `capabilities`, `serverInfo`, and full `instructions` text (the same content
-  the SDK used to print at INFO under `LifecycleInitializer`; the plugin
-  silences that logger to WARN so it does not flood JMeter logs).
-- **`result`** — the return value of that operation (e.g. ping payload,
-  `listTools` result).
+- **Response headers** — `X-MCP-Operation` (e.g. `PING`, `CALL_TOOL`) and
+  `X-MCP-Session`, a JSON object with the MCP handshake from `initialize`:
+  `protocolVersion`, `capabilities`, `serverInfo`, and full `instructions`
+  text (the same content the SDK used to print at INFO under
+  `LifecycleInitializer`; the plugin silences that logger to WARN so it does
+  not flood JMeter logs).
+- **Response body** — pretty-printed JSON for the operation result only (e.g.
+  ping payload, `listTools` result, or `callTool` content).
 
 A working example is provided at [`examples/mcp-example.jmx`](examples/mcp-example.jmx).
 

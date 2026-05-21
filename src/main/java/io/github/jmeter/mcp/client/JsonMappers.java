@@ -1,10 +1,12 @@
 package io.github.jmeter.mcp.client;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 
 import io.modelcontextprotocol.json.McpJsonMapper;
 import io.modelcontextprotocol.json.McpJsonMapperSupplier;
+import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
 
 /**
  * Lazily resolves a shared {@link McpJsonMapper} via the SDK's
@@ -33,6 +35,23 @@ public final class JsonMappers {
             }
         }
         return local;
+    }
+
+    /**
+     * Serializes {@code value} as indented JSON for human-readable JMeter
+     * response bodies. Falls back to compact JSON if the mapper is not Jackson.
+     */
+    public static String writeValueAsPrettyString(Object value) throws IOException {
+        if (value == null) {
+            return "null";
+        }
+        McpJsonMapper mapper = getDefault();
+        if (mapper instanceof JacksonMcpJsonMapper jacksonMapper) {
+            return jacksonMapper.getJsonMapper()
+                    .writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(value);
+        }
+        return mapper.writeValueAsString(value);
     }
 
     private static McpJsonMapper resolve() {
