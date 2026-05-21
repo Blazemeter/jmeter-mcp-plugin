@@ -36,6 +36,9 @@ public final class McpClientRegistry {
 
     private static final McpClientRegistry INSTANCE = new McpClientRegistry();
 
+    /** STDIO spawns are heavy; serializing avoids parallel process startup timeouts. */
+    private static final Object STDIO_CONNECT_LOCK = new Object();
+
     private final Map<String, McpClientSettings> deferredSettings = new ConcurrentHashMap<>();
     private final Map<String, McpSyncClient> clients = new ConcurrentHashMap<>();
     private final Map<String, Object> connectLocks = new ConcurrentHashMap<>();
@@ -65,8 +68,16 @@ public final class McpClientRegistry {
      * block {@code testStarted()}.
      */
     public void connectOnStartup(String name, McpClientSettings settings) {
-        registerDeferred(name, settings);
-        pendingConnects.computeIfAbsent(name, this::scheduleConnect);
+        McpClientSettings previous = deferredSettings.put(name, settings);
+        if (previous != null) {
+            LOG.warn("MCP client '{}' settings replaced (was transport {}, now {})",
+                    name, previous.getTransport(), settings.getTransport());
+        }
+        CompletableFuture<McpSyncClient> old = pendingConnects.remove(name);
+        if (old != null && !old.isDone()) {
+            old.cancel(true);
+        }
+        pendingConnects.put(name, scheduleConnect(name));
     }
 
     /**
@@ -91,10 +102,9 @@ public final class McpClientRegistry {
             } catch (ExecutionException ex) {
                 pendingConnects.remove(name, pending);
                 Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new RuntimeException(cause);
+                LOG.warn("Startup connect failed for MCP client '{}': {} — retrying",
+                        name, cause.getMessage());
+                return connectClient(name, "retry after failed startup");
             }
         }
         return connectClient(name, "lazy init");
@@ -119,12 +129,27 @@ public final class McpClientRegistry {
             LOG.info("Connecting MCP client '{}' ({}, transport {})",
                     name, reason, settings.getTransport());
             McpSdkLogSilencer.ensureApplied();
-            McpSyncClient client = McpClientFactory.buildAndInitialize(settings);
+            McpSyncClient client = null;
+            try {
+                if (settings.getTransport() == TransportType.STDIO) {
+                    synchronized (STDIO_CONNECT_LOCK) {
+                        client = McpClientFactory.buildAndInitialize(settings);
+                    }
+                } else {
+                    client = McpClientFactory.buildAndInitialize(settings);
+                }
+            } catch (RuntimeException ex) {
+                if (client != null) {
+                    closeQuietly(client);
+                }
+                throw ex;
+            }
             if (!deferredSettings.containsKey(name)) {
                 closeQuietly(client);
                 return null;
             }
             clients.put(name, client);
+            pendingConnects.remove(name);
             return client;
         }
     }
@@ -150,12 +175,36 @@ public final class McpClientRegistry {
         try {
             client.closeGracefully();
         } catch (RuntimeException ex) {
-            LOG.warn("Error while closing MCP client gracefully", ex);
+            if (isExpectedShutdownFailure(ex)) {
+                LOG.debug("MCP client graceful close failed during shutdown (server may be gone): {}",
+                        ex.getMessage());
+            } else {
+                LOG.warn("Error while closing MCP client gracefully", ex);
+            }
             try {
                 client.close();
             } catch (RuntimeException ignored) {
                 // best effort
             }
         }
+    }
+
+    private static boolean isExpectedShutdownFailure(Throwable ex) {
+        for (Throwable t = ex; t != null; t = t.getCause()) {
+            if (t instanceof java.net.ConnectException
+                    || t instanceof java.nio.channels.ClosedChannelException) {
+                return true;
+            }
+            if (t instanceof java.io.IOException) {
+                String msg = t.getMessage();
+                if (msg != null && (msg.contains("header parser received no bytes")
+                        || msg.contains("Connection reset")
+                        || msg.contains("EOF reached while reading")
+                        || msg.contains("chunked transfer encoding"))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

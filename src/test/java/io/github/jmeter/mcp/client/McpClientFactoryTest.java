@@ -30,6 +30,12 @@ class McpClientFactoryTest {
     }
 
     @Test
+    void trimsTrailingWhitespaceInArgs() {
+        assertEquals(List.of("--mcp"),
+                McpClientFactory.splitArgs("--mcp "));
+    }
+
+    @Test
     void parsesEnvLines() {
         Map<String, String> env = McpClientFactory.parseEnv(
                 "FOO=bar\n# comment\nBAZ = qux\n\nEMPTY=");
@@ -58,5 +64,14 @@ class McpClientFactoryTest {
     void transportFromStringRejectsGarbage() {
         assertThrows(IllegalArgumentException.class,
                 () -> TransportType.fromString("websocket"));
+    }
+
+    @Test
+    void stdioRejectsBlankCommandAfterTrim() {
+        McpClientSettings s = new McpClientSettings();
+        s.setTransport(TransportType.STDIO);
+        s.setStdioCommand("   ");
+        assertThrows(IllegalArgumentException.class,
+                () -> McpClientFactory.buildAndInitialize(s));
     }
 }

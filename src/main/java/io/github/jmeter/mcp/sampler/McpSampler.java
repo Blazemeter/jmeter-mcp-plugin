@@ -49,16 +49,24 @@ public class McpSampler extends AbstractSampler {
         result.setSamplerData(samplerData(configName, operation));
         result.setDataType(SampleResult.TEXT);
         result.setContentType(CONTENT_TYPE_JSON);
-        result.sampleStart();
 
         try {
+            long connectStart = System.currentTimeMillis();
             McpSyncClient client = McpClientRegistry.getInstance().getOrConnect(configName);
+            long connectElapsed = System.currentTimeMillis() - connectStart;
+            if (connectElapsed > 0) {
+                result.setConnectTime(connectElapsed);
+            }
             if (client == null) {
                 throw new IllegalStateException(
                         "No MCP client settings for '" + configName
                                 + "'. Add an 'MCP Client Config' element whose Variable Name "
                                 + "matches this sampler's Client Config field.");
             }
+
+            // Timers start after the client is ready so connect + initialize (including
+            // background "connect on test start") are not counted as sample latency.
+            result.sampleStart();
 
             Object operationResult = invoke(client, operation);
             String responseBody = toPrettyJson(operationResult);

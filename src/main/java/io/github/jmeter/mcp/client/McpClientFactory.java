@@ -68,8 +68,8 @@ public final class McpClientFactory {
     }
 
     private static McpClientTransport buildStdio(McpClientSettings s) {
-        String command = s.getStdioCommand();
-        if (command == null || command.isBlank()) {
+        String command = s.getStdioCommand() == null ? "" : s.getStdioCommand().trim();
+        if (command.isBlank()) {
             throw new IllegalArgumentException(
                     "MCP STDIO transport requires a command (e.g. 'npx' or '/usr/local/bin/node')");
         }
@@ -121,7 +121,7 @@ public final class McpClientFactory {
         return url;
     }
 
-    static List<String> splitArgs(String raw) {
+    public static List<String> splitArgs(String raw) {
         if (raw == null || raw.isBlank()) {
             return List.of();
         }
@@ -146,12 +146,12 @@ public final class McpClientFactory {
             }
         }
         if (current.length() > 0) {
-            tokens.add(current.toString());
+            tokens.add(current.toString().trim());
         }
-        return tokens;
+        return tokens.stream().filter(t -> !t.isEmpty()).toList();
     }
 
-    static Map<String, String> parseEnv(String raw) {
+    public static Map<String, String> parseEnv(String raw) {
         if (raw == null || raw.isBlank()) {
             return Map.of();
         }

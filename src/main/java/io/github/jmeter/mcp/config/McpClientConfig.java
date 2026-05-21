@@ -3,6 +3,7 @@ package io.github.jmeter.mcp.config;
 import io.github.jmeter.mcp.client.McpClientRegistry;
 import io.github.jmeter.mcp.client.McpClientSettings;
 import io.github.jmeter.mcp.client.TransportType;
+import io.github.jmeter.mcp.server.McpServerProcessManager;
 import org.apache.jmeter.config.ConfigElement;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.testelement.TestStateListener;
@@ -47,8 +48,8 @@ public class McpClientConfig extends ConfigTestElement
                 TransportType.STDIO.name())));
         s.setServerUrl(getPropertyAsString(SERVER_URL, ""));
         s.setEndpoint(getPropertyAsString(ENDPOINT, ""));
-        s.setStdioCommand(getPropertyAsString(STDIO_COMMAND, ""));
-        s.setStdioArgs(getPropertyAsString(STDIO_ARGS, ""));
+        s.setStdioCommand(trimProperty(STDIO_COMMAND, ""));
+        s.setStdioArgs(trimProperty(STDIO_ARGS, ""));
         s.setStdioEnv(getPropertyAsString(STDIO_ENV, ""));
         s.setClientName(getPropertyAsString(CLIENT_NAME, "jmeter-mcp-plugin"));
         s.setClientVersion(getPropertyAsString(CLIENT_VERSION, "0.1.0"));
@@ -109,8 +110,18 @@ public class McpClientConfig extends ConfigTestElement
     }
 
     private void stopClient() {
-        String registryName = getPropertyAsString(NAME, "mcpClient");
+        McpClientSettings settings = toSettings();
+        String registryName = settings.getName();
         LOG.info("Stopping MCP client '{}'", registryName);
         McpClientRegistry.getInstance().remove(registryName);
+        if (settings.getTransport() != TransportType.STDIO
+                && McpServerProcessManager.getInstance().isManagedProcessRunning()) {
+            McpServerProcessManager.getInstance().stopManagedProcessNow();
+        }
+    }
+
+    private String trimProperty(String key, String fallback) {
+        String value = getPropertyAsString(key, fallback);
+        return value == null ? fallback : value.trim();
     }
 }
