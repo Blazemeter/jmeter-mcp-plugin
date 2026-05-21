@@ -57,9 +57,7 @@ public final class McpClientRegistry {
      * happens on the first {@link #getOrConnect(String)} call.
      */
     public void registerDeferred(String name, McpClientSettings settings) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("MCP client name must not be empty");
-        }
+        requireClientName(name);
         deferredSettings.put(name, settings);
     }
 
@@ -68,6 +66,7 @@ public final class McpClientRegistry {
      * block {@code testStarted()}.
      */
     public void connectOnStartup(String name, McpClientSettings settings) {
+        requireClientName(name);
         McpClientSettings previous = deferredSettings.put(name, settings);
         if (previous != null) {
             LOG.warn("MCP client '{}' settings replaced (was transport {}, now {})",
@@ -186,6 +185,12 @@ public final class McpClientRegistry {
             } catch (RuntimeException ignored) {
                 // best effort
             }
+        }
+    }
+
+    private static void requireClientName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("MCP client name must not be empty");
         }
     }
 

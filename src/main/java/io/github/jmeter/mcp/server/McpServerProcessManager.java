@@ -34,7 +34,7 @@ public final class McpServerProcessManager {
             });
 
     /** Fallback delay when no MCP Client Config stops the managed process. */
-    static final long DEFERRED_STOP_FALLBACK_MS = 500;
+    public static final long DEFERRED_STOP_FALLBACK_MS = 500;
 
     private volatile Process process;
     private volatile ScheduledFuture<?> deferredStop;
@@ -95,8 +95,7 @@ public final class McpServerProcessManager {
 
     /**
      * Schedule process stop after {@code delayMs}. Used from {@code testEnded()} when listener
-     * order may stop the server before HTTP clients close; cancelled by
-     * {@link #stopManagedProcessNow()}.
+     * order may run before HTTP clients close; cancelled when {@link #stop()} runs.
      */
     public void scheduleDeferredStop(long delayMs) {
         if (process == null) {
@@ -109,12 +108,6 @@ public final class McpServerProcessManager {
                 stop();
             }
         }, delayMs, TimeUnit.MILLISECONDS);
-    }
-
-    /** Stop the managed subprocess immediately (after MCP clients have closed). */
-    public void stopManagedProcessNow() {
-        cancelDeferredStop();
-        stop();
     }
 
     private void cancelDeferredStop() {

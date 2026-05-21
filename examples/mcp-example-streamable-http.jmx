@@ -19,6 +19,8 @@ See also: mcp-example.jmx (STDIO), mcp-example-sse.jmx.</stringProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
     </TestPlan>
     <hashTree>
       <io.github.jmeter.mcp.server.McpServerProcess guiclass="io.github.jmeter.mcp.server.gui.McpServerProcessGui" testclass="io.github.jmeter.mcp.server.McpServerProcess" testname="MCP Server (Streamable HTTP)">
@@ -30,7 +32,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-sse.jmx.</stringProp>
         <longProp name="McpServerProcess.startupWaitMs">60000</longProp>
       </io.github.jmeter.mcp.server.McpServerProcess>
       <hashTree/>
-      <io.github.jmeter.mcp.config.McpClientConfig guiclass="io.github.jmeter.mcp.config.gui.McpClientConfigGui" testclass="io.github.jmeter.mcp.config.McpClientConfig" testname="MCP Client Config (Streamable HTTP)" enabled="true">
+      <io.github.jmeter.mcp.config.McpClientConfig guiclass="io.github.jmeter.mcp.config.gui.McpClientConfigGui" testclass="io.github.jmeter.mcp.config.McpClientConfig" testname="MCP Client Config (Streamable HTTP)">
         <stringProp name="McpClientConfig.name">mcpClient</stringProp>
         <stringProp name="McpClientConfig.transport">STREAMABLE_HTTP</stringProp>
         <stringProp name="McpClientConfig.serverUrl">http://localhost:3001</stringProp>
@@ -45,7 +47,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-sse.jmx.</stringProp>
         <boolProp name="McpClientConfig.connectOnStartup">true</boolProp>
       </io.github.jmeter.mcp.config.McpClientConfig>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group" enabled="true">
         <intProp name="ThreadGroup.num_threads">10</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>

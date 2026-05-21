@@ -14,6 +14,7 @@ import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTranspor
 import io.modelcontextprotocol.client.transport.ServerParameters;
 import io.modelcontextprotocol.client.transport.StdioClientTransport;
 import io.modelcontextprotocol.json.McpJsonMapper;
+import io.github.jmeter.mcp.util.Strings;
 import io.modelcontextprotocol.spec.McpClientTransport;
 import io.modelcontextprotocol.spec.McpSchema;
 
@@ -40,8 +41,8 @@ public final class McpClientFactory {
         McpClientTransport transport = buildTransport(settings);
 
         McpSchema.Implementation clientInfo = new McpSchema.Implementation(
-                blankToDefault(settings.getClientName(), "jmeter-mcp-plugin"),
-                blankToDefault(settings.getClientVersion(), "0.1.0"));
+                Strings.blankToDefault(settings.getClientName(), "jmeter-mcp-plugin"),
+                Strings.blankToDefault(settings.getClientVersion(), "0.1.0"));
 
         McpSyncClient client = McpClient.sync(transport)
                 .clientInfo(clientInfo)
@@ -172,9 +173,5 @@ public final class McpClientFactory {
             }
         }
         return env;
-    }
-
-    private static String blankToDefault(String value, String fallback) {
-        return (value == null || value.isBlank()) ? fallback : value;
     }
 }

@@ -1,6 +1,8 @@
 package io.github.jmeter.mcp.sampler;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -257,10 +259,8 @@ public class McpSampler extends AbstractSampler {
     }
 
     private static String stackTrace(Throwable t) {
-        java.io.StringWriter sw = new java.io.StringWriter();
-        try (java.io.PrintWriter pw = new java.io.PrintWriter(sw)) {
-            t.printStackTrace(pw);
-        }
+        StringWriter sw = new StringWriter();
+        t.printStackTrace(new PrintWriter(sw));
         return sw.toString();
     }
 }

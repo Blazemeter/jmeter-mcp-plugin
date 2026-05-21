@@ -32,7 +32,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-streamable-http.jmx.</stringProp>
         <longProp name="McpServerProcess.startupWaitMs">60000</longProp>
       </io.github.jmeter.mcp.server.McpServerProcess>
       <hashTree/>
-      <io.github.jmeter.mcp.config.McpClientConfig guiclass="io.github.jmeter.mcp.config.gui.McpClientConfigGui" testclass="io.github.jmeter.mcp.config.McpClientConfig" testname="MCP Client Config (SSE)" enabled="true">
+      <io.github.jmeter.mcp.config.McpClientConfig guiclass="io.github.jmeter.mcp.config.gui.McpClientConfigGui" testclass="io.github.jmeter.mcp.config.McpClientConfig" testname="MCP Client Config (SSE)">
         <stringProp name="McpClientConfig.name">mcpClient</stringProp>
         <stringProp name="McpClientConfig.transport">SSE</stringProp>
         <stringProp name="McpClientConfig.serverUrl">http://localhost:3001</stringProp>
@@ -44,7 +44,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-streamable-http.jmx.</stringProp>
         <stringProp name="McpClientConfig.clientVersion">0.1.0</stringProp>
         <longProp name="McpClientConfig.requestTimeoutMs">30000</longProp>
         <longProp name="McpClientConfig.initTimeoutMs">30000</longProp>
-        <boolProp name="McpClientConfig.connectOnStartup">true</boolProp>
+        <boolProp name="McpClientConfig.connectOnStartup">false</boolProp>
       </io.github.jmeter.mcp.config.McpClientConfig>
       <hashTree/>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group" enabled="true">
@@ -76,7 +76,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-streamable-http.jmx.</stringProp>
           <stringProp name="McpSampler.promptName"></stringProp>
         </io.github.jmeter.mcp.sampler.McpSampler>
         <hashTree/>
-        <io.github.jmeter.mcp.sampler.McpSampler guiclass="io.github.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="io.github.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)" enabled="true">
+        <io.github.jmeter.mcp.sampler.McpSampler guiclass="io.github.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="io.github.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">CALL_TOOL</stringProp>
           <stringProp name="McpSampler.toolName">echo</stringProp>
@@ -85,7 +85,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-streamable-http.jmx.</stringProp>
           <stringProp name="McpSampler.promptName"></stringProp>
         </io.github.jmeter.mcp.sampler.McpSampler>
         <hashTree/>
-        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>

@@ -4,12 +4,9 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Insets;
-
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -17,6 +14,8 @@ import javax.swing.JTextField;
 
 import io.github.jmeter.mcp.client.TransportType;
 import io.github.jmeter.mcp.config.McpClientConfig;
+import io.github.jmeter.mcp.gui.GridBagForm;
+import io.github.jmeter.mcp.util.Strings;
 import org.apache.jmeter.config.gui.AbstractConfigGui;
 import org.apache.jmeter.testelement.TestElement;
 
@@ -89,11 +88,11 @@ public class McpClientConfigGui extends AbstractConfigGui {
     private JPanel buildCommonPanel() {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBorder(BorderFactory.createTitledBorder("Connection"));
-        GridBagConstraints c = baseConstraints();
+        GridBagConstraints c = GridBagForm.horizontalRowConstraints();
 
-        addRow(p, c, 0, "Variable Name:", nameField);
-        addRow(p, c, 1, "Transport:", transportCombo);
-        addRow(p, c, 2, "", connectOnStartupCheck);
+        GridBagForm.addLabelAndField(p, c, 0, "Variable Name:", nameField);
+        GridBagForm.addLabelAndField(p, c, 1, "Transport:", transportCombo);
+        GridBagForm.addLabelAndField(p, c, 2, "", connectOnStartupCheck);
         return p;
     }
 
@@ -108,31 +107,31 @@ public class McpClientConfigGui extends AbstractConfigGui {
 
     private JPanel buildHttpPanel(boolean streamable) {
         JPanel p = new JPanel(new GridBagLayout());
-        GridBagConstraints c = baseConstraints();
-        addRow(p, c, 0, "Server URL:", serverUrlField);
-        addRow(p, c, 1, streamable ? "Endpoint (default /mcp):" : "SSE Endpoint:",
+        GridBagConstraints c = GridBagForm.horizontalRowConstraints();
+        GridBagForm.addLabelAndField(p, c, 0, "Server URL:", serverUrlField);
+        GridBagForm.addLabelAndField(p, c, 1, streamable ? "Endpoint (default /mcp):" : "SSE Endpoint:",
                 endpointField);
         return p;
     }
 
     private JPanel buildStdioPanel() {
         JPanel p = new JPanel(new GridBagLayout());
-        GridBagConstraints c = baseConstraints();
-        addRow(p, c, 0, "Command:", stdioCommandField);
-        addRow(p, c, 1, "Args (space separated):", stdioArgsField);
+        GridBagConstraints c = GridBagForm.horizontalRowConstraints();
+        GridBagForm.addLabelAndField(p, c, 0, "Command:", stdioCommandField);
+        GridBagForm.addLabelAndField(p, c, 1, "Args (space separated):", stdioArgsField);
         stdioEnvArea.setLineWrap(false);
-        addRow(p, c, 2, "Env (KEY=value per line):", new JScrollPane(stdioEnvArea));
+        GridBagForm.addLabelAndField(p, c, 2, "Env (KEY=value per line):", new JScrollPane(stdioEnvArea));
         return p;
     }
 
     private JPanel buildAdvancedPanel() {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBorder(BorderFactory.createTitledBorder("Client Identity & Timeouts"));
-        GridBagConstraints c = baseConstraints();
-        addRow(p, c, 0, "Client Name:", clientNameField);
-        addRow(p, c, 1, "Client Version:", clientVersionField);
-        addRow(p, c, 2, "Request Timeout (ms):", requestTimeoutField);
-        addRow(p, c, 3, "Init Timeout (ms):", initTimeoutField);
+        GridBagConstraints c = GridBagForm.horizontalRowConstraints();
+        GridBagForm.addLabelAndField(p, c, 0, "Client Name:", clientNameField);
+        GridBagForm.addLabelAndField(p, c, 1, "Client Version:", clientVersionField);
+        GridBagForm.addLabelAndField(p, c, 2, "Request Timeout (ms):", requestTimeoutField);
+        GridBagForm.addLabelAndField(p, c, 3, "Init Timeout (ms):", initTimeoutField);
         return p;
     }
 
@@ -155,25 +154,6 @@ public class McpClientConfigGui extends AbstractConfigGui {
         }
     }
 
-    private GridBagConstraints baseConstraints() {
-        GridBagConstraints c = new GridBagConstraints();
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = new Insets(2, 4, 2, 4);
-        c.weightx = 1;
-        return c;
-    }
-
-    private void addRow(JPanel panel, GridBagConstraints c, int row, String label,
-                        java.awt.Component field) {
-        c.gridy = row;
-        c.gridx = 0;
-        c.weightx = 0;
-        panel.add(new JLabel(label), c);
-        c.gridx = 1;
-        c.weightx = 1;
-        panel.add(field, c);
-    }
-
     @Override
     public TestElement createTestElement() {
         McpClientConfig config = new McpClientConfig();
@@ -188,7 +168,7 @@ public class McpClientConfigGui extends AbstractConfigGui {
             return;
         }
         McpClientConfig cfg = (McpClientConfig) element;
-        cfg.setProperty(McpClientConfig.NAME, trimmed(nameField.getText(), "mcpClient"));
+        cfg.setProperty(McpClientConfig.NAME, Strings.trimToDefault(nameField.getText(), "mcpClient"));
 
         TransportType selected = (TransportType) transportCombo.getSelectedItem();
         cfg.setProperty(McpClientConfig.TRANSPORT,
@@ -201,13 +181,13 @@ public class McpClientConfigGui extends AbstractConfigGui {
         cfg.setProperty(McpClientConfig.STDIO_ENV, stdioEnvArea.getText());
 
         cfg.setProperty(McpClientConfig.CLIENT_NAME,
-                trimmed(clientNameField.getText(), "jmeter-mcp-plugin"));
+                Strings.trimToDefault(clientNameField.getText(), "jmeter-mcp-plugin"));
         cfg.setProperty(McpClientConfig.CLIENT_VERSION,
-                trimmed(clientVersionField.getText(), "0.1.0"));
+                Strings.trimToDefault(clientVersionField.getText(), "0.1.0"));
         cfg.setProperty(McpClientConfig.REQUEST_TIMEOUT_MS,
-                parseLongOrDefault(requestTimeoutField.getText(), 30_000L));
+                GridBagForm.parseLong(requestTimeoutField.getText(), 30_000L));
         cfg.setProperty(McpClientConfig.INIT_TIMEOUT_MS,
-                parseLongOrDefault(initTimeoutField.getText(), 30_000L));
+                GridBagForm.parseLong(initTimeoutField.getText(), 30_000L));
         cfg.setProperty(McpClientConfig.CONNECT_ON_STARTUP, connectOnStartupCheck.isSelected());
     }
 
@@ -256,21 +236,5 @@ public class McpClientConfigGui extends AbstractConfigGui {
         initTimeoutField.setText("30000");
         connectOnStartupCheck.setSelected(false);
         showSelectedTransport();
-    }
-
-    private static String trimmed(String value, String fallback) {
-        if (value == null) {
-            return fallback;
-        }
-        String t = value.trim();
-        return t.isEmpty() ? fallback : t;
-    }
-
-    private static long parseLongOrDefault(String value, long fallback) {
-        try {
-            return Long.parseLong(value.trim());
-        } catch (NumberFormatException | NullPointerException ex) {
-            return fallback;
-        }
     }
 }

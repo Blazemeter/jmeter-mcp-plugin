@@ -4,6 +4,7 @@ import io.github.jmeter.mcp.client.McpClientRegistry;
 import io.github.jmeter.mcp.client.McpClientSettings;
 import io.github.jmeter.mcp.client.TransportType;
 import io.github.jmeter.mcp.server.McpServerProcessManager;
+import io.github.jmeter.mcp.util.Strings;
 import org.apache.jmeter.config.ConfigElement;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.testelement.TestStateListener;
@@ -48,8 +49,8 @@ public class McpClientConfig extends ConfigTestElement
                 TransportType.STDIO.name())));
         s.setServerUrl(getPropertyAsString(SERVER_URL, ""));
         s.setEndpoint(getPropertyAsString(ENDPOINT, ""));
-        s.setStdioCommand(trimProperty(STDIO_COMMAND, ""));
-        s.setStdioArgs(trimProperty(STDIO_ARGS, ""));
+        s.setStdioCommand(Strings.trimToDefault(getPropertyAsString(STDIO_COMMAND, ""), ""));
+        s.setStdioArgs(Strings.trimToDefault(getPropertyAsString(STDIO_ARGS, ""), ""));
         s.setStdioEnv(getPropertyAsString(STDIO_ENV, ""));
         s.setClientName(getPropertyAsString(CLIENT_NAME, "jmeter-mcp-plugin"));
         s.setClientVersion(getPropertyAsString(CLIENT_VERSION, "0.1.0"));
@@ -114,14 +115,16 @@ public class McpClientConfig extends ConfigTestElement
         String registryName = settings.getName();
         LOG.info("Stopping MCP client '{}'", registryName);
         McpClientRegistry.getInstance().remove(registryName);
-        if (settings.getTransport() != TransportType.STDIO
-                && McpServerProcessManager.getInstance().isManagedProcessRunning()) {
-            McpServerProcessManager.getInstance().stopManagedProcessNow();
-        }
+        stopManagedServerIfNeeded(settings);
     }
 
-    private String trimProperty(String key, String fallback) {
-        String value = getPropertyAsString(key, fallback);
-        return value == null ? fallback : value.trim();
+    private static void stopManagedServerIfNeeded(McpClientSettings settings) {
+        if (settings.getTransport() == TransportType.STDIO) {
+            return;
+        }
+        McpServerProcessManager manager = McpServerProcessManager.getInstance();
+        if (manager.isManagedProcessRunning()) {
+            manager.stop();
+        }
     }
 }

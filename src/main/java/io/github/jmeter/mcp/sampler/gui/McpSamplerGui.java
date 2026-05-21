@@ -4,16 +4,14 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Insets;
-
 import javax.swing.BorderFactory;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import io.github.jmeter.mcp.gui.GridBagForm;
 import io.github.jmeter.mcp.sampler.McpOperation;
 import io.github.jmeter.mcp.sampler.McpSampler;
 import org.apache.jmeter.gui.util.JSyntaxTextArea;
@@ -82,9 +80,9 @@ public class McpSamplerGui extends AbstractSamplerGui {
     private JPanel buildHeader() {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBorder(BorderFactory.createTitledBorder("MCP Operation"));
-        GridBagConstraints c = baseConstraints();
-        addRow(p, c, 0, "Client Config (Variable Name):", configNameField);
-        addRow(p, c, 1, "Operation:", operationCombo);
+        GridBagConstraints c = GridBagForm.horizontalRowConstraints();
+        GridBagForm.addLabelAndField(p, c, 0, "Client Config (Variable Name):", configNameField);
+        GridBagForm.addLabelAndField(p, c, 1, "Operation:", operationCombo);
         return p;
     }
 
@@ -95,18 +93,18 @@ public class McpSamplerGui extends AbstractSamplerGui {
         cards.add(infoCard("No parameters required for this operation."), CARD_EMPTY);
 
         JPanel tool = new JPanel(new GridBagLayout());
-        GridBagConstraints tc = baseConstraints();
-        addRow(tool, tc, 0, "Tool Name:", toolNameField);
+        GridBagConstraints tc = GridBagForm.horizontalRowConstraints();
+        GridBagForm.addLabelAndField(tool, tc, 0, "Tool Name:", toolNameField);
         cards.add(tool, CARD_TOOL);
 
         JPanel resource = new JPanel(new GridBagLayout());
-        GridBagConstraints rc = baseConstraints();
-        addRow(resource, rc, 0, "Resource URI:", resourceUriField);
+        GridBagConstraints rc = GridBagForm.horizontalRowConstraints();
+        GridBagForm.addLabelAndField(resource, rc, 0, "Resource URI:", resourceUriField);
         cards.add(resource, CARD_RESOURCE);
 
         JPanel prompt = new JPanel(new GridBagLayout());
-        GridBagConstraints pc = baseConstraints();
-        addRow(prompt, pc, 0, "Prompt Name:", promptNameField);
+        GridBagConstraints pc = GridBagForm.horizontalRowConstraints();
+        GridBagForm.addLabelAndField(prompt, pc, 0, "Prompt Name:", promptNameField);
         cards.add(prompt, CARD_PROMPT);
 
         return cards;
@@ -151,25 +149,6 @@ public class McpSamplerGui extends AbstractSamplerGui {
                 cardLayout.show(cards, CARD_EMPTY);
                 break;
         }
-    }
-
-    private GridBagConstraints baseConstraints() {
-        GridBagConstraints c = new GridBagConstraints();
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = new Insets(2, 4, 2, 4);
-        c.weightx = 1;
-        return c;
-    }
-
-    private void addRow(JPanel panel, GridBagConstraints c, int row, String label,
-                        java.awt.Component field) {
-        c.gridy = row;
-        c.gridx = 0;
-        c.weightx = 0;
-        panel.add(new JLabel(label), c);
-        c.gridx = 1;
-        c.weightx = 1;
-        panel.add(field, c);
     }
 
     @Override

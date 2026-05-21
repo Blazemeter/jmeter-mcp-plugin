@@ -15,9 +15,9 @@ class McpServerProcessManagerTest {
     }
 
     @Test
-    void stopManagedProcessNowIsIdempotentWhenNoProcess() {
+    void stopIsIdempotentWhenNoProcess() {
         McpServerProcessManager manager = McpServerProcessManager.getInstance();
-        manager.stopManagedProcessNow();
+        manager.stop();
         assertFalse(manager.isManagedProcessRunning());
     }
 }
