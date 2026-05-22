@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="MCP Example Test Plan" enabled="true">
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="MCP Example Test Plan">
       <stringProp name="TestPlan.comments">Example plan for the JMeter MCP plugin.
 
 Prerequisites:
@@ -17,13 +17,12 @@ http://localhost:8080), and point Command/Args at your running server.
 Open View Results Tree after a run: session metadata appears under Response
 headers (X-MCP-Operation, X-MCP-Session); operation output is the pretty-
 printed JSON response body.</stringProp>
-      <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
-      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
-      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
-      <stringProp name="TestPlan.user_define_classpath"></stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
     </TestPlan>
     <hashTree>
       <io.github.jmeter.mcp.config.McpClientConfig guiclass="io.github.jmeter.mcp.config.gui.McpClientConfigGui" testclass="io.github.jmeter.mcp.config.McpClientConfig" testname="MCP Client Config">
@@ -41,7 +40,7 @@ printed JSON response body.</stringProp>
         <boolProp name="McpClientConfig.connectOnStartup">true</boolProp>
       </io.github.jmeter.mcp.config.McpClientConfig>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group" enabled="true">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -52,7 +51,7 @@ printed JSON response body.</stringProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <io.github.jmeter.mcp.sampler.McpSampler guiclass="io.github.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="io.github.jmeter.mcp.sampler.McpSampler" testname="MCP Ping" enabled="true">
+        <io.github.jmeter.mcp.sampler.McpSampler guiclass="io.github.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="io.github.jmeter.mcp.sampler.McpSampler" testname="MCP Ping">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">PING</stringProp>
           <stringProp name="McpSampler.toolName"></stringProp>
@@ -60,7 +59,28 @@ printed JSON response body.</stringProp>
           <stringProp name="McpSampler.resourceUri"></stringProp>
           <stringProp name="McpSampler.promptName"></stringProp>
         </io.github.jmeter.mcp.sampler.McpSampler>
-        <hashTree/>
+        <hashTree>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert X-MCP-Operation PING" enabled="true">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="1596664407">X-MCP-Operation: PING</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.custom_message">Expected X-MCP-Operation: PING response header</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_headers</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">2</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert session initialized in headers">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="-1649488424">&quot;initialized&quot;:true</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.custom_message">Expected MCP session metadata in response headers (X-MCP-Session)</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_headers</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">2</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+        </hashTree>
         <io.github.jmeter.mcp.sampler.McpSampler guiclass="io.github.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="io.github.jmeter.mcp.sampler.McpSampler" testname="MCP List Tools" enabled="true">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">LIST_TOOLS</stringProp>
@@ -69,8 +89,37 @@ printed JSON response body.</stringProp>
           <stringProp name="McpSampler.resourceUri"></stringProp>
           <stringProp name="McpSampler.promptName"></stringProp>
         </io.github.jmeter.mcp.sampler.McpSampler>
-        <hashTree/>
-        <io.github.jmeter.mcp.sampler.McpSampler guiclass="io.github.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="io.github.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)" enabled="true">
+        <hashTree>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert X-MCP-Operation LIST_TOOLS" enabled="true">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="1605640191">X-MCP-Operation: LIST_TOOLS</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.custom_message">Expected X-MCP-Operation: LIST_TOOLS response header</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_headers</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">2</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Assert tools array in response">
+            <stringProp name="JSON_PATH">$.tools</stringProp>
+            <stringProp name="EXPECTED_VALUE"></stringProp>
+            <boolProp name="JSONVALIDATION">false</boolProp>
+            <boolProp name="EXPECT_NULL">false</boolProp>
+            <boolProp name="INVERT">false</boolProp>
+            <boolProp name="ISREGEX">false</boolProp>
+          </JSONPathAssertion>
+          <hashTree/>
+          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Assert echo tool present">
+            <stringProp name="JSON_PATH">$.tools[0].name</stringProp>
+            <stringProp name="EXPECTED_VALUE">echo</stringProp>
+            <boolProp name="JSONVALIDATION">true</boolProp>
+            <boolProp name="EXPECT_NULL">false</boolProp>
+            <boolProp name="INVERT">false</boolProp>
+            <boolProp name="ISREGEX">false</boolProp>
+          </JSONPathAssertion>
+          <hashTree/>
+        </hashTree>
+        <io.github.jmeter.mcp.sampler.McpSampler guiclass="io.github.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="io.github.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">CALL_TOOL</stringProp>
           <stringProp name="McpSampler.toolName">echo</stringProp>
@@ -78,8 +127,28 @@ printed JSON response body.</stringProp>
           <stringProp name="McpSampler.resourceUri"></stringProp>
           <stringProp name="McpSampler.promptName"></stringProp>
         </io.github.jmeter.mcp.sampler.McpSampler>
-        <hashTree/>
-        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
+        <hashTree>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert X-MCP-Operation CALL_TOOL">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="-2125493996">X-MCP-Operation: CALL_TOOL</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.custom_message">Expected X-MCP-Operation: CALL_TOOL response header</stringProp>
+            <stringProp name="Assertion.test_field">Assertion.response_headers</stringProp>
+            <boolProp name="Assertion.assume_success">false</boolProp>
+            <intProp name="Assertion.test_type">2</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Assert echo tool text">
+            <stringProp name="JSON_PATH">$.content[0].text</stringProp>
+            <stringProp name="EXPECTED_VALUE">Echo: hello from JMeter</stringProp>
+            <boolProp name="JSONVALIDATION">true</boolProp>
+            <boolProp name="EXPECT_NULL">false</boolProp>
+            <boolProp name="INVERT">false</boolProp>
+            <boolProp name="ISREGEX">false</boolProp>
+          </JSONPathAssertion>
+          <hashTree/>
+        </hashTree>
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>
