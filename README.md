@@ -8,8 +8,8 @@ The plugin ships two JMeter components:
 
 | Component | JMeter category | Purpose |
 | --- | --- | --- |
-| **MCP Client Config** | Config Element | Builds and shares a single `McpSyncClient` for the test run. Supports STDIO, SSE, and Streamable HTTP transports. |
-| **MCP Sampler** | Sampler | Invokes operations (`ping`, `listTools`, `callTool`, `listResources`, `readResource`, `listPrompts`, `getPrompt`) against the shared client and records JMeter sample results. |
+| **bzm - MCP Client Config** | Config Element | Builds and shares a single `McpSyncClient` for the test run. Supports STDIO, SSE, and Streamable HTTP transports. |
+| **bzm - MCP Sampler** | Sampler | Invokes operations (`ping`, `listTools`, `callTool`, `listResources`, `readResource`, `listPrompts`, `getPrompt`) against the shared client and records JMeter sample results. |
 
 ## Requirements
 
@@ -43,13 +43,13 @@ cp target/jmeter-mcp-plugin-${project.version}.jar "$JMETER_HOME/lib/ext/"
 
 Restart JMeter. You should see:
 
-- **Config Element → MCP Client Config**
-- **Config Element → MCP Server Process** (spawn HTTP/SSE servers from the test plan)
-- **Sampler → MCP Sampler**
+- **Config Element → bzm - MCP Client Config**
+- **Config Element → bzm - MCP Server Process** (spawn HTTP/SSE servers from the test plan)
+- **Sampler → bzm - MCP Sampler**
 
 ## Usage
 
-1. Add an **MCP Client Config** to your test plan and configure it:
+1. Add a **bzm - MCP Client Config** to your test plan and configure it:
    - **Variable Name** — logical key used by samplers to look up this client.
    - **Transport** — defaults to `STDIO`; also supports `STREAMABLE_HTTP` and `SSE`.
    - For STDIO (default), fill in **Command**, **Args**, and (optionally) **Env**.
@@ -61,7 +61,7 @@ Restart JMeter. You should see:
      first sampler that references the same Variable Name.
    - Tweak request / initialization timeouts and client identity as needed.
 
-2. Add a **Thread Group** and inside it add one or more **MCP Sampler**
+2. Add a **Thread Group** and inside it add one or more **bzm - MCP Sampler**
    elements.
    - Set **Client Config (Variable Name)** to the same value used above
      (e.g. `mcpClient`).
@@ -90,15 +90,15 @@ Working examples are provided under `examples/`:
 | File | Transport | How to run the demo server |
 | --- | --- | --- |
 | [`mcp-example.jmx`](examples/mcp-example.jmx) | STDIO (default) | `npx -y @modelcontextprotocol/server-everything` |
-| [`mcp-example-sse.jmx`](examples/mcp-example-sse.jmx) | SSE | Started in-plan by **MCP Server Process** (or run `npx … sse` manually) |
-| [`mcp-example-streamable-http.jmx`](examples/mcp-example-streamable-http.jmx) | Streamable HTTP | Started in-plan by **MCP Server Process** (or run `npx … streamableHttp` manually) |
+| [`mcp-example-sse.jmx`](examples/mcp-example-sse.jmx) | SSE | Started in-plan by **bzm - MCP Server Process** (or run `npx … sse` manually) |
+| [`mcp-example-streamable-http.jmx`](examples/mcp-example-streamable-http.jmx) | Streamable HTTP | Started in-plan by **bzm - MCP Server Process** (or run `npx … streamableHttp` manually) |
 
 The HTTP examples target `http://localhost:3001` (the default port for
-`server-everything`; set `PORT` in **MCP Server Process → Env** if you use another).
+`server-everything`; set `PORT` in **bzm - MCP Server Process → Env** if you use another).
 
-For SSE or Streamable HTTP, add **MCP Server Process** *above* **MCP Client Config**
+For SSE or Streamable HTTP, add **bzm - MCP Server Process** *above* **bzm - MCP Client Config**
 in the test plan. It runs `npx -y @modelcontextprotocol/server-everything sse` (or
-`streamableHttp`) and waits for the listen port. Do **not** use **MCP Client Config**
+`streamableHttp`) and waits for the listen port. Do **not** use **bzm - MCP Client Config**
 with STDIO to launch those servers — STDIO is an MCP client transport, not a generic
 process launcher; `server-everything sse` speaks HTTP, not stdin/stdout MCP.
 
@@ -110,7 +110,7 @@ process launcher; `server-everything sse` speaks HTTP, not stdin/stdout MCP.
   schedules connect + `initialize()` on a background thread during
   `testStarted()` so the engine thread is not blocked. Samplers wait for that
   connect to finish if it is still in progress. When disabled, the **first**
-  `MCP Sampler` that references the same **Variable Name** performs connect +
+  **bzm - MCP Sampler** that references the same **Variable Name** performs connect +
   init. Later samples reuse the same client. The client is thread-safe across
   JMeter threads.
 - **Sample elapsed time** measures only the MCP operation (e.g. `PING`,
@@ -121,11 +121,11 @@ process launcher; `server-everything sse` speaks HTTP, not stdin/stdout MCP.
   activate immediately instead of waiting for a slow STDIO `initialize()` on
   the engine thread.
 - On `testEnded()` the Config Element triggers `closeGracefully()` via the
-  registry and clears deferred settings for that name. When **MCP Server Process**
+  registry and clears deferred settings for that name. When **bzm - MCP Server Process**
   started the HTTP/SSE server, the client config stops that subprocess *after*
   the client closes (JMeter listener order is not guaranteed).
 
-## MCP Client Config parameters
+## bzm - MCP Client Config parameters
 
 | Parameter | Default | Applies to | Description |
 | --- | --- | --- | --- |
@@ -142,11 +142,11 @@ process launcher; `server-everything sse` speaks HTTP, not stdin/stdout MCP.
 | **Request Timeout (ms)** | `30000` | All | Per-request timeout for MCP RPCs and HTTP connect timeout. |
 | **Init Timeout (ms)** | `30000` | All | Maximum time allowed for the `initialize` handshake. |
 
-## MCP Sampler parameters
+## bzm - MCP Sampler parameters
 
 | Parameter | Default | Used when | Description |
 | --- | --- | --- | --- |
-| **Client Config (Variable Name)** | `mcpClient` | All | Must match the **Variable Name** on an **MCP Client Config** element in the test plan. |
+| **Client Config (Variable Name)** | `mcpClient` | All | Must match the **Variable Name** on a **bzm - MCP Client Config** element in the test plan. |
 | **Operation** | `PING` | All | MCP call to execute. See table below. |
 | **Tool Name** | *(empty)* | `CALL_TOOL` | Name of the tool to invoke. Required for `CALL_TOOL`. |
 | **Resource URI** | *(empty)* | `READ_RESOURCE` | URI of the resource to read. Required for `READ_RESOURCE`. |

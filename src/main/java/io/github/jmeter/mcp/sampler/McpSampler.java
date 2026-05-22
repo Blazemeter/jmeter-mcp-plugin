@@ -62,7 +62,7 @@ public class McpSampler extends AbstractSampler {
             if (client == null) {
                 throw new IllegalStateException(
                         "No MCP client settings for '" + configName
-                                + "'. Add an 'MCP Client Config' element whose Variable Name "
+                                + "'. Add a 'bzm - MCP Client Config' element whose Variable Name "
                                 + "matches this sampler's Client Config field.");
             }
 

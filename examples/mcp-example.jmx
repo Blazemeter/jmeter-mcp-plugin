@@ -21,8 +21,6 @@ printed JSON response body.</stringProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
-      <boolProp name="TestPlan.functional_mode">false</boolProp>
-      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
     </TestPlan>
     <hashTree>
       <io.github.jmeter.mcp.config.McpClientConfig guiclass="io.github.jmeter.mcp.config.gui.McpClientConfigGui" testclass="io.github.jmeter.mcp.config.McpClientConfig" testname="MCP Client Config">
@@ -40,7 +38,7 @@ printed JSON response body.</stringProp>
         <boolProp name="McpClientConfig.connectOnStartup">true</boolProp>
       </io.github.jmeter.mcp.config.McpClientConfig>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -70,7 +68,7 @@ printed JSON response body.</stringProp>
             <intProp name="Assertion.test_type">2</intProp>
           </ResponseAssertion>
           <hashTree/>
-          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert session initialized in headers">
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert session initialized in headers" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="-1649488424">&quot;initialized&quot;:true</stringProp>
             </collectionProp>
@@ -100,7 +98,7 @@ printed JSON response body.</stringProp>
             <intProp name="Assertion.test_type">2</intProp>
           </ResponseAssertion>
           <hashTree/>
-          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Assert tools array in response">
+          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Assert tools array in response" enabled="true">
             <stringProp name="JSON_PATH">$.tools</stringProp>
             <stringProp name="EXPECTED_VALUE"></stringProp>
             <boolProp name="JSONVALIDATION">false</boolProp>
@@ -109,7 +107,7 @@ printed JSON response body.</stringProp>
             <boolProp name="ISREGEX">false</boolProp>
           </JSONPathAssertion>
           <hashTree/>
-          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Assert echo tool present">
+          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Assert echo tool present" enabled="true">
             <stringProp name="JSON_PATH">$.tools[0].name</stringProp>
             <stringProp name="EXPECTED_VALUE">echo</stringProp>
             <boolProp name="JSONVALIDATION">true</boolProp>
@@ -119,7 +117,7 @@ printed JSON response body.</stringProp>
           </JSONPathAssertion>
           <hashTree/>
         </hashTree>
-        <io.github.jmeter.mcp.sampler.McpSampler guiclass="io.github.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="io.github.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)">
+        <io.github.jmeter.mcp.sampler.McpSampler guiclass="io.github.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="io.github.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)" enabled="true">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">CALL_TOOL</stringProp>
           <stringProp name="McpSampler.toolName">echo</stringProp>
@@ -128,7 +126,7 @@ printed JSON response body.</stringProp>
           <stringProp name="McpSampler.promptName"></stringProp>
         </io.github.jmeter.mcp.sampler.McpSampler>
         <hashTree>
-          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert X-MCP-Operation CALL_TOOL">
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert X-MCP-Operation CALL_TOOL" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="-2125493996">X-MCP-Operation: CALL_TOOL</stringProp>
             </collectionProp>
@@ -138,7 +136,7 @@ printed JSON response body.</stringProp>
             <intProp name="Assertion.test_type">2</intProp>
           </ResponseAssertion>
           <hashTree/>
-          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Assert echo tool text">
+          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Assert echo tool text" enabled="true">
             <stringProp name="JSON_PATH">$.content[0].text</stringProp>
             <stringProp name="EXPECTED_VALUE">Echo: hello from JMeter</stringProp>
             <boolProp name="JSONVALIDATION">true</boolProp>
@@ -148,7 +146,7 @@ printed JSON response body.</stringProp>
           </JSONPathAssertion>
           <hashTree/>
         </hashTree>
-        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>

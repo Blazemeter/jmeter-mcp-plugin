@@ -53,7 +53,7 @@ public class McpSamplerGui extends AbstractSamplerGui {
 
     @Override
     public String getStaticLabel() {
-        return "MCP Sampler";
+        return "bzm - MCP Sampler";
     }
 
     @Override

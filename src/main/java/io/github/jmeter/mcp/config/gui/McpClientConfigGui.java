@@ -59,7 +59,7 @@ public class McpClientConfigGui extends AbstractConfigGui {
 
     @Override
     public String getStaticLabel() {
-        return "MCP Client Config";
+        return "bzm - MCP Client Config";
     }
 
     @Override

@@ -34,7 +34,7 @@ public class McpServerProcessGui extends AbstractConfigGui {
 
     @Override
     public String getStaticLabel() {
-        return "MCP Server Process";
+        return "bzm - MCP Server Process";
     }
 
     @Override
