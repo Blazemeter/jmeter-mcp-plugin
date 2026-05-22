@@ -2,18 +2,26 @@ package com.blazemeter.jmeter.mcp.sampler.gui;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Rectangle;
+
 import javax.swing.BorderFactory;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.Scrollable;
 
 import com.blazemeter.jmeter.commons.BlazemeterLabsLogo;
 
 import com.blazemeter.jmeter.mcp.gui.GridBagForm;
+import com.blazemeter.jmeter.mcp.gui.PluginGuiConstants;
+import com.blazemeter.jmeter.mcp.gui.responsive.AdaptiveCardLayoutHost;
+import com.blazemeter.jmeter.mcp.gui.responsive.ResponsiveSizing;
+import com.blazemeter.jmeter.mcp.gui.scroll.JMeterScrollableSupport;
 import com.blazemeter.jmeter.mcp.sampler.McpOperation;
 import com.blazemeter.jmeter.mcp.sampler.McpSampler;
 import org.apache.jmeter.gui.util.JSyntaxTextArea;
@@ -25,12 +33,9 @@ import org.apache.jmeter.testelement.TestElement;
  * Swing GUI for {@link McpSampler}. Shows only the input fields relevant to
  * the currently selected {@link McpOperation}.
  */
-public class McpSamplerGui extends AbstractSamplerGui {
+public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
 
     private static final long serialVersionUID = 1L;
-
-    private static final String PLUGIN_REPOSITORY_URL =
-            "https://github.com/Blazemeter/jmeter-mcp-plugin";
 
     private static final String CARD_EMPTY = "empty";
     private static final String CARD_TOOL = "tool";
@@ -50,6 +55,7 @@ public class McpSamplerGui extends AbstractSamplerGui {
 
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel cards = new JPanel(cardLayout);
+    private AdaptiveCardLayoutHost operationCardHost;
 
     public McpSamplerGui() {
         super();
@@ -76,7 +82,9 @@ public class McpSamplerGui extends AbstractSamplerGui {
         center.add(buildCards(), BorderLayout.CENTER);
         center.add(buildArguments(), BorderLayout.SOUTH);
         add(center, BorderLayout.CENTER);
-        add(new BlazemeterLabsLogo(PLUGIN_REPOSITORY_URL), BorderLayout.PAGE_END);
+        add(new BlazemeterLabsLogo(PluginGuiConstants.PLUGIN_REPOSITORY_URL), BorderLayout.PAGE_END);
+
+        ResponsiveSizing.applyTree(this);
 
         operationCombo.addActionListener(e -> updateCard());
         operationCombo.setSelectedItem(McpOperation.PING);
@@ -92,10 +100,9 @@ public class McpSamplerGui extends AbstractSamplerGui {
         return p;
     }
 
-    private JPanel buildCards() {
+    private AdaptiveCardLayoutHost buildCards() {
         cards.setBorder(BorderFactory.createTitledBorder("Operation Parameters"));
 
-        // Empty card (PING / LIST_TOOLS / LIST_RESOURCES / LIST_PROMPTS).
         cards.add(infoCard("No parameters required for this operation."), CARD_EMPTY);
 
         JPanel tool = new JPanel(new GridBagLayout());
@@ -113,7 +120,8 @@ public class McpSamplerGui extends AbstractSamplerGui {
         GridBagForm.addLabelAndField(prompt, pc, 0, "Prompt Name:", promptNameField);
         cards.add(prompt, CARD_PROMPT);
 
-        return cards;
+        operationCardHost = new AdaptiveCardLayoutHost(cards);
+        return operationCardHost;
     }
 
     private JPanel buildArguments() {
@@ -139,22 +147,50 @@ public class McpSamplerGui extends AbstractSamplerGui {
         McpOperation op = (McpOperation) operationCombo.getSelectedItem();
         if (op == null) {
             cardLayout.show(cards, CARD_EMPTY);
-            return;
+        } else {
+            switch (op) {
+                case CALL_TOOL:
+                    cardLayout.show(cards, CARD_TOOL);
+                    break;
+                case READ_RESOURCE:
+                    cardLayout.show(cards, CARD_RESOURCE);
+                    break;
+                case GET_PROMPT:
+                    cardLayout.show(cards, CARD_PROMPT);
+                    break;
+                default:
+                    cardLayout.show(cards, CARD_EMPTY);
+                    break;
+            }
         }
-        switch (op) {
-            case CALL_TOOL:
-                cardLayout.show(cards, CARD_TOOL);
-                break;
-            case READ_RESOURCE:
-                cardLayout.show(cards, CARD_RESOURCE);
-                break;
-            case GET_PROMPT:
-                cardLayout.show(cards, CARD_PROMPT);
-                break;
-            default:
-                cardLayout.show(cards, CARD_EMPTY);
-                break;
+        if (operationCardHost != null) {
+            operationCardHost.afterCardShown();
         }
+    }
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return JMeterScrollableSupport.preferredViewportSize(this);
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return JMeterScrollableSupport.scrollableUnitIncrement(visibleRect, orientation);
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return JMeterScrollableSupport.scrollableBlockIncrement(visibleRect, orientation);
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return JMeterScrollableSupport.tracksViewportWidth();
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return JMeterScrollableSupport.tracksViewportHeight();
     }
 
     @Override

@@ -2,21 +2,28 @@ package com.blazemeter.jmeter.mcp.config.gui;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Rectangle;
+
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.Scrollable;
 
 import com.blazemeter.jmeter.commons.BlazemeterLabsLogo;
 
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import com.blazemeter.jmeter.mcp.config.McpClientConfig;
 import com.blazemeter.jmeter.mcp.gui.GridBagForm;
+import com.blazemeter.jmeter.mcp.gui.PluginGuiConstants;
+import com.blazemeter.jmeter.mcp.gui.responsive.AdaptiveCardLayoutHost;
+import com.blazemeter.jmeter.mcp.gui.responsive.ResponsiveSizing;
+import com.blazemeter.jmeter.mcp.gui.scroll.JMeterScrollableSupport;
 import com.blazemeter.jmeter.mcp.util.Strings;
 import org.apache.jmeter.config.gui.AbstractConfigGui;
 import org.apache.jmeter.testelement.TestElement;
@@ -26,12 +33,9 @@ import org.apache.jmeter.testelement.TestElement;
  * transport type and swaps them with a {@link CardLayout} when the user
  * changes the {@code Transport} selection.
  */
-public class McpClientConfigGui extends AbstractConfigGui {
+public class McpClientConfigGui extends AbstractConfigGui implements Scrollable {
 
     private static final long serialVersionUID = 1L;
-
-    private static final String PLUGIN_REPOSITORY_URL =
-            "https://github.com/Blazemeter/jmeter-mcp-plugin";
 
     private static final String CARD_STDIO = "STDIO";
     private static final String CARD_SSE = "SSE";
@@ -56,6 +60,7 @@ public class McpClientConfigGui extends AbstractConfigGui {
 
     private final CardLayout transportCards = new CardLayout();
     private final JPanel transportPanel = new JPanel(transportCards);
+    private AdaptiveCardLayoutHost transportCardHost;
 
     public McpClientConfigGui() {
         super();
@@ -69,8 +74,6 @@ public class McpClientConfigGui extends AbstractConfigGui {
 
     @Override
     public String getLabelResource() {
-        // We provide a static label directly; this value is only used if
-        // JMeter falls back to its resource lookup mechanism.
         return "mcp_client_config_title";
     }
 
@@ -84,7 +87,9 @@ public class McpClientConfigGui extends AbstractConfigGui {
         center.add(buildTransportPanel(), BorderLayout.CENTER);
         center.add(buildAdvancedPanel(), BorderLayout.SOUTH);
         add(center, BorderLayout.CENTER);
-        add(new BlazemeterLabsLogo(PLUGIN_REPOSITORY_URL), BorderLayout.PAGE_END);
+        add(new BlazemeterLabsLogo(PluginGuiConstants.PLUGIN_REPOSITORY_URL), BorderLayout.PAGE_END);
+
+        ResponsiveSizing.applyTree(this);
 
         transportCombo.addActionListener(e -> showSelectedTransport());
         transportCombo.setSelectedItem(TransportType.STDIO);
@@ -102,13 +107,15 @@ public class McpClientConfigGui extends AbstractConfigGui {
         return p;
     }
 
-    private JPanel buildTransportPanel() {
+    private AdaptiveCardLayoutHost buildTransportPanel() {
         transportPanel.setBorder(BorderFactory.createTitledBorder("Transport Settings"));
 
         transportPanel.add(buildHttpPanel(true), CARD_STREAMABLE_HTTP);
         transportPanel.add(buildHttpPanel(false), CARD_SSE);
         transportPanel.add(buildStdioPanel(), CARD_STDIO);
-        return transportPanel;
+
+        transportCardHost = new AdaptiveCardLayoutHost(transportPanel);
+        return transportCardHost;
     }
 
     private JPanel buildHttpPanel(boolean streamable) {
@@ -126,7 +133,8 @@ public class McpClientConfigGui extends AbstractConfigGui {
         GridBagForm.addLabelAndField(p, c, 0, "Command:", stdioCommandField);
         GridBagForm.addLabelAndField(p, c, 1, "Args (space separated):", stdioArgsField);
         stdioEnvArea.setLineWrap(false);
-        GridBagForm.addLabelAndField(p, c, 2, "Env (KEY=value per line):", new JScrollPane(stdioEnvArea));
+        GridBagForm.addLabelAndField(p, c, 2, "Env (KEY=value per line):",
+                makeScrollPane(stdioEnvArea));
         return p;
     }
 
@@ -158,6 +166,34 @@ public class McpClientConfigGui extends AbstractConfigGui {
                 transportCards.show(transportPanel, CARD_STREAMABLE_HTTP);
                 break;
         }
+        if (transportCardHost != null) {
+            transportCardHost.afterCardShown();
+        }
+    }
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return JMeterScrollableSupport.preferredViewportSize(this);
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return JMeterScrollableSupport.scrollableUnitIncrement(visibleRect, orientation);
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return JMeterScrollableSupport.scrollableBlockIncrement(visibleRect, orientation);
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return JMeterScrollableSupport.tracksViewportWidth();
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return JMeterScrollableSupport.tracksViewportHeight();
     }
 
     @Override

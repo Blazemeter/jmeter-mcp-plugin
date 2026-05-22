@@ -1,17 +1,23 @@
 package com.blazemeter.jmeter.mcp.server.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Rectangle;
+
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.Scrollable;
 
 import com.blazemeter.jmeter.commons.BlazemeterLabsLogo;
 
 import com.blazemeter.jmeter.mcp.gui.GridBagForm;
+import com.blazemeter.jmeter.mcp.gui.PluginGuiConstants;
+import com.blazemeter.jmeter.mcp.gui.responsive.ResponsiveSizing;
+import com.blazemeter.jmeter.mcp.gui.scroll.JMeterScrollableSupport;
 import com.blazemeter.jmeter.mcp.server.McpServerProcess;
 import org.apache.jmeter.config.gui.AbstractConfigGui;
 import org.apache.jmeter.testelement.TestElement;
@@ -19,12 +25,9 @@ import org.apache.jmeter.testelement.TestElement;
 /**
  * Swing GUI for {@link McpServerProcess}.
  */
-public class McpServerProcessGui extends AbstractConfigGui {
+public class McpServerProcessGui extends AbstractConfigGui implements Scrollable {
 
     private static final long serialVersionUID = 1L;
-
-    private static final String PLUGIN_REPOSITORY_URL =
-            "https://github.com/Blazemeter/jmeter-mcp-plugin";
 
     private final JTextField commandField = new JTextField(20);
     private final JTextField argsField = new JTextField(40);
@@ -58,14 +61,41 @@ public class McpServerProcessGui extends AbstractConfigGui {
         GridBagForm.addLabelAndField(panel, c, 0, "Command:", commandField);
         GridBagForm.addLabelAndField(panel, c, 1, "Args (space separated):", argsField);
         envArea.setLineWrap(false);
-        GridBagForm.addLabelAndField(panel, c, 2, "Env (KEY=value per line):", new JScrollPane(envArea));
+        GridBagForm.addLabelAndField(panel, c, 2, "Env (KEY=value per line):", makeScrollPane(envArea));
         GridBagForm.addLabelAndField(panel, c, 3, "Ready host:", readyHostField);
         GridBagForm.addLabelAndField(panel, c, 4, "Ready port:", readyPortField);
         GridBagForm.addLabelAndField(panel, c, 5, "Startup wait (ms):", startupWaitField);
         add(panel, BorderLayout.CENTER);
-        add(new BlazemeterLabsLogo(PLUGIN_REPOSITORY_URL), BorderLayout.PAGE_END);
+        add(new BlazemeterLabsLogo(PluginGuiConstants.PLUGIN_REPOSITORY_URL), BorderLayout.PAGE_END);
+
+        ResponsiveSizing.applyTree(this);
 
         clearGui();
+    }
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+        return JMeterScrollableSupport.preferredViewportSize(this);
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return JMeterScrollableSupport.scrollableUnitIncrement(visibleRect, orientation);
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+        return JMeterScrollableSupport.scrollableBlockIncrement(visibleRect, orientation);
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        return JMeterScrollableSupport.tracksViewportWidth();
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+        return JMeterScrollableSupport.tracksViewportHeight();
     }
 
     @Override
