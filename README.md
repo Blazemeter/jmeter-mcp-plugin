@@ -1,5 +1,11 @@
 # JMeter MCP Plugin
 
+---
+<picture>
+ <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Blazemeter/jmeter-bzm-commons/refs/heads/master/src/main/resources/dark-theme/blazemeter-by-perforce-logo.png">
+ <img src="https://raw.githubusercontent.com/Blazemeter/jmeter-bzm-commons/refs/heads/master/src/main/resources/light-theme/blazemeter-by-perforce-logo.png">
+</picture>
+
 An Apache JMeter plugin that integrates the official
 [Model Context Protocol (MCP) Java SDK](https://java.sdk.modelcontextprotocol.io/)
 so you can load-test MCP servers from JMeter.

@@ -23,7 +23,7 @@ printed JSON response body.</stringProp>
       </elementProp>
     </TestPlan>
     <hashTree>
-      <io.github.jmeter.mcp.config.McpClientConfig guiclass="io.github.jmeter.mcp.config.gui.McpClientConfigGui" testclass="io.github.jmeter.mcp.config.McpClientConfig" testname="MCP Client Config">
+      <com.blazemeter.jmeter.mcp.config.McpClientConfig guiclass="com.blazemeter.jmeter.mcp.config.gui.McpClientConfigGui" testclass="com.blazemeter.jmeter.mcp.config.McpClientConfig" testname="MCP Client Config">
         <stringProp name="McpClientConfig.name">mcpClient</stringProp>
         <stringProp name="McpClientConfig.transport">STDIO</stringProp>
         <stringProp name="McpClientConfig.serverUrl"></stringProp>
@@ -36,7 +36,7 @@ printed JSON response body.</stringProp>
         <longProp name="McpClientConfig.requestTimeoutMs">30000</longProp>
         <longProp name="McpClientConfig.initTimeoutMs">30000</longProp>
         <boolProp name="McpClientConfig.connectOnStartup">true</boolProp>
-      </io.github.jmeter.mcp.config.McpClientConfig>
+      </com.blazemeter.jmeter.mcp.config.McpClientConfig>
       <hashTree/>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group">
         <intProp name="ThreadGroup.num_threads">1</intProp>
@@ -49,14 +49,14 @@ printed JSON response body.</stringProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <io.github.jmeter.mcp.sampler.McpSampler guiclass="io.github.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="io.github.jmeter.mcp.sampler.McpSampler" testname="MCP Ping">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Ping">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">PING</stringProp>
           <stringProp name="McpSampler.toolName"></stringProp>
           <stringProp name="McpSampler.argumentsJson">{}</stringProp>
           <stringProp name="McpSampler.resourceUri"></stringProp>
           <stringProp name="McpSampler.promptName"></stringProp>
-        </io.github.jmeter.mcp.sampler.McpSampler>
+        </com.blazemeter.jmeter.mcp.sampler.McpSampler>
         <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert X-MCP-Operation PING" enabled="true">
             <collectionProp name="Asserion.test_strings">
@@ -79,14 +79,14 @@ printed JSON response body.</stringProp>
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <io.github.jmeter.mcp.sampler.McpSampler guiclass="io.github.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="io.github.jmeter.mcp.sampler.McpSampler" testname="MCP List Tools" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP List Tools" enabled="true">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">LIST_TOOLS</stringProp>
           <stringProp name="McpSampler.toolName"></stringProp>
           <stringProp name="McpSampler.argumentsJson">{}</stringProp>
           <stringProp name="McpSampler.resourceUri"></stringProp>
           <stringProp name="McpSampler.promptName"></stringProp>
-        </io.github.jmeter.mcp.sampler.McpSampler>
+        </com.blazemeter.jmeter.mcp.sampler.McpSampler>
         <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert X-MCP-Operation LIST_TOOLS" enabled="true">
             <collectionProp name="Asserion.test_strings">
@@ -117,14 +117,14 @@ printed JSON response body.</stringProp>
           </JSONPathAssertion>
           <hashTree/>
         </hashTree>
-        <io.github.jmeter.mcp.sampler.McpSampler guiclass="io.github.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="io.github.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)" enabled="true">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">CALL_TOOL</stringProp>
           <stringProp name="McpSampler.toolName">echo</stringProp>
           <stringProp name="McpSampler.argumentsJson">{&quot;message&quot;: &quot;hello from JMeter&quot;}</stringProp>
           <stringProp name="McpSampler.resourceUri"></stringProp>
           <stringProp name="McpSampler.promptName"></stringProp>
-        </io.github.jmeter.mcp.sampler.McpSampler>
+        </com.blazemeter.jmeter.mcp.sampler.McpSampler>
         <hashTree>
           <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Assert X-MCP-Operation CALL_TOOL" enabled="true">
             <collectionProp name="Asserion.test_strings">
