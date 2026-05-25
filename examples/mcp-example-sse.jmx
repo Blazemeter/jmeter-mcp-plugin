@@ -1,22 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="MCP Example Test Plan">
-      <stringProp name="TestPlan.comments">Example plan for the JMeter MCP plugin.
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="MCP SSE Example Test Plan">
+      <stringProp name="TestPlan.comments">Example plan for the JMeter MCP plugin (SSE transport).
 
 Prerequisites:
   1. Build and install the plugin JAR into JMETER_HOME/lib/ext/
-  2. Node.js and npx on PATH (for the default STDIO server below)
+  2. Node.js and npx on PATH
   3. Restart JMeter after installing the plugin
 
-This plan uses the official @modelcontextprotocol/server-everything demo
-server over STDIO. To use Streamable HTTP instead, change the MCP Client
-Config transport to STREAMABLE_HTTP, set Server URL (e.g.
-http://localhost:8080), and point Command/Args at your running server.
+This plan starts @modelcontextprotocol/server-everything in SSE mode via
+&quot;MCP Server Process&quot;, then connects with &quot;MCP Client Config (SSE)&quot;.
+Do not use MCP Client Config with STDIO to launch an HTTP/SSE server — STDIO
+is only for servers that speak MCP over stdin/stdout.
 
-Open View Results Tree after a run: session metadata appears under Response
-headers (X-MCP-Operation, X-MCP-Session); operation output is the pretty-
-printed JSON response body.</stringProp>
+See also: mcp-example.jmx (STDIO), mcp-example-streamable-http.jmx.</stringProp>
       <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
@@ -25,22 +23,31 @@ printed JSON response body.</stringProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
     </TestPlan>
     <hashTree>
-      <com.blazemeter.jmeter.mcp.config.McpClientConfig guiclass="com.blazemeter.jmeter.mcp.config.gui.McpClientConfigGui" testclass="com.blazemeter.jmeter.mcp.config.McpClientConfig" testname="MCP Client Config">
+      <com.blazemeter.jmeter.mcp.server.McpServerProcess guiclass="com.blazemeter.jmeter.mcp.server.gui.McpServerProcessGui" testclass="com.blazemeter.jmeter.mcp.server.McpServerProcess" testname="MCP Server (SSE)">
+        <stringProp name="McpServerProcess.command">npx</stringProp>
+        <stringProp name="McpServerProcess.args">-y @modelcontextprotocol/server-everything sse</stringProp>
+        <stringProp name="McpServerProcess.env"></stringProp>
+        <stringProp name="McpServerProcess.readyHost">localhost</stringProp>
+        <longProp name="McpServerProcess.readyPort">3001</longProp>
+        <longProp name="McpServerProcess.startupWaitMs">60000</longProp>
+      </com.blazemeter.jmeter.mcp.server.McpServerProcess>
+      <hashTree/>
+      <com.blazemeter.jmeter.mcp.config.McpClientConfig guiclass="com.blazemeter.jmeter.mcp.config.gui.McpClientConfigGui" testclass="com.blazemeter.jmeter.mcp.config.McpClientConfig" testname="MCP Client Config (SSE)" enabled="true">
         <stringProp name="McpClientConfig.name">mcpClient</stringProp>
-        <stringProp name="McpClientConfig.transport">STDIO</stringProp>
-        <stringProp name="McpClientConfig.serverUrl"></stringProp>
-        <stringProp name="McpClientConfig.endpoint"></stringProp>
-        <stringProp name="McpClientConfig.stdioCommand">npx</stringProp>
-        <stringProp name="McpClientConfig.stdioArgs">-y @modelcontextprotocol/server-everything</stringProp>
+        <stringProp name="McpClientConfig.transport">SSE</stringProp>
+        <stringProp name="McpClientConfig.serverUrl">http://localhost:3001</stringProp>
+        <stringProp name="McpClientConfig.endpoint">/sse</stringProp>
+        <stringProp name="McpClientConfig.stdioCommand"></stringProp>
+        <stringProp name="McpClientConfig.stdioArgs"></stringProp>
         <stringProp name="McpClientConfig.stdioEnv"></stringProp>
         <stringProp name="McpClientConfig.clientName">jmeter-mcp-plugin</stringProp>
         <stringProp name="McpClientConfig.clientVersion">0.1.0</stringProp>
         <longProp name="McpClientConfig.requestTimeoutMs">30000</longProp>
         <longProp name="McpClientConfig.initTimeoutMs">30000</longProp>
-        <boolProp name="McpClientConfig.connectOnStartup">true</boolProp>
+        <boolProp name="McpClientConfig.connectOnStartup">false</boolProp>
       </com.blazemeter.jmeter.mcp.config.McpClientConfig>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group" enabled="true">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -119,11 +126,11 @@ printed JSON response body.</stringProp>
           </JSONPathAssertion>
           <hashTree/>
         </hashTree>
-        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">CALL_TOOL</stringProp>
           <stringProp name="McpSampler.toolName">echo</stringProp>
-          <stringProp name="McpSampler.argumentsJson">{&quot;message&quot;: &quot;hello from JMeter&quot;}</stringProp>
+          <stringProp name="McpSampler.argumentsJson">{&quot;message&quot;: &quot;hello from JMeter (SSE)&quot;}</stringProp>
           <stringProp name="McpSampler.resourceUri"></stringProp>
           <stringProp name="McpSampler.promptName"></stringProp>
         </com.blazemeter.jmeter.mcp.sampler.McpSampler>
@@ -140,7 +147,7 @@ printed JSON response body.</stringProp>
           <hashTree/>
           <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Assert echo tool text" enabled="true">
             <stringProp name="JSON_PATH">$.content[0].text</stringProp>
-            <stringProp name="EXPECTED_VALUE">Echo: hello from JMeter</stringProp>
+            <stringProp name="EXPECTED_VALUE">Echo: hello from JMeter (SSE)</stringProp>
             <boolProp name="JSONVALIDATION">true</boolProp>
             <boolProp name="EXPECT_NULL">false</boolProp>
             <boolProp name="INVERT">false</boolProp>
@@ -148,7 +155,7 @@ printed JSON response body.</stringProp>
           </JSONPathAssertion>
           <hashTree/>
         </hashTree>
-        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>
