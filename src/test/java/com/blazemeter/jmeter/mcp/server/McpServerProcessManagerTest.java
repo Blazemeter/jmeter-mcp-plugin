@@ -10,7 +10,7 @@ class McpServerProcessManagerTest {
 
     @AfterEach
     void tearDown() {
-        McpServerProcessManager.getInstance().stop();
+        McpServerProcessManager.getInstance().stopAll();
     }
 
     @Test

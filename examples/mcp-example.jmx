@@ -40,7 +40,7 @@ printed JSON response body.</stringProp>
         <boolProp name="McpClientConfig.connectOnStartup">true</boolProp>
       </com.blazemeter.jmeter.mcp.config.McpClientConfig>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group" enabled="true">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -51,7 +51,7 @@ printed JSON response body.</stringProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Ping" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Ping">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">PING</stringProp>
           <stringProp name="McpSampler.toolName"></stringProp>

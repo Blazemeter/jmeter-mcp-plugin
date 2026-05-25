@@ -1,43 +1,50 @@
 package com.blazemeter.jmeter.mcp.client;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.modelcontextprotocol.client.McpSyncClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Process-wide registry of live {@link McpSyncClient} instances keyed by the
- * configuration element name.
+ * Registry of live {@link McpSyncClient} instances keyed by configuration name
+ * and JMeter worker thread.
  *
- * <p>JMeter clones config elements per thread, but the underlying connection
- * is heavy and must be shared. {@link #registerDeferred(String, McpClientSettings)}
- * stores settings during {@code testStarted()} when lazy connect is configured.
- * {@link #connectOnStartup(String, McpClientSettings)} registers settings and
- * schedules connect on a background thread so {@code testStarted()} returns
- * immediately (same responsiveness as lazy init). The first sampler that calls
- * {@link #getOrConnect(String)} waits for that background connect or performs
- * lazy connect if startup connect was not requested.
+ * <p>Each thread gets its own client (and typically its own MCP server instance
+ * started via {@link com.blazemeter.jmeter.mcp.server.McpServerProcess}).
+ * Connect work runs on a bounded background pool so {@code threadStarted()} and
+ * {@code testStarted()} do not block the JMeter engine thread.
  */
 public final class McpClientRegistry {
 
     private static final Logger LOG = LoggerFactory.getLogger(McpClientRegistry.class);
 
-    private static final ExecutorService CONNECT_EXECUTOR = Executors.newCachedThreadPool(r -> {
-        Thread t = new Thread(r, "mcp-client-connect");
-        t.setDaemon(true);
-        return t;
-    });
+    private static final int CONNECT_POOL_SIZE =
+            Math.max(4, Runtime.getRuntime().availableProcessors());
+
+    private static final ExecutorService CONNECT_EXECUTOR = Executors.newFixedThreadPool(
+            CONNECT_POOL_SIZE,
+            new ThreadFactory() {
+                private final AtomicInteger seq = new AtomicInteger();
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread t = new Thread(r, "mcp-client-connect-" + seq.incrementAndGet());
+                    t.setDaemon(true);
+                    return t;
+                }
+            });
 
     private static final McpClientRegistry INSTANCE = new McpClientRegistry();
-
-    /** STDIO spawns are heavy; serializing avoids parallel process startup timeouts. */
-    private static final Object STDIO_CONNECT_LOCK = new Object();
 
     private final Map<String, McpClientSettings> deferredSettings = new ConcurrentHashMap<>();
     private final Map<String, McpSyncClient> clients = new ConcurrentHashMap<>();
@@ -52,122 +59,157 @@ public final class McpClientRegistry {
         return INSTANCE;
     }
 
+    static String slotKey(String clientName, String threadKey) {
+        return clientName + "::" + threadKey;
+    }
+
+    private static String slotKey(String clientName) {
+        return slotKey(clientName, McpJmeterThreads.currentThreadKey());
+    }
+
     /**
-     * Store settings for a named client. Does not open a connection — that
-     * happens on the first {@link #getOrConnect(String)} call.
+     * Store settings for the current thread's client. Does not open a connection.
      */
     public void registerDeferred(String name, McpClientSettings settings) {
         requireClientName(name);
-        deferredSettings.put(name, settings);
+        deferredSettings.put(slotKey(name), settings);
     }
 
     /**
-     * Register settings and schedule connect on a background thread. Does not
-     * block {@code testStarted()}.
+     * Register settings for the current thread and schedule connect on the pool.
      */
     public void connectOnStartup(String name, McpClientSettings settings) {
         requireClientName(name);
-        McpClientSettings previous = deferredSettings.put(name, settings);
+        String threadKey = McpJmeterThreads.currentThreadKey();
+        String key = slotKey(name, threadKey);
+        McpClientSettings previous = deferredSettings.put(key, settings);
         if (previous != null) {
-            LOG.warn("MCP client '{}' settings replaced (was transport {}, now {})",
-                    name, previous.getTransport(), settings.getTransport());
+            LOG.warn("MCP client '{}' on thread '{}' settings replaced (was {}, now {})",
+                    name, threadKey, previous.getTransport(), settings.getTransport());
         }
-        CompletableFuture<McpSyncClient> old = pendingConnects.remove(name);
+        CompletableFuture<McpSyncClient> old = pendingConnects.remove(key);
         if (old != null && !old.isDone()) {
             old.cancel(true);
         }
-        pendingConnects.put(name, scheduleConnect(name));
+        pendingConnects.put(key, scheduleConnect(name, threadKey));
     }
 
     /**
-     * Returns an initialized client, creating it on first use from deferred
-     * settings registered via {@link #registerDeferred(String, McpClientSettings)}.
+     * Returns an initialized client for the current thread, creating it on first use.
      */
     public McpSyncClient getOrConnect(String name) {
         if (name == null || name.isBlank()) {
             return null;
         }
-        McpSyncClient existing = clients.get(name);
+        String threadKey = McpJmeterThreads.currentThreadKey();
+        String key = slotKey(name, threadKey);
+        McpSyncClient existing = clients.get(key);
         if (existing != null) {
             return existing;
         }
-        CompletableFuture<McpSyncClient> pending = pendingConnects.get(name);
+        CompletableFuture<McpSyncClient> pending = pendingConnects.get(key);
         if (pending != null) {
             try {
-                return pending.get();
+                McpSyncClient client = pending.get();
+                if (client != null) {
+                    return client;
+                }
+                LOG.warn("Startup connect for MCP client '{}' on thread '{}' returned no client — retrying",
+                        name, threadKey);
+                return connectClient(name, threadKey, "retry after null startup");
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException("Interrupted waiting for MCP client '" + name + "'", ex);
+                throw new RuntimeException(
+                        "Interrupted waiting for MCP client '" + name + "' on thread '"
+                                + threadKey + "'", ex);
             } catch (ExecutionException ex) {
-                pendingConnects.remove(name, pending);
+                pendingConnects.remove(key, pending);
                 Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
-                LOG.warn("Startup connect failed for MCP client '{}': {} — retrying",
-                        name, cause.getMessage());
-                return connectClient(name, "retry after failed startup");
+                LOG.warn("Startup connect failed for MCP client '{}' on thread '{}': {} — retrying",
+                        name, threadKey, cause.getMessage());
+                return connectClient(name, threadKey, "retry after failed startup");
             }
         }
-        return connectClient(name, "lazy init");
+        return connectClient(name, threadKey, "lazy init");
     }
 
-    private CompletableFuture<McpSyncClient> scheduleConnect(String name) {
+    private CompletableFuture<McpSyncClient> scheduleConnect(String name, String threadKey) {
         return CompletableFuture.supplyAsync(
-                () -> connectClient(name, "startup connect"), CONNECT_EXECUTOR);
+                () -> connectClient(name, threadKey, "startup connect"), CONNECT_EXECUTOR);
     }
 
-    private McpSyncClient connectClient(String name, String reason) {
-        Object lock = connectLocks.computeIfAbsent(name, k -> new Object());
+    private McpSyncClient connectClient(String name, String threadKey, String reason) {
+        String key = slotKey(name, threadKey);
+        Object lock = connectLocks.computeIfAbsent(key, k -> new Object());
         synchronized (lock) {
-            McpSyncClient existing = clients.get(name);
+            McpSyncClient existing = clients.get(key);
             if (existing != null) {
                 return existing;
             }
-            McpClientSettings settings = deferredSettings.get(name);
+            McpClientSettings settings = deferredSettings.get(key);
             if (settings == null) {
                 return null;
             }
-            LOG.info("Connecting MCP client '{}' ({}, transport {})",
-                    name, reason, settings.getTransport());
+            LOG.info("Connecting MCP client '{}' on thread '{}' ({}, transport {})",
+                    name, threadKey, reason, settings.getTransport());
             McpSdkLogSilencer.ensureApplied();
-            McpSyncClient client = null;
+            McpSyncClient client;
             try {
-                if (settings.getTransport() == TransportType.STDIO) {
-                    synchronized (STDIO_CONNECT_LOCK) {
-                        client = McpClientFactory.buildAndInitialize(settings);
-                    }
-                } else {
-                    client = McpClientFactory.buildAndInitialize(settings);
-                }
+                client = McpClientFactory.buildAndInitialize(settings);
             } catch (RuntimeException ex) {
-                if (client != null) {
-                    closeQuietly(client);
-                }
                 throw ex;
             }
-            if (!deferredSettings.containsKey(name)) {
+            if (!deferredSettings.containsKey(key)) {
                 closeQuietly(client);
                 return null;
             }
-            clients.put(name, client);
-            pendingConnects.remove(name);
+            clients.put(key, client);
+            pendingConnects.remove(key);
             return client;
         }
     }
 
-    /** Remove and close the client registered under the given name. */
+    /** Remove and close the client for the current thread. */
     public void remove(String name) {
+        removeSlot(slotKey(name));
+    }
+
+    /** Remove and close all thread slots registered under the given client name. */
+    public void removeAllForClientName(String name) {
         if (name == null || name.isBlank()) {
             return;
         }
-        Object lock = connectLocks.computeIfAbsent(name, k -> new Object());
+        String prefix = name + "::";
+        List<String> keys = new ArrayList<>();
+        for (String key : deferredSettings.keySet()) {
+            if (key.startsWith(prefix)) {
+                keys.add(key);
+            }
+        }
+        for (String key : clients.keySet()) {
+            if (key.startsWith(prefix) && !keys.contains(key)) {
+                keys.add(key);
+            }
+        }
+        for (String key : keys) {
+            removeSlot(key);
+        }
+    }
+
+    private void removeSlot(String key) {
+        if (key == null || key.isBlank()) {
+            return;
+        }
+        Object lock = connectLocks.computeIfAbsent(key, k -> new Object());
         synchronized (lock) {
-            pendingConnects.remove(name);
-            deferredSettings.remove(name);
-            McpSyncClient client = clients.remove(name);
+            pendingConnects.remove(key);
+            deferredSettings.remove(key);
+            McpSyncClient client = clients.remove(key);
             if (client != null) {
                 closeQuietly(client);
             }
         }
-        connectLocks.remove(name, lock);
+        connectLocks.remove(key, lock);
     }
 
     private static void closeQuietly(McpSyncClient client) {

@@ -2,28 +2,32 @@ package com.blazemeter.jmeter.mcp.config;
 
 import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
 import com.blazemeter.jmeter.mcp.client.McpClientSettings;
+import com.blazemeter.jmeter.mcp.client.McpJmeterThreads;
+import com.blazemeter.jmeter.mcp.client.McpThreadScopedSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
 import com.blazemeter.jmeter.mcp.util.Strings;
 import org.apache.jmeter.config.ConfigElement;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.testelement.TestStateListener;
+import org.apache.jmeter.testelement.ThreadListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * JMeter Configuration Element that owns the lifecycle of a shared
- * {@link McpSyncClient} for the duration of a test run.
+ * JMeter Configuration Element that owns the per-thread lifecycle of an
+ * {@link io.modelcontextprotocol.client.McpSyncClient}.
  *
- * <p>On {@link #testStarted()} this element registers connection settings in
- * {@link McpClientRegistry}. When {@link #CONNECT_ON_STARTUP} is enabled it
- * also schedules connect on a background thread during {@code testStarted()}
- * (without blocking the engine). Otherwise the first {@code MCP Sampler} that
- * references the same {@link #NAME} performs connect and {@code initialize()}.
- * The client is closed in {@link #testEnded()}.
+ * <p>On {@link #threadStarted()} this element registers connection settings for
+ * the current worker thread in {@link McpClientRegistry}. When
+ * {@link #CONNECT_ON_STARTUP} is enabled it schedules connect on a background
+ * thread pool (without blocking the worker). Otherwise the first
+ * {@code MCP Sampler} on that thread performs connect and {@code initialize()}.
+ * The client is closed in {@link #threadFinished()} and any remaining slots are
+ * cleared in {@link #testEnded()}.
  */
 public class McpClientConfig extends ConfigTestElement
-        implements ConfigElement, TestStateListener {
+        implements ConfigElement, TestStateListener, ThreadListener {
 
     private static final long serialVersionUID = 1L;
 
@@ -72,59 +76,83 @@ public class McpClientConfig extends ConfigTestElement
 
     @Override
     public void testStarted() {
-        startClient();
+        // Per-thread registration happens in threadStarted().
     }
 
     @Override
     public void testStarted(String host) {
-        startClient();
+        // Per-thread registration happens in threadStarted().
     }
 
     @Override
     public void testEnded() {
-        stopClient();
+        stopAllClients();
     }
 
     @Override
     public void testEnded(String host) {
-        stopClient();
+        stopAllClients();
     }
 
-    private void startClient() {
-        McpClientSettings settings = toSettings();
+    @Override
+    public void threadStarted() {
+        startClientForThread();
+    }
+
+    @Override
+    public void threadFinished() {
+        stopClientForThread();
+    }
+
+    private void startClientForThread() {
+        McpClientSettings settings = scopedSettings();
         String registryName = settings.getName();
+        String threadKey = McpJmeterThreads.currentThreadKey();
         try {
             if (settings.isConnectOnStartup()) {
-                LOG.info("Scheduling MCP client '{}' connect on test start (transport {})",
-                        registryName, settings.getTransport());
+                LOG.info("Scheduling MCP client '{}' on thread '{}' connect (transport {})",
+                        registryName, threadKey, settings.getTransport());
                 McpClientRegistry.getInstance().connectOnStartup(registryName, settings);
             } else {
-                LOG.info("Registering MCP client '{}' (transport {}; lazy connect on first sampler)",
-                        registryName, settings.getTransport());
+                LOG.info("Registering MCP client '{}' on thread '{}' (transport {}; lazy connect)",
+                        registryName, threadKey, settings.getTransport());
                 McpClientRegistry.getInstance().registerDeferred(registryName, settings);
             }
         } catch (RuntimeException ex) {
-            LOG.error("Failed to register MCP client '{}': {}",
-                    registryName, ex.getMessage(), ex);
+            LOG.error("Failed to register MCP client '{}' on thread '{}': {}",
+                    registryName, threadKey, ex.getMessage(), ex);
             throw ex;
         }
     }
 
-    private void stopClient() {
-        McpClientSettings settings = toSettings();
+    private void stopClientForThread() {
+        McpClientSettings settings = scopedSettings();
         String registryName = settings.getName();
-        LOG.info("Stopping MCP client '{}'", registryName);
+        LOG.info("Stopping MCP client '{}' on thread '{}'",
+                registryName, McpJmeterThreads.currentThreadKey());
         McpClientRegistry.getInstance().remove(registryName);
         stopManagedServerIfNeeded(settings);
+    }
+
+    private void stopAllClients() {
+        McpClientSettings settings = toSettings();
+        String registryName = settings.getName();
+        LOG.info("Stopping all MCP client slots for '{}'", registryName);
+        McpClientRegistry.getInstance().removeAllForClientName(registryName);
+        if (settings.getTransport() != TransportType.STDIO) {
+            McpServerProcessManager.getInstance().stopAll();
+        }
+    }
+
+    private McpClientSettings scopedSettings() {
+        return McpThreadScopedSettings.forThread(
+                toSettings(), McpJmeterThreads.currentThreadNum());
     }
 
     private static void stopManagedServerIfNeeded(McpClientSettings settings) {
         if (settings.getTransport() == TransportType.STDIO) {
             return;
         }
-        McpServerProcessManager manager = McpServerProcessManager.getInstance();
-        if (manager.isManagedProcessRunning()) {
-            manager.stop();
-        }
+        McpServerProcessManager.getInstance().stop();
     }
 }

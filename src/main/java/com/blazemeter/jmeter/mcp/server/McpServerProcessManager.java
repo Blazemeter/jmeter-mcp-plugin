@@ -6,19 +6,21 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import com.blazemeter.jmeter.mcp.client.McpClientFactory;
+import com.blazemeter.jmeter.mcp.client.McpJmeterThreads;
+import com.blazemeter.jmeter.mcp.client.McpThreadScopedSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Starts and stops MCP server child processes (e.g. {@code npx server-everything sse})
- * without acting as an MCP client. HTTP/SSE servers must be launched this way, not via
- * {@link io.modelcontextprotocol.client.transport.StdioClientTransport}.
+ * Starts and stops MCP server child processes per JMeter worker thread (e.g.
+ * {@code npx server-everything sse} on {@code basePort + threadNum}).
  */
 public final class McpServerProcessManager {
 
@@ -36,8 +38,8 @@ public final class McpServerProcessManager {
     /** Fallback delay when no MCP Client Config stops the managed process. */
     public static final long DEFERRED_STOP_FALLBACK_MS = 500;
 
-    private volatile Process process;
-    private volatile ScheduledFuture<?> deferredStop;
+    private final Map<String, Process> processes = new ConcurrentHashMap<>();
+    private final Map<String, ScheduledFuture<?>> deferredStops = new ConcurrentHashMap<>();
 
     private McpServerProcessManager() {
     }
@@ -47,12 +49,28 @@ public final class McpServerProcessManager {
     }
 
     /**
-     * Start a subprocess and block until {@code host:port} accepts TCP connections or
-     * {@code startupWaitMs} elapses.
+     * Start a subprocess for the current thread and block until {@code host:port}
+     * accepts TCP connections or {@code startupWaitMs} elapses.
      */
     public void start(String command, String args, String envRaw,
                       String readyHost, int readyPort, long startupWaitMs) {
-        stop();
+        int threadNum = McpJmeterThreads.currentThreadNum();
+        int listenPort = McpThreadScopedSettings.serverPortForThread(readyPort, threadNum);
+        Map<String, String> env = McpThreadScopedSettings.serverEnvForPort(envRaw, listenPort);
+        startForThread(
+                McpJmeterThreads.currentThreadKey(),
+                command,
+                args,
+                env,
+                readyHost,
+                listenPort,
+                startupWaitMs);
+    }
+
+    void startForThread(String threadKey, String command, String args,
+                        Map<String, String> env, String readyHost, int listenPort,
+                        long startupWaitMs) {
+        stop(threadKey);
         String trimmedCommand = command == null ? "" : command.trim();
         if (trimmedCommand.isEmpty()) {
             throw new IllegalArgumentException("MCP server command must not be empty");
@@ -63,69 +81,84 @@ public final class McpServerProcessManager {
         cmd.addAll(McpClientFactory.splitArgs(args));
 
         ProcessBuilder builder = new ProcessBuilder(cmd);
-        Map<String, String> env = McpClientFactory.parseEnv(envRaw);
-        if (!env.isEmpty()) {
+        if (env != null && !env.isEmpty()) {
             builder.environment().putAll(env);
         }
         builder.redirectError(ProcessBuilder.Redirect.INHERIT);
         builder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
 
-        LOG.info("Starting MCP server process: {}", cmd);
+        LOG.info("Starting MCP server process on thread '{}': {} (PORT={})",
+                threadKey, cmd, listenPort);
         try {
-            process = builder.start();
+            Process p = builder.start();
+            processes.put(threadKey, p);
         } catch (IOException ex) {
             throw new RuntimeException("Failed to start MCP server process: " + cmd, ex);
         }
 
         String host = (readyHost == null || readyHost.isBlank()) ? "localhost" : readyHost.trim();
-        LOG.info("Waiting for MCP server at {}:{} (timeout {} ms)", host, readyPort, startupWaitMs);
-        if (!waitForPort(host, readyPort, startupWaitMs)) {
-            stop();
+        LOG.info("Waiting for MCP server at {}:{} on thread '{}' (timeout {} ms)",
+                host, listenPort, threadKey, startupWaitMs);
+        if (!waitForPort(host, listenPort, startupWaitMs)) {
+            stop(threadKey);
             throw new RuntimeException(
-                    "MCP server did not become reachable at " + host + ":" + readyPort
-                            + " within " + startupWaitMs + " ms");
+                    "MCP server did not become reachable at " + host + ":" + listenPort
+                            + " within " + startupWaitMs + " ms (thread '" + threadKey + "')");
         }
-        LOG.info("MCP server is reachable at {}:{}", host, readyPort);
+        LOG.info("MCP server is reachable at {}:{} on thread '{}'", host, listenPort, threadKey);
     }
 
-    /** Whether this manager currently owns a subprocess started via {@link #start}. */
+    /** Whether the current thread owns a running subprocess. */
     public boolean isManagedProcessRunning() {
-        return process != null;
+        return processes.containsKey(McpJmeterThreads.currentThreadKey());
     }
 
     /**
-     * Schedule process stop after {@code delayMs}. Used from {@code testEnded()} when listener
-     * order may run before HTTP clients close; cancelled when {@link #stop()} runs.
+     * Schedule stopping every thread-owned subprocess after {@code delayMs}.
      */
-    public void scheduleDeferredStop(long delayMs) {
-        if (process == null) {
-            return;
-        }
-        cancelDeferredStop();
-        deferredStop = DEFERRED_STOP_EXECUTOR.schedule(() -> {
-            if (process != null) {
-                LOG.info("Stopping MCP server process (deferred)");
-                stop();
-            }
-        }, delayMs, TimeUnit.MILLISECONDS);
+    public void scheduleDeferredStopAll(long delayMs) {
+        DEFERRED_STOP_EXECUTOR.schedule(this::stopAll, delayMs, TimeUnit.MILLISECONDS);
     }
 
-    private void cancelDeferredStop() {
-        ScheduledFuture<?> pending = deferredStop;
-        deferredStop = null;
+    /**
+     * Schedule process stop for the current thread after {@code delayMs}.
+     */
+    public void scheduleDeferredStop(long delayMs) {
+        scheduleDeferredStop(McpJmeterThreads.currentThreadKey(), delayMs);
+    }
+
+    void scheduleDeferredStop(String threadKey, long delayMs) {
+        if (!processes.containsKey(threadKey)) {
+            return;
+        }
+        cancelDeferredStop(threadKey);
+        deferredStops.put(threadKey, DEFERRED_STOP_EXECUTOR.schedule(() -> {
+            if (processes.containsKey(threadKey)) {
+                LOG.info("Stopping MCP server process on thread '{}' (deferred)", threadKey);
+                stop(threadKey);
+            }
+        }, delayMs, TimeUnit.MILLISECONDS));
+    }
+
+    private void cancelDeferredStop(String threadKey) {
+        ScheduledFuture<?> pending = deferredStops.remove(threadKey);
         if (pending != null) {
             pending.cancel(false);
         }
     }
 
+    /** Stop the subprocess owned by the current thread. */
     public void stop() {
-        cancelDeferredStop();
-        Process p = process;
-        process = null;
+        stop(McpJmeterThreads.currentThreadKey());
+    }
+
+    public void stop(String threadKey) {
+        cancelDeferredStop(threadKey);
+        Process p = processes.remove(threadKey);
         if (p == null) {
             return;
         }
-        LOG.info("Stopping MCP server process (pid {})", p.pid());
+        LOG.info("Stopping MCP server process on thread '{}' (pid {})", threadKey, p.pid());
         p.destroy();
         try {
             if (!p.waitFor(5, TimeUnit.SECONDS)) {
@@ -135,6 +168,13 @@ public final class McpServerProcessManager {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             p.destroyForcibly();
+        }
+    }
+
+    /** Stop every thread-owned subprocess (safety net on {@code testEnded()}). */
+    public void stopAll() {
+        for (String threadKey : new ArrayList<>(processes.keySet())) {
+            stop(threadKey);
         }
     }
 

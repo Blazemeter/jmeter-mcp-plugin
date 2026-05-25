@@ -14,8 +14,8 @@ The plugin ships two JMeter components:
 
 | Component | JMeter category | Purpose |
 | --- | --- | --- |
-| **bzm - MCP Client Config** | Config Element | Builds and shares a single `McpSyncClient` for the test run. Supports STDIO, SSE, and Streamable HTTP transports. |
-| **bzm - MCP Sampler** | Sampler | Invokes operations (`ping`, `listTools`, `callTool`, `listResources`, `readResource`, `listPrompts`, `getPrompt`) against the shared client and records JMeter sample results. |
+| **bzm - MCP Client Config** | Config Element | Builds one `McpSyncClient` per JMeter worker thread. Supports STDIO, SSE, and Streamable HTTP transports. |
+| **bzm - MCP Sampler** | Sampler | Invokes operations (`ping`, `listTools`, `callTool`, `listResources`, `readResource`, `listPrompts`, `getPrompt`) against the current thread's client and records JMeter sample results. |
 
 ## Requirements
 
@@ -99,8 +99,10 @@ Working examples are provided under `examples/`:
 | [`mcp-example-sse.jmx`](examples/mcp-example-sse.jmx) | SSE | Started in-plan by **bzm - MCP Server Process** (or run `npx … sse` manually) |
 | [`mcp-example-streamable-http.jmx`](examples/mcp-example-streamable-http.jmx) | Streamable HTTP | Started in-plan by **bzm - MCP Server Process** (or run `npx … streamableHttp` manually) |
 
-The HTTP examples target `http://localhost:3001` (the default port for
-`server-everything`; set `PORT` in **bzm - MCP Server Process → Env** if you use another).
+The HTTP examples target `http://localhost:3001` on thread 0 (the default port for
+`server-everything`). With multiple threads, the plugin uses `3001 + threadNum` for
+both the server process and the client URL. Set `PORT` in **bzm - MCP Server Process → Env**
+only if you need a fixed override on every thread.
 
 For SSE or Streamable HTTP, add **bzm - MCP Server Process** *above* **bzm - MCP Client Config**
 in the test plan. It runs `npx -y @modelcontextprotocol/server-everything sse` (or
@@ -110,26 +112,27 @@ process launcher; `server-everything sse` speaks HTTP, not stdin/stdout MCP.
 
 ## How the lifecycle works
 
-- The Config Element implements `TestStateListener`. On `testStarted()` it
-  registers connection settings in `McpClientRegistry`.
-- **Connect on test start** (off by default): when enabled, the registry
-  schedules connect + `initialize()` on a background thread during
-  `testStarted()` so the engine thread is not blocked. Samplers wait for that
-  connect to finish if it is still in progress. When disabled, the **first**
-  **bzm - MCP Sampler** that references the same **Variable Name** performs connect +
-  init. Later samples reuse the same client. The client is thread-safe across
-  JMeter threads.
+- **bzm - MCP Client Config** and **bzm - MCP Server Process** implement
+  `ThreadListener`. On each worker's `threadStarted()` they register settings
+  (and optionally start a server / schedule client connect) for that thread only.
+- **Per-thread isolation**: each JMeter thread gets its own `McpSyncClient` slot
+  in `McpClientRegistry` (keyed by Variable Name + thread name). HTTP/SSE
+  servers started in-plan listen on `readyPort + threadNum` (thread 0 uses the
+  configured port; thread 1 uses port+1, and so on). The client config applies
+  the same offset to **Server URL** automatically.
+- **Connect on test start** (off by default): when enabled, connect +
+  `initialize()` run on a bounded background pool during `threadStarted()` so
+  the worker thread is not blocked. Samplers wait for that connect if it is
+  still in progress. When disabled, the **first** **bzm - MCP Sampler** on that
+  thread performs connect + init. Later samples on the same thread reuse that
+  client.
 - **Sample elapsed time** measures only the MCP operation (e.g. `PING`,
   `CALL_TOOL`). Client connect and `initialize()` are excluded from elapsed
   time; any wait to obtain the client is recorded separately as **Connect
   Time** on the sample (visible in listeners such as View Results Tree).
-- Both modes keep the JMeter GUI responsive: the run timer and Stop button
-  activate immediately instead of waiting for a slow STDIO `initialize()` on
-  the engine thread.
-- On `testEnded()` the Config Element triggers `closeGracefully()` via the
-  registry and clears deferred settings for that name. When **bzm - MCP Server Process**
-  started the HTTP/SSE server, the client config stops that subprocess *after*
-  the client closes (JMeter listener order is not guaranteed).
+- On `threadFinished()` the config closes that thread's client and stops its
+  managed server process. On `testEnded()` any remaining slots are cleared as a
+  safety net.
 
 ## bzm - MCP Client Config parameters
 

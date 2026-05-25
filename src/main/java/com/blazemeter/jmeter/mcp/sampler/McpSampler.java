@@ -20,10 +20,10 @@ import org.slf4j.LoggerFactory;
 /**
  * JMeter Sampler that invokes operations on a connected MCP server.
  *
- * <p>The sampler resolves the {@link McpSyncClient} via
+ * <p>The sampler resolves the per-thread {@link McpSyncClient} via
  * {@link McpClientRegistry} using the configured {@link #CONFIG_NAME} (which
  * must match the {@code Variable Name} of an {@code MCP Client Config}
- * element).
+ * element on the same worker thread).
  */
 public class McpSampler extends AbstractSampler {
 
