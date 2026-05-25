@@ -52,6 +52,7 @@ public class McpSampler extends AbstractSampler {
         result.setDataType(SampleResult.TEXT);
         result.setContentType(CONTENT_TYPE_JSON);
 
+        boolean sampleStarted = false;
         try {
             long connectStart = System.currentTimeMillis();
             McpSyncClient client = McpClientRegistry.getInstance().getOrConnect(configName);
@@ -69,6 +70,7 @@ public class McpSampler extends AbstractSampler {
             // Timers start after the client is ready so connect + initialize (including
             // background "connect on test start") are not counted as sample latency.
             result.sampleStart();
+            sampleStarted = true;
 
             Object operationResult = invoke(client, operation);
             String responseBody = toPrettyJson(operationResult);
@@ -91,7 +93,9 @@ public class McpSampler extends AbstractSampler {
             result.setResponseData(stackTrace(ex), "UTF-8");
             return result;
         } finally {
-            result.sampleEnd();
+            if (sampleStarted) {
+                result.sampleEnd();
+            }
         }
     }
 

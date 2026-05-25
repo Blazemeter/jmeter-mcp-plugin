@@ -18,6 +18,9 @@ import javax.swing.JTextField;
  */
 public final class ResponsiveSizing {
 
+    /** Client property: do not cap columns on env-var {@link javax.swing.JTextArea}s. */
+    public static final String ENV_VARS_AREA = "mcp.envVarsArea";
+
     public static final int MAX_TEXTFIELD_COLS = 26;
 
     public static final int MAX_TEXTAREA_COLS = 36;
@@ -44,7 +47,8 @@ public final class ResponsiveSizing {
             relaxHorizontalMinimumWidth(tf);
         } else if (root instanceof JTextArea) {
             JTextArea ta = (JTextArea) root;
-            if (ta.getColumns() > MAX_TEXTAREA_COLS) {
+            if (!Boolean.TRUE.equals(ta.getClientProperty(ENV_VARS_AREA))
+                    && ta.getColumns() > MAX_TEXTAREA_COLS) {
                 ta.setColumns(MAX_TEXTAREA_COLS);
             }
             relaxHorizontalMinimumWidth(ta);

@@ -7,6 +7,7 @@ import java.awt.GridBagLayout;
 import java.awt.Rectangle;
 
 import javax.swing.BorderFactory;
+import javax.swing.JScrollPane;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -14,6 +15,7 @@ import javax.swing.Scrollable;
 
 import com.blazemeter.jmeter.commons.BlazemeterLabsLogo;
 
+import com.blazemeter.jmeter.mcp.gui.EnvVarsField;
 import com.blazemeter.jmeter.mcp.gui.GridBagForm;
 import com.blazemeter.jmeter.mcp.gui.PluginGuiConstants;
 import com.blazemeter.jmeter.mcp.gui.responsive.ResponsiveSizing;
@@ -31,7 +33,7 @@ public class McpServerProcessGui extends AbstractConfigGui implements Scrollable
 
     private final JTextField commandField = new JTextField(20);
     private final JTextField argsField = new JTextField(40);
-    private final JTextArea envArea = new JTextArea(4, 30);
+    private final JTextArea envArea = EnvVarsField.newTextArea();
     private final JTextField readyHostField = new JTextField(15);
     private final JTextField readyPortField = new JTextField(8);
     private final JTextField startupWaitField = new JTextField(8);
@@ -60,8 +62,9 @@ public class McpServerProcessGui extends AbstractConfigGui implements Scrollable
         GridBagConstraints c = GridBagForm.horizontalRowConstraints();
         GridBagForm.addLabelAndField(panel, c, 0, "Command:", commandField);
         GridBagForm.addLabelAndField(panel, c, 1, "Args (space separated):", argsField);
-        envArea.setLineWrap(false);
-        GridBagForm.addLabelAndField(panel, c, 2, "Env (KEY=value per line):", makeScrollPane(envArea));
+        JScrollPane envScroll = makeScrollPane(envArea);
+        EnvVarsField.applyScrollPaneSize(envScroll, envArea);
+        GridBagForm.addLabelAndMultilineField(panel, c, 2, "Env (KEY=value per line):", envScroll);
         GridBagForm.addLabelAndField(panel, c, 3, "Ready host:", readyHostField);
         GridBagForm.addLabelAndField(panel, c, 4, "Ready port:", readyPortField);
         GridBagForm.addLabelAndField(panel, c, 5, "Startup wait (ms):", startupWaitField);

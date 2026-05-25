@@ -34,6 +34,27 @@ public final class GridBagForm {
         panel.add(field, c);
     }
 
+    /**
+     * Label top-aligned for a tall field (e.g. env scroll pane).
+     */
+    public static void addLabelAndMultilineField(JPanel panel, GridBagConstraints c, int row,
+                                                 String label, Component field) {
+        c.gridy = row;
+        c.gridx = 0;
+        c.weightx = 0;
+        c.weighty = 0;
+        c.anchor = GridBagConstraints.NORTHWEST;
+        c.fill = GridBagConstraints.NONE;
+        panel.add(new JLabel(label), c);
+        c.gridx = 1;
+        c.weightx = 1;
+        c.anchor = GridBagConstraints.NORTHWEST;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(field, c);
+        c.anchor = GridBagConstraints.CENTER;
+        c.fill = GridBagConstraints.HORIZONTAL;
+    }
+
     public static long parseLong(String text, long fallback) {
         if (text == null) {
             return fallback;

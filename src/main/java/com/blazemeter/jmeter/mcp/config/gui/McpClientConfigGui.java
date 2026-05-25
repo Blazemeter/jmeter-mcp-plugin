@@ -10,6 +10,7 @@ import java.awt.Rectangle;
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JScrollPane;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -19,6 +20,7 @@ import com.blazemeter.jmeter.commons.BlazemeterLabsLogo;
 
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import com.blazemeter.jmeter.mcp.config.McpClientConfig;
+import com.blazemeter.jmeter.mcp.gui.EnvVarsField;
 import com.blazemeter.jmeter.mcp.gui.GridBagForm;
 import com.blazemeter.jmeter.mcp.gui.PluginGuiConstants;
 import com.blazemeter.jmeter.mcp.gui.responsive.AdaptiveCardLayoutHost;
@@ -51,7 +53,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     private final JTextField endpointField = new JTextField(20);
     private final JTextField stdioCommandField = new JTextField(20);
     private final JTextField stdioArgsField = new JTextField(30);
-    private final JTextArea stdioEnvArea = new JTextArea(4, 30);
+    private final JTextArea stdioEnvArea = EnvVarsField.newTextArea();
 
     private final JTextField clientNameField = new JTextField(20);
     private final JTextField clientVersionField = new JTextField(10);
@@ -132,9 +134,9 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         GridBagConstraints c = GridBagForm.horizontalRowConstraints();
         GridBagForm.addLabelAndField(p, c, 0, "Command:", stdioCommandField);
         GridBagForm.addLabelAndField(p, c, 1, "Args (space separated):", stdioArgsField);
-        stdioEnvArea.setLineWrap(false);
-        GridBagForm.addLabelAndField(p, c, 2, "Env (KEY=value per line):",
-                makeScrollPane(stdioEnvArea));
+        JScrollPane envScroll = makeScrollPane(stdioEnvArea);
+        EnvVarsField.applyScrollPaneSize(envScroll, stdioEnvArea);
+        GridBagForm.addLabelAndMultilineField(p, c, 2, "Env (KEY=value per line):", envScroll);
         return p;
     }
 
