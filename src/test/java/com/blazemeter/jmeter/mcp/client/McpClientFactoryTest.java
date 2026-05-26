@@ -3,13 +3,28 @@ package com.blazemeter.jmeter.mcp.client;
 import java.util.List;
 import java.util.Map;
 
+import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
+import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
+import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
+import io.modelcontextprotocol.client.transport.StdioClientTransport;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIf;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class McpClientFactoryTest {
+
+    private static final int HTTP_PORT = 31997;
+
+    @AfterEach
+    void stopManagedServer() {
+        McpServerProcessManager.getInstance().stop();
+    }
 
     @Test
     void splitsSimpleArgs() {
@@ -43,6 +58,125 @@ class McpClientFactoryTest {
         assertEquals("bar", env.get("FOO"));
         assertEquals("qux", env.get("BAZ"));
         assertEquals("", env.get("EMPTY"));
+    }
+
+    @Test
+    void parseEnvReturnsEmptyForBlankInput() {
+        assertTrue(McpClientFactory.parseEnv(null).isEmpty());
+        assertTrue(McpClientFactory.parseEnv("  \n").isEmpty());
+    }
+
+    @Test
+    void parseEnvSkipsInvalidLines() {
+        Map<String, String> env = McpClientFactory.parseEnv("no-equals\n=empty-key\nKEY=value");
+        assertEquals(1, env.size());
+        assertEquals("value", env.get("KEY"));
+    }
+
+    @Test
+    void splitsSingleQuotedArgs() {
+        assertEquals(List.of("arg", "two words"),
+                McpClientFactory.splitArgs("arg 'two words'"));
+    }
+
+    @Test
+    void buildStdioTransportWithCommandArgsAndEnv() {
+        McpClientSettings settings = new McpClientSettings();
+        settings.setTransport(TransportType.STDIO);
+        settings.setStdioCommand("npx");
+        settings.setStdioArgs("-y pkg");
+        settings.setStdioEnv("NODE_OPTIONS=--no-warnings");
+
+        assertInstanceOf(StdioClientTransport.class,
+                McpClientFactoryTestSupport.buildTransport(settings));
+    }
+
+    @Test
+    void buildStdioTransportTrimsCommand() {
+        McpClientSettings settings = new McpClientSettings();
+        settings.setTransport(TransportType.STDIO);
+        settings.setStdioCommand("  node  ");
+
+        assertInstanceOf(StdioClientTransport.class,
+                McpClientFactoryTestSupport.buildTransport(settings));
+    }
+
+    @Test
+    void buildSseTransportWithOptionalEndpoint() {
+        McpClientSettings settings = new McpClientSettings();
+        settings.setTransport(TransportType.SSE);
+        settings.setServerUrl("http://127.0.0.1:8080");
+        settings.setEndpoint("/custom/sse");
+
+        assertInstanceOf(HttpClientSseClientTransport.class,
+                McpClientFactoryTestSupport.buildTransport(settings));
+    }
+
+    @Test
+    void buildSseTransportWithoutEndpoint() {
+        McpClientSettings settings = new McpClientSettings();
+        settings.setTransport(TransportType.SSE);
+        settings.setServerUrl("http://127.0.0.1:8080");
+
+        assertInstanceOf(HttpClientSseClientTransport.class,
+                McpClientFactoryTestSupport.buildTransport(settings));
+    }
+
+    @Test
+    void buildStreamableHttpTransportWithOptionalEndpoint() {
+        McpClientSettings settings = new McpClientSettings();
+        settings.setTransport(TransportType.STREAMABLE_HTTP);
+        settings.setServerUrl("http://127.0.0.1:8080");
+        settings.setEndpoint("/mcp");
+
+        assertInstanceOf(HttpClientStreamableHttpTransport.class,
+                McpClientFactoryTestSupport.buildTransport(settings));
+    }
+
+    @Test
+    @EnabledIf("com.blazemeter.jmeter.mcp.client.McpClientTestFixtures#isNpxAvailable")
+    void buildAndInitializeStdioServerEverything() {
+        McpClientSettings settings = McpClientTestFixtures.stdioServerEverythingSettings("factory-stdio");
+        settings.setClientName("");
+        settings.setClientVersion("  ");
+
+        try (var client = McpClientFactory.buildAndInitialize(settings)) {
+            assertNotNull(client.ping());
+        }
+    }
+
+    @Test
+    @EnabledIf("com.blazemeter.jmeter.mcp.client.McpClientTestFixtures#isNpxAvailable")
+    void buildAndInitializeSseServerEverything() {
+        startHttpServer("sse");
+        McpClientSettings settings =
+                McpClientTestFixtures.sseServerEverythingSettings("factory-sse", HTTP_PORT);
+
+        try (var client = McpClientFactory.buildAndInitialize(settings)) {
+            assertNotNull(client.ping());
+        }
+    }
+
+    @Test
+    @EnabledIf("com.blazemeter.jmeter.mcp.client.McpClientTestFixtures#isNpxAvailable")
+    void buildAndInitializeStreamableHttpServerEverything() {
+        startHttpServer("streamableHttp");
+        McpClientSettings settings = McpClientTestFixtures.streamableHttpServerEverythingSettings(
+                "factory-streamable", HTTP_PORT);
+
+        try (var client = McpClientFactory.buildAndInitialize(settings)) {
+            assertNotNull(client.ping());
+        }
+    }
+
+    private static void startHttpServer(String mode) {
+        McpServerProcessManager.getInstance().start(
+                "npx",
+                McpClientTestFixtures.SERVER_EVERYTHING_ARGS + " " + mode,
+                "PORT=" + HTTP_PORT,
+                "127.0.0.1",
+                HTTP_PORT,
+                McpClientTestFixtures.LIVE_SERVER_TIMEOUT_MS);
     }
 
     @Test
