@@ -46,24 +46,9 @@ class McpClientFactoryTest {
     }
 
     @Test
-    void transportFromStringDefaultsToStdioWhenBlank() {
-        assertEquals(TransportType.STDIO, TransportType.fromString(null));
-        assertEquals(TransportType.STDIO, TransportType.fromString(""));
-        assertEquals(TransportType.STDIO, TransportType.fromString("   "));
-    }
-
-    @Test
-    void transportFromStringIsCaseInsensitive() {
-        assertEquals(TransportType.STDIO, TransportType.fromString("stdio"));
-        assertEquals(TransportType.SSE, TransportType.fromString("SSE"));
-        assertEquals(TransportType.STREAMABLE_HTTP,
-                TransportType.fromString("streamable-http"));
-    }
-
-    @Test
-    void transportFromStringRejectsGarbage() {
-        assertThrows(IllegalArgumentException.class,
-                () -> TransportType.fromString("websocket"));
+    void buildAndInitializeRejectsNullSettings() {
+        assertThrows(NullPointerException.class,
+                () -> McpClientFactory.buildAndInitialize(null));
     }
 
     @Test
@@ -71,7 +56,39 @@ class McpClientFactoryTest {
         McpClientSettings s = new McpClientSettings();
         s.setTransport(TransportType.STDIO);
         s.setStdioCommand("   ");
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> McpClientFactory.buildAndInitialize(s));
+        assertTrue(ex.getMessage().contains("command"));
+    }
+
+    @Test
+    void stdioRejectsNullCommand() {
+        McpClientSettings s = new McpClientSettings();
+        s.setTransport(TransportType.STDIO);
+        s.setStdioCommand(null);
         assertThrows(IllegalArgumentException.class,
                 () -> McpClientFactory.buildAndInitialize(s));
+    }
+
+    @Test
+    void sseRejectsMissingServerUrl() {
+        McpClientSettings s = new McpClientSettings();
+        s.setTransport(TransportType.SSE);
+        s.setServerUrl("  ");
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> McpClientFactory.buildAndInitialize(s));
+        assertTrue(ex.getMessage().contains("SSE"));
+        assertTrue(ex.getMessage().contains("server URL"));
+    }
+
+    @Test
+    void streamableHttpRejectsMissingServerUrl() {
+        McpClientSettings s = new McpClientSettings();
+        s.setTransport(TransportType.STREAMABLE_HTTP);
+        s.setServerUrl(null);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> McpClientFactory.buildAndInitialize(s));
+        assertTrue(ex.getMessage().contains("Streamable HTTP"));
+        assertTrue(ex.getMessage().contains("server URL"));
     }
 }

@@ -184,7 +184,7 @@ public class McpSampler extends AbstractSampler {
         }
     }
 
-    private String required(String propKey, String label) {
+    String required(String propKey, String label) {
         String value = getPropertyAsString(propKey, "").trim();
         if (value.isEmpty()) {
             throw new IllegalArgumentException(label + " is required for this operation");
@@ -193,7 +193,7 @@ public class McpSampler extends AbstractSampler {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> parseArguments() {
+    Map<String, Object> parseArguments() {
         String raw = getPropertyAsString(ARGUMENTS_JSON, "").trim();
         if (raw.isEmpty()) {
             return new HashMap<>();
