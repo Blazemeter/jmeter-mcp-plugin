@@ -35,6 +35,9 @@ public final class McpClientSettings implements Serializable {
     /** When true, schedule connect during {@code testStarted()} instead of on first sampler use. */
     private boolean connectOnStartup = false;
 
+    /** When true (default), keep managed MCP servers running after {@code testEnded()}. */
+    private boolean keepServerRunningAfterTest = true;
+
     /** Optional subprocess launch for HTTP/SSE transports (GUI Start Now). */
     private String serverLaunchCommand = "";
     private String serverLaunchArgs = "";
@@ -137,6 +140,14 @@ public final class McpClientSettings implements Serializable {
 
     public void setConnectOnStartup(boolean connectOnStartup) {
         this.connectOnStartup = connectOnStartup;
+    }
+
+    public boolean isKeepServerRunningAfterTest() {
+        return keepServerRunningAfterTest;
+    }
+
+    public void setKeepServerRunningAfterTest(boolean keepServerRunningAfterTest) {
+        this.keepServerRunningAfterTest = keepServerRunningAfterTest;
     }
 
     public String getServerLaunchCommand() {

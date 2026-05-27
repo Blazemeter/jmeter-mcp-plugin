@@ -41,6 +41,8 @@ public class McpClientConfig extends ConfigTestElement
     public static final String REQUEST_TIMEOUT_MS = "McpClientConfig.requestTimeoutMs";
     public static final String INIT_TIMEOUT_MS = "McpClientConfig.initTimeoutMs";
     public static final String CONNECT_ON_STARTUP = "McpClientConfig.connectOnStartup";
+    public static final String KEEP_SERVER_RUNNING_AFTER_TEST =
+            "McpClientConfig.keepServerRunningAfterTest";
     public static final String SERVER_LAUNCH_COMMAND = "McpClientConfig.serverLaunchCommand";
     public static final String SERVER_LAUNCH_ARGS = "McpClientConfig.serverLaunchArgs";
     public static final String SERVER_LAUNCH_ENV = "McpClientConfig.serverLaunchEnv";
@@ -63,6 +65,8 @@ public class McpClientConfig extends ConfigTestElement
         s.setRequestTimeoutMillis(getPropertyAsLong(REQUEST_TIMEOUT_MS, 30_000L));
         s.setInitializationTimeoutMillis(getPropertyAsLong(INIT_TIMEOUT_MS, 30_000L));
         s.setConnectOnStartup(getPropertyAsBoolean(CONNECT_ON_STARTUP, false));
+        s.setKeepServerRunningAfterTest(
+                getPropertyAsBoolean(KEEP_SERVER_RUNNING_AFTER_TEST, true));
         s.setServerLaunchCommand(getPropertyAsString(SERVER_LAUNCH_COMMAND, ""));
         s.setServerLaunchArgs(getPropertyAsString(SERVER_LAUNCH_ARGS, ""));
         s.setServerLaunchEnv(getPropertyAsString(SERVER_LAUNCH_ENV, ""));
@@ -105,6 +109,8 @@ public class McpClientConfig extends ConfigTestElement
     private void startClient() {
         McpClientSettings settings = toSettings();
         String registryName = settings.getName();
+        McpServerProcessManager.getInstance().notifyClientConfigTestStarted(
+                settings.isKeepServerRunningAfterTest());
         try {
             if (settings.isConnectOnStartup()) {
                 LOG.info("Scheduling MCP client '{}' connect on test start (transport {})",
@@ -125,16 +131,22 @@ public class McpClientConfig extends ConfigTestElement
     private void stopClient() {
         McpClientSettings settings = toSettings();
         String registryName = settings.getName();
-        LOG.info("Stopping MCP client '{}'", registryName);
-        boolean stopPreviewServer = McpClientRegistry.getInstance()
-                .shouldStopPreviewManagedServer(registryName);
-        McpClientRegistry.getInstance().remove(registryName);
-        if (stopPreviewServer) {
-            stopPreviewManagedServer();
+        McpServerProcessManager manager = McpServerProcessManager.getInstance();
+        manager.notifyClientConfigTestEnded(settings.isKeepServerRunningAfterTest());
+
+        if (settings.isKeepServerRunningAfterTest()) {
+            LOG.info("Keeping MCP client '{}' and managed server running after test",
+                    registryName);
+            return;
         }
+
+        LOG.info("Stopping MCP client '{}'", registryName);
+        McpClientRegistry.getInstance().shouldStopPreviewManagedServer(registryName);
+        McpClientRegistry.getInstance().remove(registryName);
+        stopManagedServerIfRunning();
     }
 
-    private static void stopPreviewManagedServer() {
+    private static void stopManagedServerIfRunning() {
         McpServerProcessManager manager = McpServerProcessManager.getInstance();
         if (manager.isManagedProcessRunning()) {
             manager.stop();

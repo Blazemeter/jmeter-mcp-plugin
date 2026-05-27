@@ -5,12 +5,15 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class McpServerProcessManagerTest {
 
     @AfterEach
     void tearDown() {
-        McpServerProcessManager.getInstance().stop();
+        McpServerProcessManager manager = McpServerProcessManager.getInstance();
+        manager.notifyClientConfigTestEnded(false);
+        manager.stop();
     }
 
     @Test
@@ -25,5 +28,16 @@ class McpServerProcessManagerTest {
         McpServerProcessManager manager = McpServerProcessManager.getInstance();
         manager.stop();
         assertFalse(manager.isManagedProcessRunning());
+    }
+
+    @Test
+    void keepServerFlagTracksClientConfigLifecycle() {
+        McpServerProcessManager manager = McpServerProcessManager.getInstance();
+        manager.notifyClientConfigTestStarted(true);
+        assertTrue(manager.shouldKeepServerRunningAfterTest());
+        manager.notifyClientConfigTestEnded(true);
+        assertTrue(manager.shouldKeepServerRunningAfterTest());
+        manager.notifyClientConfigTestStarted(false);
+        assertFalse(manager.shouldKeepServerRunningAfterTest());
     }
 }

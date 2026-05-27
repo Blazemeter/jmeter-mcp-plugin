@@ -57,6 +57,8 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
             new JComboBox<>(TransportType.values());
     private final JCheckBox connectOnStartupCheck =
             new JCheckBox("Connect on test start (otherwise wait for first sampler)");
+    private final JCheckBox keepServerRunningAfterTestCheck =
+            new JCheckBox("Keep server running after test ends");
 
     private final JTextField serverUrlField = new JTextField(30);
     private final JTextField endpointField = new JTextField(20);
@@ -136,6 +138,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         GridBagForm.addLabelAndField(p, c, 0, "Variable Name:", nameField);
         GridBagForm.addLabelAndField(p, c, 1, "Transport:", transportCombo);
         GridBagForm.addLabelAndField(p, c, 2, "", connectOnStartupCheck);
+        GridBagForm.addLabelAndField(p, c, 3, "", keepServerRunningAfterTestCheck);
         return p;
     }
 
@@ -329,6 +332,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         s.setRequestTimeoutMillis(GridBagForm.parseLong(requestTimeoutField.getText(), 30_000L));
         s.setInitializationTimeoutMillis(GridBagForm.parseLong(initTimeoutField.getText(), 30_000L));
         s.setConnectOnStartup(connectOnStartupCheck.isSelected());
+        s.setKeepServerRunningAfterTest(keepServerRunningAfterTestCheck.isSelected());
         s.setServerLaunchCommand(serverLaunchCommandField.getText());
         s.setServerLaunchArgs(serverLaunchArgsField.getText());
         s.setServerLaunchEnv(serverLaunchEnvArea.getText());
@@ -398,6 +402,8 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         cfg.setProperty(McpClientConfig.INIT_TIMEOUT_MS,
                 GridBagForm.parseLong(initTimeoutField.getText(), 30_000L));
         cfg.setProperty(McpClientConfig.CONNECT_ON_STARTUP, connectOnStartupCheck.isSelected());
+        cfg.setProperty(McpClientConfig.KEEP_SERVER_RUNNING_AFTER_TEST,
+                keepServerRunningAfterTestCheck.isSelected());
         cfg.setProperty(McpClientConfig.SERVER_LAUNCH_COMMAND, serverLaunchCommandField.getText());
         cfg.setProperty(McpClientConfig.SERVER_LAUNCH_ARGS, serverLaunchArgsField.getText());
         cfg.setProperty(McpClientConfig.SERVER_LAUNCH_ENV, serverLaunchEnvArea.getText());
@@ -434,6 +440,8 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
                 cfg.getPropertyAsLong(McpClientConfig.INIT_TIMEOUT_MS, 30_000L)));
         connectOnStartupCheck.setSelected(
                 cfg.getPropertyAsBoolean(McpClientConfig.CONNECT_ON_STARTUP, false));
+        keepServerRunningAfterTestCheck.setSelected(
+                cfg.getPropertyAsBoolean(McpClientConfig.KEEP_SERVER_RUNNING_AFTER_TEST, true));
         serverLaunchCommandField.setText(
                 cfg.getPropertyAsString(McpClientConfig.SERVER_LAUNCH_COMMAND, ""));
         serverLaunchArgsField.setText(cfg.getPropertyAsString(McpClientConfig.SERVER_LAUNCH_ARGS, ""));
@@ -463,6 +471,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         requestTimeoutField.setText("30000");
         initTimeoutField.setText("30000");
         connectOnStartupCheck.setSelected(false);
+        keepServerRunningAfterTestCheck.setSelected(true);
         serverLaunchCommandField.setText("npx");
         serverLaunchArgsField.setText("-y @modelcontextprotocol/server-everything sse");
         serverLaunchEnvArea.setText("");
