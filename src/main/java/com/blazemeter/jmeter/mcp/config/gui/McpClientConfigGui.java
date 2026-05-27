@@ -290,7 +290,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
-                McpClientPreviewLauncher.stopNow(settings.getName(), settings);
+                McpClientPreviewLauncher.stopNow(settings);
                 return null;
             }
 

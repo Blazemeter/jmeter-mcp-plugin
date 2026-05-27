@@ -7,7 +7,7 @@ import com.blazemeter.jmeter.mcp.util.Strings;
 
 /**
  * Starts an MCP server (when needed) and connects a preview client from the
- * JMeter GUI via {@link McpClientRegistry#connectNow(String, McpClientSettings)}.
+ * JMeter GUI via {@link McpClientRegistry#connectNow(McpClientSettings, boolean)}.
  */
 public final class McpClientPreviewLauncher {
 
@@ -20,7 +20,7 @@ public final class McpClientPreviewLauncher {
             startedManagedServer = ensureHttpServerReachable(settings);
         }
         try {
-            McpClientRegistry.getInstance().connectNow(settings.getName(), settings, startedManagedServer);
+            McpClientRegistry.getInstance().connectNow(settings, startedManagedServer);
         } catch (RuntimeException ex) {
             if (startedManagedServer) {
                 McpServerProcessManager.getInstance().stop();
@@ -29,7 +29,8 @@ public final class McpClientPreviewLauncher {
         }
     }
 
-    public static void stopNow(String clientName, McpClientSettings settings) {
+    public static void stopNow(McpClientSettings settings) {
+        String clientName = settings != null ? settings.getName() : null;
         McpClientRegistry registry = McpClientRegistry.getInstance();
         boolean stopManagedServer = registry.disconnectNow(clientName);
         if (stopManagedServer && settings.getTransport() != TransportType.STDIO) {

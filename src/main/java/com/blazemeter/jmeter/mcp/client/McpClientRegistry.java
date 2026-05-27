@@ -87,7 +87,8 @@ public final class McpClientRegistry {
      * Connect immediately from the GUI (Start Now). Replaces any existing client
      * registered under the same name.
      */
-    public void connectNow(String name, McpClientSettings settings, boolean startedManagedServer) {
+    public void connectNow(McpClientSettings settings, boolean startedManagedServer) {
+        String name = settings != null ? settings.getName() : null;
         requireClientName(name);
         remove(name);
         deferredSettings.put(name, settings);
