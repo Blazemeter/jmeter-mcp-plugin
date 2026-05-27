@@ -41,6 +41,12 @@ public class McpClientConfig extends ConfigTestElement
     public static final String REQUEST_TIMEOUT_MS = "McpClientConfig.requestTimeoutMs";
     public static final String INIT_TIMEOUT_MS = "McpClientConfig.initTimeoutMs";
     public static final String CONNECT_ON_STARTUP = "McpClientConfig.connectOnStartup";
+    public static final String SERVER_LAUNCH_COMMAND = "McpClientConfig.serverLaunchCommand";
+    public static final String SERVER_LAUNCH_ARGS = "McpClientConfig.serverLaunchArgs";
+    public static final String SERVER_LAUNCH_ENV = "McpClientConfig.serverLaunchEnv";
+    public static final String SERVER_READY_HOST = "McpClientConfig.serverReadyHost";
+    public static final String SERVER_READY_PORT = "McpClientConfig.serverReadyPort";
+    public static final String SERVER_STARTUP_WAIT_MS = "McpClientConfig.serverStartupWaitMs";
 
     public McpClientSettings toSettings() {
         McpClientSettings s = new McpClientSettings();
@@ -57,6 +63,12 @@ public class McpClientConfig extends ConfigTestElement
         s.setRequestTimeoutMillis(getPropertyAsLong(REQUEST_TIMEOUT_MS, 30_000L));
         s.setInitializationTimeoutMillis(getPropertyAsLong(INIT_TIMEOUT_MS, 30_000L));
         s.setConnectOnStartup(getPropertyAsBoolean(CONNECT_ON_STARTUP, false));
+        s.setServerLaunchCommand(getPropertyAsString(SERVER_LAUNCH_COMMAND, ""));
+        s.setServerLaunchArgs(getPropertyAsString(SERVER_LAUNCH_ARGS, ""));
+        s.setServerLaunchEnv(getPropertyAsString(SERVER_LAUNCH_ENV, ""));
+        s.setServerReadyHost(getPropertyAsString(SERVER_READY_HOST, "localhost"));
+        s.setServerReadyPort((int) getPropertyAsLong(SERVER_READY_PORT, 3001L));
+        s.setServerStartupWaitMs(getPropertyAsLong(SERVER_STARTUP_WAIT_MS, 60_000L));
         return s;
     }
 
@@ -114,14 +126,15 @@ public class McpClientConfig extends ConfigTestElement
         McpClientSettings settings = toSettings();
         String registryName = settings.getName();
         LOG.info("Stopping MCP client '{}'", registryName);
+        boolean stopPreviewServer = McpClientRegistry.getInstance()
+                .shouldStopPreviewManagedServer(registryName);
         McpClientRegistry.getInstance().remove(registryName);
-        stopManagedServerIfNeeded(settings);
+        if (stopPreviewServer) {
+            stopPreviewManagedServer();
+        }
     }
 
-    private static void stopManagedServerIfNeeded(McpClientSettings settings) {
-        if (settings.getTransport() == TransportType.STDIO) {
-            return;
-        }
+    private static void stopPreviewManagedServer() {
         McpServerProcessManager manager = McpServerProcessManager.getInstance();
         if (manager.isManagedProcessRunning()) {
             manager.stop();

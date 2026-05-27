@@ -154,7 +154,8 @@ public final class McpServerProcessManager {
         return isPortOpen(host, port, 500);
     }
 
-    private static boolean isPortOpen(String host, int port, int connectTimeoutMs) {
+    /** Whether {@code host:port} accepts a TCP connection (for GUI / Start Now checks). */
+    public static boolean isPortOpen(String host, int port, int connectTimeoutMs) {
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(host, port), connectTimeoutMs);
             return true;

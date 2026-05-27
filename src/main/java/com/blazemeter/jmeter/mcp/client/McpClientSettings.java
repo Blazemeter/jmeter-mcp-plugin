@@ -35,6 +35,14 @@ public final class McpClientSettings implements Serializable {
     /** When true, schedule connect during {@code testStarted()} instead of on first sampler use. */
     private boolean connectOnStartup = false;
 
+    /** Optional subprocess launch for HTTP/SSE transports (GUI Start Now). */
+    private String serverLaunchCommand = "";
+    private String serverLaunchArgs = "";
+    private String serverLaunchEnv = "";
+    private String serverReadyHost = "localhost";
+    private int serverReadyPort = 3001;
+    private long serverStartupWaitMs = 60_000L;
+
     public String getName() {
         return name;
     }
@@ -129,5 +137,53 @@ public final class McpClientSettings implements Serializable {
 
     public void setConnectOnStartup(boolean connectOnStartup) {
         this.connectOnStartup = connectOnStartup;
+    }
+
+    public String getServerLaunchCommand() {
+        return serverLaunchCommand;
+    }
+
+    public void setServerLaunchCommand(String serverLaunchCommand) {
+        this.serverLaunchCommand = serverLaunchCommand;
+    }
+
+    public String getServerLaunchArgs() {
+        return serverLaunchArgs;
+    }
+
+    public void setServerLaunchArgs(String serverLaunchArgs) {
+        this.serverLaunchArgs = serverLaunchArgs;
+    }
+
+    public String getServerLaunchEnv() {
+        return serverLaunchEnv;
+    }
+
+    public void setServerLaunchEnv(String serverLaunchEnv) {
+        this.serverLaunchEnv = serverLaunchEnv;
+    }
+
+    public String getServerReadyHost() {
+        return serverReadyHost;
+    }
+
+    public void setServerReadyHost(String serverReadyHost) {
+        this.serverReadyHost = serverReadyHost;
+    }
+
+    public int getServerReadyPort() {
+        return serverReadyPort;
+    }
+
+    public void setServerReadyPort(int serverReadyPort) {
+        this.serverReadyPort = serverReadyPort;
+    }
+
+    public long getServerStartupWaitMs() {
+        return serverStartupWaitMs;
+    }
+
+    public void setServerStartupWaitMs(long serverStartupWaitMs) {
+        this.serverStartupWaitMs = serverStartupWaitMs;
     }
 }

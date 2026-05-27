@@ -1,6 +1,7 @@
 package com.blazemeter.jmeter.mcp.client;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -44,6 +45,7 @@ public final class McpClientRegistry {
     private final Map<String, Object> connectLocks = new ConcurrentHashMap<>();
     private final Map<String, CompletableFuture<McpSyncClient>> pendingConnects =
             new ConcurrentHashMap<>();
+    private final Set<String> previewStartedManagedServer = ConcurrentHashMap.newKeySet();
 
     private McpClientRegistry() {
     }
@@ -58,7 +60,69 @@ public final class McpClientRegistry {
      */
     public void registerDeferred(String name, McpClientSettings settings) {
         requireClientName(name);
+        if (adoptExistingConnection(name, settings)) {
+            return;
+        }
         deferredSettings.put(name, settings);
+    }
+
+    /**
+     * Returns whether a live, initialized client is registered under {@code name}.
+     */
+    public boolean isConnected(String name) {
+        return name != null && !name.isBlank() && clients.containsKey(name);
+    }
+
+    /**
+     * Returns the connected client, or {@code null} if not connected.
+     */
+    public McpSyncClient getConnected(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        return clients.get(name);
+    }
+
+    /**
+     * Connect immediately from the GUI (Start Now). Replaces any existing client
+     * registered under the same name.
+     */
+    public void connectNow(String name, McpClientSettings settings, boolean startedManagedServer) {
+        requireClientName(name);
+        remove(name);
+        deferredSettings.put(name, settings);
+        if (startedManagedServer) {
+            previewStartedManagedServer.add(name);
+        }
+        connectClient(name, "gui start now");
+    }
+
+    /**
+     * Disconnect a GUI-started client. Returns whether a managed server subprocess
+     * started via Start Now should be stopped.
+     */
+    public boolean disconnectNow(String name) {
+        boolean stopManagedServer = previewStartedManagedServer.remove(name);
+        remove(name);
+        return stopManagedServer;
+    }
+
+    /**
+     * When Start Now (or a prior test) left a client connected, keep it and only
+     * refresh settings for the upcoming run.
+     */
+    private boolean adoptExistingConnection(String name, McpClientSettings settings) {
+        if (!clients.containsKey(name)) {
+            return false;
+        }
+        LOG.info("Reusing existing MCP client '{}' for test run (transport {})",
+                name, settings.getTransport());
+        deferredSettings.put(name, settings);
+        CompletableFuture<McpSyncClient> pending = pendingConnects.remove(name);
+        if (pending != null && !pending.isDone()) {
+            pending.cancel(true);
+        }
+        return true;
     }
 
     /**
@@ -67,6 +131,9 @@ public final class McpClientRegistry {
      */
     public void connectOnStartup(String name, McpClientSettings settings) {
         requireClientName(name);
+        if (adoptExistingConnection(name, settings)) {
+            return;
+        }
         McpClientSettings previous = deferredSettings.put(name, settings);
         if (previous != null) {
             LOG.warn("MCP client '{}' settings replaced (was transport {}, now {})",
@@ -168,6 +235,10 @@ public final class McpClientRegistry {
             }
         }
         connectLocks.remove(name, lock);
+    }
+
+    public boolean shouldStopPreviewManagedServer(String name) {
+        return previewStartedManagedServer.remove(name);
     }
 
     private static void closeQuietly(McpSyncClient client) {
