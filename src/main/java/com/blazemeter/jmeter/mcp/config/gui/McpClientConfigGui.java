@@ -2,14 +2,15 @@ package com.blazemeter.jmeter.mcp.config.gui;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Rectangle;
 
 import javax.swing.BoxLayout;
-
 import javax.swing.BorderFactory;
+import javax.swing.JComponent;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -109,11 +110,11 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
 
         JPanel stack = new JPanel();
         stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
-        stack.add(buildCommonPanel());
-        stack.add(buildTransportPanel());
-        stack.add(buildServerLaunchPanel());
-        stack.add(buildPreviewPanel());
-        stack.add(buildAdvancedPanel());
+        addStackSection(stack, buildCommonPanel());
+        addStackSection(stack, buildTransportPanel());
+        addStackSection(stack, buildServerLaunchPanel());
+        addStackSection(stack, buildPreviewPanel());
+        addStackSection(stack, buildAdvancedPanel());
 
         JPanel center = new JPanel(new BorderLayout(0, 5));
         center.add(stack, BorderLayout.NORTH);
@@ -128,6 +129,13 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         stopNowButton.addActionListener(e -> stopNow());
         showSelectedTransport();
         refreshConnectionStatus();
+    }
+
+    private static void addStackSection(JPanel stack, Component section) {
+        if (section instanceof JComponent) {
+            ((JComponent) section).setAlignmentX(Component.LEFT_ALIGNMENT);
+        }
+        stack.add(section);
     }
 
     private JPanel buildCommonPanel() {

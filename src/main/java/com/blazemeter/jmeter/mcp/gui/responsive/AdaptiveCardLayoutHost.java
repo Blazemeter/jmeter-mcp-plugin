@@ -5,6 +5,8 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Insets;
 
+import static java.awt.Component.LEFT_ALIGNMENT;
+
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
@@ -27,7 +29,8 @@ public final class AdaptiveCardLayoutHost extends JPanel {
     public AdaptiveCardLayoutHost(JPanel cardPanel) {
         this.cardPanel = cardPanel;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        cardPanel.setAlignmentX(JComponent.LEFT_ALIGNMENT);
+        setAlignmentX(LEFT_ALIGNMENT);
+        cardPanel.setAlignmentX(LEFT_ALIGNMENT);
         add(cardPanel);
         add(Box.createVerticalGlue());
         sync();
@@ -62,9 +65,8 @@ public final class AdaptiveCardLayoutHost extends JPanel {
         }
         int h = Math.max(selH, MIN_CONTENT_HEIGHT_PX);
         Dimension panePref = cardPanel.getPreferredSize();
-        int w = panePref.width > 0 ? panePref.width : Math.max(cardPanel.getWidth(), 1);
-        Dimension sized = new Dimension(w, h);
-        cardPanel.setPreferredSize(sized);
+        int w = panePref.width > 0 ? panePref.width : 0;
+        cardPanel.setPreferredSize(new Dimension(w, h));
         cardPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, h));
         cardPanel.setMinimumSize(new Dimension(0, h));
     }
@@ -76,12 +78,21 @@ public final class AdaptiveCardLayoutHost extends JPanel {
         }
         Insets in = getInsets();
         Dimension cp = cardPanel.getPreferredSize();
-        return new Dimension(cp.width + in.left + in.right, cp.height + in.top + in.bottom);
+        int width = cp.width + in.left + in.right;
+        Container parent = getParent();
+        if (parent != null) {
+            int parentWidth = parent.getWidth();
+            if (parentWidth > 0) {
+                width = Math.max(width, parentWidth);
+            }
+        }
+        return new Dimension(width, cp.height + in.top + in.bottom);
     }
 
     @Override
     public Dimension getMaximumSize() {
-        return new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE);
+        Dimension pref = getPreferredSize();
+        return new Dimension(Integer.MAX_VALUE, pref.height);
     }
 
     private Component findVisibleCard() {
