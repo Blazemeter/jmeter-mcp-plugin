@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class JsonMappersTest {
 
     @Test
-    void getDefaultReturnsMapperFromServiceLoader() {
+    void shouldReturnCachedMapperWhenGetDefaultCalledTwice() {
         McpJsonMapper mapper = JsonMappers.getDefault();
         assertNotNull(mapper);
         // second call uses cached instance
@@ -20,12 +20,12 @@ class JsonMappersTest {
     }
 
     @Test
-    void writeValueAsPrettyStringHandlesNull() throws Exception {
+    void shouldReturnNullLiteralWhenWriteValueAsPrettyStringWithNull() throws Exception {
         assertEquals("null", JsonMappers.writeValueAsPrettyString(null));
     }
 
     @Test
-    void writeValueAsPrettyStringSerializesMap() throws Exception {
+    void shouldSerializeMapWhenWriteValueAsPrettyString() throws Exception {
         String json = JsonMappers.writeValueAsPrettyString(Map.of("key", "value"));
         assertTrue(json.contains("key"));
         assertTrue(json.contains("value"));

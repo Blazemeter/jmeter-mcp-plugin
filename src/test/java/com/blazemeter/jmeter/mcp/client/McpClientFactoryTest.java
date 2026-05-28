@@ -27,31 +27,31 @@ class McpClientFactoryTest {
     }
 
     @Test
-    void splitsSimpleArgs() {
+    void shouldSplitSimpleArgsWhenArgStringHasUnquotedTokens() {
         assertEquals(List.of("-y", "@modelcontextprotocol/server-everything", "dir"),
                 McpClientFactory.splitArgs("-y @modelcontextprotocol/server-everything dir"));
     }
 
     @Test
-    void splitsQuotedArgs() {
+    void shouldSplitQuotedArgsWhenArgStringContainsDoubleQuotes() {
         assertEquals(List.of("--message", "hello world", "--other", "v"),
                 McpClientFactory.splitArgs("--message \"hello world\" --other v"));
     }
 
     @Test
-    void returnsEmptyForBlankArgs() {
+    void shouldReturnEmptyListWhenArgsAreBlankOrNull() {
         assertTrue(McpClientFactory.splitArgs("   ").isEmpty());
         assertTrue(McpClientFactory.splitArgs(null).isEmpty());
     }
 
     @Test
-    void trimsTrailingWhitespaceInArgs() {
+    void shouldTrimTrailingWhitespaceWhenArgTokenHasTrailingSpaces() {
         assertEquals(List.of("--mcp"),
                 McpClientFactory.splitArgs("--mcp "));
     }
 
     @Test
-    void parsesEnvLines() {
+    void shouldParseEnvLinesWhenInputContainsCommentsAndAssignments() {
         Map<String, String> env = McpClientFactory.parseEnv(
                 "FOO=bar\n# comment\nBAZ = qux\n\nEMPTY=");
         assertEquals(3, env.size());
@@ -61,26 +61,26 @@ class McpClientFactoryTest {
     }
 
     @Test
-    void parseEnvReturnsEmptyForBlankInput() {
+    void shouldReturnEmptyMapWhenEnvInputIsBlank() {
         assertTrue(McpClientFactory.parseEnv(null).isEmpty());
         assertTrue(McpClientFactory.parseEnv("  \n").isEmpty());
     }
 
     @Test
-    void parseEnvSkipsInvalidLines() {
+    void shouldSkipInvalidLinesWhenEnvInputHasMalformedEntries() {
         Map<String, String> env = McpClientFactory.parseEnv("no-equals\n=empty-key\nKEY=value");
         assertEquals(1, env.size());
         assertEquals("value", env.get("KEY"));
     }
 
     @Test
-    void splitsSingleQuotedArgs() {
+    void shouldSplitSingleQuotedArgsWhenArgStringContainsSingleQuotes() {
         assertEquals(List.of("arg", "two words"),
                 McpClientFactory.splitArgs("arg 'two words'"));
     }
 
     @Test
-    void buildStdioTransportWithCommandArgsAndEnv() {
+    void shouldBuildStdioTransportWhenCommandArgsAndEnvAreSet() {
         McpClientSettings settings = new McpClientSettings();
         settings.setTransport(TransportType.STDIO);
         settings.setStdioCommand("npx");
@@ -92,7 +92,7 @@ class McpClientFactoryTest {
     }
 
     @Test
-    void buildStdioTransportTrimsCommand() {
+    void shouldBuildStdioTransportWhenCommandHasSurroundingWhitespace() {
         McpClientSettings settings = new McpClientSettings();
         settings.setTransport(TransportType.STDIO);
         settings.setStdioCommand("  node  ");
@@ -102,7 +102,7 @@ class McpClientFactoryTest {
     }
 
     @Test
-    void buildSseTransportWithOptionalEndpoint() {
+    void shouldBuildSseTransportWhenServerUrlAndEndpointAreSet() {
         McpClientSettings settings = new McpClientSettings();
         settings.setTransport(TransportType.SSE);
         settings.setServerUrl("http://127.0.0.1:8080");
@@ -113,7 +113,7 @@ class McpClientFactoryTest {
     }
 
     @Test
-    void buildSseTransportWithoutEndpoint() {
+    void shouldBuildSseTransportWhenOnlyServerUrlIsSet() {
         McpClientSettings settings = new McpClientSettings();
         settings.setTransport(TransportType.SSE);
         settings.setServerUrl("http://127.0.0.1:8080");
@@ -123,7 +123,7 @@ class McpClientFactoryTest {
     }
 
     @Test
-    void buildStreamableHttpTransportWithOptionalEndpoint() {
+    void shouldBuildStreamableHttpTransportWhenServerUrlAndEndpointAreSet() {
         McpClientSettings settings = new McpClientSettings();
         settings.setTransport(TransportType.STREAMABLE_HTTP);
         settings.setServerUrl("http://127.0.0.1:8080");
@@ -135,7 +135,7 @@ class McpClientFactoryTest {
 
     @Test
     @EnabledIf("com.blazemeter.jmeter.mcp.client.McpClientTestFixtures#isNpxAvailable")
-    void buildAndInitializeStdioServerEverything() {
+    void shouldInitializeStdioClientWhenNpxServerEverythingIsAvailable() {
         McpClientSettings settings = McpClientTestFixtures.stdioServerEverythingSettings("factory-stdio");
         settings.setClientName("");
         settings.setClientVersion("  ");
@@ -147,7 +147,7 @@ class McpClientFactoryTest {
 
     @Test
     @EnabledIf("com.blazemeter.jmeter.mcp.client.McpClientTestFixtures#isNpxAvailable")
-    void buildAndInitializeSseServerEverything() {
+    void shouldInitializeSseClientWhenHttpServerEverythingIsRunning() {
         startHttpServer("sse");
         McpClientSettings settings =
                 McpClientTestFixtures.sseServerEverythingSettings("factory-sse", HTTP_PORT);
@@ -159,7 +159,7 @@ class McpClientFactoryTest {
 
     @Test
     @EnabledIf("com.blazemeter.jmeter.mcp.client.McpClientTestFixtures#isNpxAvailable")
-    void buildAndInitializeStreamableHttpServerEverything() {
+    void shouldInitializeStreamableHttpClientWhenHttpServerEverythingIsRunning() {
         startHttpServer("streamableHttp");
         McpClientSettings settings = McpClientTestFixtures.streamableHttpServerEverythingSettings(
                 "factory-streamable", HTTP_PORT);
@@ -180,13 +180,13 @@ class McpClientFactoryTest {
     }
 
     @Test
-    void buildAndInitializeRejectsNullSettings() {
+    void shouldRejectNullSettingsWhenBuildAndInitialize() {
         assertThrows(NullPointerException.class,
                 () -> McpClientFactory.buildAndInitialize(null));
     }
 
     @Test
-    void stdioRejectsBlankCommandAfterTrim() {
+    void shouldRejectBlankCommandWhenStdioCommandIsWhitespaceOnly() {
         McpClientSettings s = new McpClientSettings();
         s.setTransport(TransportType.STDIO);
         s.setStdioCommand("   ");
@@ -196,7 +196,7 @@ class McpClientFactoryTest {
     }
 
     @Test
-    void stdioRejectsNullCommand() {
+    void shouldRejectNullCommandWhenStdioCommandIsMissing() {
         McpClientSettings s = new McpClientSettings();
         s.setTransport(TransportType.STDIO);
         s.setStdioCommand(null);
@@ -205,7 +205,7 @@ class McpClientFactoryTest {
     }
 
     @Test
-    void sseRejectsMissingServerUrl() {
+    void shouldRejectMissingServerUrlWhenSseServerUrlIsBlank() {
         McpClientSettings s = new McpClientSettings();
         s.setTransport(TransportType.SSE);
         s.setServerUrl("  ");
@@ -216,7 +216,7 @@ class McpClientFactoryTest {
     }
 
     @Test
-    void streamableHttpRejectsMissingServerUrl() {
+    void shouldRejectMissingServerUrlWhenStreamableHttpServerUrlIsNull() {
         McpClientSettings s = new McpClientSettings();
         s.setTransport(TransportType.STREAMABLE_HTTP);
         s.setServerUrl(null);

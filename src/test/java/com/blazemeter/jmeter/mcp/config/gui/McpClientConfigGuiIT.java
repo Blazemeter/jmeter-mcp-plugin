@@ -41,7 +41,7 @@ public class McpClientConfigGuiIT {
     }
 
     @Test
-    public void clearGuiSetsStdioDefaultsOnVisibleCard() {
+    public void shouldSetStdioDefaultsWhenClearGui() {
         gui.clearGui();
         frame.textBox("mcpClientConfig.name").requireText("mcpClient");
         frame.comboBox("mcpClientConfig.transport").requireSelection(TransportType.STDIO.name());
@@ -52,7 +52,7 @@ public class McpClientConfigGuiIT {
     }
 
     @Test
-    public void configureLoadsSseTransportFields() {
+    public void shouldLoadSseTransportFieldsWhenConfigure() {
         McpClientConfig config = new McpClientConfig();
         config.setProperty(McpClientConfig.NAME, "remote");
         config.setProperty(McpClientConfig.TRANSPORT, TransportType.SSE.name());
@@ -78,7 +78,7 @@ public class McpClientConfigGuiIT {
     }
 
     @Test
-    public void configureLoadsStdioTransportFields() {
+    public void shouldLoadStdioTransportFieldsWhenConfigure() {
         McpClientConfig config = new McpClientConfig();
         config.setProperty(McpClientConfig.TRANSPORT, TransportType.STDIO.name());
         config.setProperty(McpClientConfig.STDIO_COMMAND, "node");
@@ -94,7 +94,7 @@ public class McpClientConfigGuiIT {
     }
 
     @Test
-    public void modifyTestElementPersistsStreamableHttpFields() {
+    public void shouldPersistStreamableHttpFieldsWhenModifyTestElement() {
         gui.clearGui();
         frame.textBox("mcpClientConfig.name").setText("edited");
         frame.comboBox("mcpClientConfig.transport").selectItem(TransportType.STREAMABLE_HTTP.name());
@@ -122,7 +122,7 @@ public class McpClientConfigGuiIT {
     }
 
     @Test
-    public void invalidTimeoutFallsBackToDefault() {
+    public void shouldFallBackToDefaultTimeoutsWhenInvalidNumericInput() {
         gui.clearGui();
         frame.textBox("mcpClientConfig.requestTimeout").setText("oops");
         frame.textBox("mcpClientConfig.initTimeout").setText("also-bad");

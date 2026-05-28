@@ -38,7 +38,7 @@ public class McpServerProcessGuiIT {
     }
 
     @Test
-    public void clearGuiSetsLaunchDefaults() {
+    public void shouldSetLaunchDefaultsWhenClearGui() {
         gui.clearGui();
         frame.textBox("mcpServerProcess.command").requireText("npx");
         frame.textBox("mcpServerProcess.args")
@@ -50,7 +50,7 @@ public class McpServerProcessGuiIT {
     }
 
     @Test
-    public void configureLoadsServerProcessProperties() {
+    public void shouldLoadServerProcessPropertiesWhenConfigure() {
         McpServerProcess process = new McpServerProcess();
         process.setProperty(McpServerProcess.COMMAND, "node");
         process.setProperty(McpServerProcess.ARGS, "server.js");
@@ -70,7 +70,7 @@ public class McpServerProcessGuiIT {
     }
 
     @Test
-    public void modifyTestElementPersistsEditedFields() {
+    public void shouldPersistEditedFieldsWhenModifyTestElement() {
         gui.clearGui();
         frame.textBox("mcpServerProcess.command").setText("python");
         frame.textBox("mcpServerProcess.args").setText("-m mcp");
@@ -89,7 +89,7 @@ public class McpServerProcessGuiIT {
     }
 
     @Test
-    public void invalidNumericFieldsFallBackToDefaults() {
+    public void shouldFallBackToDefaultsWhenInvalidNumericFields() {
         gui.clearGui();
         frame.textBox("mcpServerProcess.readyPort").setText("bad");
         frame.textBox("mcpServerProcess.startupWait").setText("nope");

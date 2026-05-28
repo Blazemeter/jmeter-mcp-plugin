@@ -39,14 +39,14 @@ public class McpSamplerGuiIT {
     }
 
     @Test
-    public void clearGuiResetsHeaderFields() {
+    public void shouldResetHeaderFieldsWhenClearGui() {
         gui.clearGui();
         frame.textBox("mcpSampler.configName").requireText("mcpClient");
         frame.comboBox("mcpSampler.operation").requireSelection(McpOperation.PING.name());
     }
 
     @Test
-    public void configureLoadsCallToolFields() {
+    public void shouldLoadCallToolFieldsWhenConfigure() {
         McpSampler sampler = new McpSampler();
         sampler.setProperty(McpSampler.CONFIG_NAME, "shared");
         sampler.setProperty(McpSampler.OPERATION, McpOperation.CALL_TOOL.name());
@@ -62,7 +62,7 @@ public class McpSamplerGuiIT {
     }
 
     @Test
-    public void modifyTestElementPersistsCallToolSettings() {
+    public void shouldPersistCallToolSettingsWhenModifyTestElement() {
         gui.clearGui();
         frame.textBox("mcpSampler.configName").setText("clientB");
         frame.comboBox("mcpSampler.operation").selectItem(McpOperation.CALL_TOOL.name());
@@ -77,7 +77,7 @@ public class McpSamplerGuiIT {
     }
 
     @Test
-    public void modifyTestElementPersistsReadResourceSettings() {
+    public void shouldPersistReadResourceSettingsWhenModifyTestElement() {
         gui.clearGui();
         frame.comboBox("mcpSampler.operation").selectItem(McpOperation.READ_RESOURCE.name());
         frame.textBox("mcpSampler.resourceUri").setText("resource://docs");

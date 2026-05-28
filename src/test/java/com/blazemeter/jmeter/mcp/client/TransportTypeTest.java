@@ -8,14 +8,14 @@ import org.junit.jupiter.api.Test;
 class TransportTypeTest {
 
     @Test
-    void fromStringDefaultsToStdioWhenBlank() {
+    void shouldDefaultToStdioWhenFromStringIsBlank() {
         assertEquals(TransportType.STDIO, TransportType.fromString(null));
         assertEquals(TransportType.STDIO, TransportType.fromString(""));
         assertEquals(TransportType.STDIO, TransportType.fromString("   "));
     }
 
     @Test
-    void fromStringAcceptsHyphenatedAndUnderscoreNames() {
+    void shouldParseTransportWhenFromStringUsesHyphensOrUnderscores() {
         assertEquals(TransportType.STDIO, TransportType.fromString("stdio"));
         assertEquals(TransportType.SSE, TransportType.fromString("SSE"));
         assertEquals(TransportType.STREAMABLE_HTTP,
@@ -23,7 +23,7 @@ class TransportTypeTest {
     }
 
     @Test
-    void fromStringRejectsUnknownTransport() {
+    void shouldRejectUnknownTransportWhenFromString() {
         assertThrows(IllegalArgumentException.class,
                 () -> TransportType.fromString("websocket"));
     }

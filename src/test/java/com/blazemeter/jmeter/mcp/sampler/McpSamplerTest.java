@@ -22,7 +22,7 @@ class McpSamplerTest {
     }
 
     @Test
-    void sampleMarksFailureWhenClientConfigMissing() {
+    void shouldMarkSampleFailureWhenClientConfigIsMissing() {
         McpSampler sampler = new McpSampler();
         sampler.setProperty(McpSampler.CONFIG_NAME, "missing-config");
         sampler.setProperty(McpSampler.OPERATION, McpOperation.PING.name());
@@ -36,7 +36,7 @@ class McpSamplerTest {
     }
 
     @Test
-    void sampleMarksFailureWhenClientSettingsInvalid() {
+    void shouldMarkSampleFailureWhenClientSettingsAreInvalid() {
         McpClientSettings settings = new McpClientSettings();
         settings.setName(CLIENT);
         settings.setTransport(TransportType.STDIO);
@@ -55,7 +55,7 @@ class McpSamplerTest {
     }
 
     @Test
-    void requiredRejectsBlankToolName() {
+    void shouldRejectBlankToolNameWhenRequiredIsCalled() {
         McpSampler sampler = new McpSampler();
         sampler.setProperty(McpSampler.TOOL_NAME, "  ");
 
@@ -66,7 +66,7 @@ class McpSamplerTest {
     }
 
     @Test
-    void parseArgumentsRejectsInvalidJson() {
+    void shouldRejectInvalidJsonWhenParseArguments() {
         McpSampler sampler = new McpSampler();
         sampler.setProperty(McpSampler.ARGUMENTS_JSON, "{not-valid-json");
 
@@ -76,7 +76,7 @@ class McpSamplerTest {
     }
 
     @Test
-    void parseArgumentsAcceptsEmptyObject() {
+    void shouldReturnEmptyMapWhenArgumentsJsonIsBlank() {
         McpSampler sampler = new McpSampler();
         sampler.setProperty(McpSampler.ARGUMENTS_JSON, "");
 
@@ -84,7 +84,7 @@ class McpSamplerTest {
     }
 
     @Test
-    void parseArgumentsRejectsJsonArray() {
+    void shouldRejectJsonArrayWhenParseArguments() {
         McpSampler sampler = new McpSampler();
         sampler.setProperty(McpSampler.ARGUMENTS_JSON, "[1, 2]");
 

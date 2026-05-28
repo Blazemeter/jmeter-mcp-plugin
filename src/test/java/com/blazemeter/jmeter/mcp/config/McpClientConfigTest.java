@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 class McpClientConfigTest {
 
     @Test
-    void toSettingsMapsAllProperties() {
+    void shouldMapAllPropertiesWhenToSettings() {
         McpClientConfig config = new McpClientConfig();
         config.setProperty(McpClientConfig.NAME, "clientA");
         config.setProperty(McpClientConfig.TRANSPORT, TransportType.SSE.name());
@@ -42,7 +42,7 @@ class McpClientConfigTest {
     }
 
     @Test
-    void toSettingsUsesDefaultsForMissingProperties() {
+    void shouldUseDefaultsWhenToSettingsWithEmptyConfig() {
         McpClientConfig config = new McpClientConfig();
         McpClientSettings settings = config.toSettings();
         assertEquals("mcpClient", settings.getName());

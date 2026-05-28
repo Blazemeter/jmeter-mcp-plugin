@@ -14,7 +14,7 @@ class McpServerProcessManagerTest {
     }
 
     @Test
-    void rejectsBlankCommand() {
+    void shouldRejectBlankCommandWhenStart() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> McpServerProcessManager.getInstance().start(
                         "  ", "", "", "localhost", 3001, 1000));
@@ -22,14 +22,14 @@ class McpServerProcessManagerTest {
     }
 
     @Test
-    void rejectsNullCommand() {
+    void shouldRejectNullCommandWhenStart() {
         assertThrows(IllegalArgumentException.class,
                 () -> McpServerProcessManager.getInstance().start(
                         null, "", "", "localhost", 3001, 1000));
     }
 
     @Test
-    void rejectsNonexistentExecutable() {
+    void shouldFailWhenExecutableDoesNotExist() {
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> McpServerProcessManager.getInstance().start(
                         "/no-such-mcp-server-cmd-xyzzy", "-bad-arg", "",
@@ -38,7 +38,7 @@ class McpServerProcessManagerTest {
     }
 
     @Test
-    void rejectsWhenReadyPortNeverOpens() {
+    void shouldFailWhenReadyPortNeverOpens() {
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> McpServerProcessManager.getInstance().start(
                         "/usr/bin/false", "", "", "127.0.0.1", 31999, 800));

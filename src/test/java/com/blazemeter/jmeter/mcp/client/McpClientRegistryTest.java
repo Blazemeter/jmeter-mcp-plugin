@@ -21,7 +21,7 @@ class McpClientRegistryTest {
     }
 
     @Test
-    void registerDeferredRejectsBlankName() {
+    void shouldRejectBlankNameWhenRegisterDeferred() {
         McpClientSettings settings = new McpClientSettings();
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> McpClientRegistry.getInstance().registerDeferred("  ", settings));
@@ -29,24 +29,24 @@ class McpClientRegistryTest {
     }
 
     @Test
-    void connectOnStartupRejectsNullName() {
+    void shouldRejectNullNameWhenConnectOnStartup() {
         McpClientSettings settings = new McpClientSettings();
         assertThrows(IllegalArgumentException.class,
                 () -> McpClientRegistry.getInstance().connectOnStartup(null, settings));
     }
 
     @Test
-    void getOrConnectReturnsNullWhenClientNotRegistered() {
+    void shouldReturnNullWhenGetOrConnectForUnregisteredClient() {
         assertNull(McpClientRegistry.getInstance().getOrConnect("unregistered-client"));
     }
 
     @Test
-    void getOrConnectReturnsNullForBlankName() {
+    void shouldReturnNullWhenGetOrConnectWithBlankName() {
         assertNull(McpClientRegistry.getInstance().getOrConnect("   "));
     }
 
     @Test
-    void getOrConnectPropagatesInvalidStdioSettings() {
+    void shouldPropagateInvalidStdioErrorWhenGetOrConnect() {
         McpClientSettings settings = new McpClientSettings();
         settings.setName(CLIENT);
         settings.setTransport(TransportType.STDIO);
@@ -59,13 +59,13 @@ class McpClientRegistryTest {
     }
 
     @Test
-    void removeIgnoresBlankName() {
+    void shouldIgnoreBlankNameWhenRemove() {
         McpClientRegistry.getInstance().remove(null);
         McpClientRegistry.getInstance().remove("  ");
     }
 
     @Test
-    void removeClearsDeferredRegistrationBeforeConnect() {
+    void shouldClearDeferredRegistrationWhenRemoveBeforeConnect() {
         McpClientSettings settings = new McpClientSettings();
         settings.setName(CLIENT);
         settings.setTransport(TransportType.SSE);
@@ -77,7 +77,7 @@ class McpClientRegistryTest {
     }
 
     @Test
-    void connectOnStartupRetriesAfterFailedBackgroundConnect() {
+    void shouldRetryConnectWhenBackgroundStartupFailed() {
         McpClientSettings invalid = new McpClientSettings();
         invalid.setName(CLIENT);
         invalid.setTransport(TransportType.STDIO);
@@ -92,7 +92,7 @@ class McpClientRegistryTest {
 
     @Test
     @EnabledIf("com.blazemeter.jmeter.mcp.client.McpClientTestFixtures#isNpxAvailable")
-    void registerDeferredConnectsStdioClient() {
+    void shouldConnectStdioClientWhenRegisterDeferredAndNpxAvailable() {
         String name = "registry-stdio-client";
         McpClientRegistry registry = McpClientRegistry.getInstance();
         registry.registerDeferred(name, McpClientTestFixtures.stdioServerEverythingSettings(name));
@@ -109,7 +109,7 @@ class McpClientRegistryTest {
 
     @Test
     @EnabledIf("com.blazemeter.jmeter.mcp.client.McpClientTestFixtures#isNpxAvailable")
-    void connectOnStartupConnectsInBackground() {
+    void shouldConnectInBackgroundWhenConnectOnStartupAndNpxAvailable() {
         String name = "registry-stdio-client";
         McpClientRegistry registry = McpClientRegistry.getInstance();
         registry.connectOnStartup(name, McpClientTestFixtures.stdioServerEverythingSettings(name));

@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 class AdaptiveCardLayoutHostTest {
 
     @Test
-    void syncUsesVisibleCardHeightNotTallestCard() throws Exception {
+    void shouldUseVisibleCardHeightWhenSyncAfterSwitchingCards() throws Exception {
         CardLayout layout = new CardLayout();
         JPanel cards = new JPanel(layout);
 
