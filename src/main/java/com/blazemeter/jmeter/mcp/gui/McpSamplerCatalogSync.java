@@ -26,19 +26,20 @@ public final class McpSamplerCatalogSync {
         new SwingWorker<List<String>, Void>() {
             @Override
             protected List<String> doInBackground() {
-                McpSyncClient client = McpClientRegistry.getInstance().getConnected(configName);
-                if (client == null) {
-                    throw new IllegalStateException(
-                            "No connected MCP client for '" + configName + "'. "
-                                    + "Use Start Now on bzm - MCP Client Config first.");
-                }
-                return switch (operation) {
-                    case CALL_TOOL -> McpCatalogExtractor.toolNames(client);
-                    case READ_RESOURCE -> McpCatalogExtractor.resourceUris(client);
-                    case GET_PROMPT -> McpCatalogExtractor.promptNames(client);
-                    default -> throw new IllegalStateException(
-                            "Sync is only available for CALL_TOOL, READ_RESOURCE, and GET_PROMPT");
-                };
+                return McpClientRegistry.getInstance().withConnectedClient(configName, client -> {
+                    if (client == null) {
+                        throw new IllegalStateException(
+                                "No connected MCP client for '" + configName + "'. "
+                                        + "Use Start Now on bzm - MCP Client Config first.");
+                    }
+                    return switch (operation) {
+                        case CALL_TOOL -> McpCatalogExtractor.toolNames(client);
+                        case READ_RESOURCE -> McpCatalogExtractor.resourceUris(client);
+                        case GET_PROMPT -> McpCatalogExtractor.promptNames(client);
+                        default -> throw new IllegalStateException(
+                                "Sync is only available for CALL_TOOL, READ_RESOURCE, and GET_PROMPT");
+                    };
+                });
             }
 
             @Override
