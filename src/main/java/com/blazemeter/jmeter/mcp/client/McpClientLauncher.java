@@ -6,12 +6,13 @@ import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
 import com.blazemeter.jmeter.mcp.util.Strings;
 
 /**
- * Starts an MCP server (when needed) and connects a preview client from the
- * JMeter GUI via {@link McpClientRegistry#connectNow(McpClientSettings, boolean)}.
+ * Orchestrates GUI {@code Start Now} / {@code Stop Now} on MCP Client Config:
+ * optionally starts a managed HTTP/SSE server, then connects or disconnects via
+ * {@link McpClientRegistry}.
  */
-public final class McpClientPreviewLauncher {
+public final class McpClientLauncher {
 
-    private McpClientPreviewLauncher() {
+    private McpClientLauncher() {
     }
 
     public static void startNow(McpClientSettings settings) {

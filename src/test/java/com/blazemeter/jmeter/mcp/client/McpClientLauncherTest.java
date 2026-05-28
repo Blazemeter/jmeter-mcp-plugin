@@ -4,21 +4,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-class McpClientPreviewLauncherTest {
+class McpClientLauncherTest {
 
     @Test
     void portFromServerUrlUsesExplicitPort() {
-        assertEquals(8080, McpClientPreviewLauncher.portFromServerUrl("http://localhost:8080/mcp", 3001));
+        assertEquals(8080, McpClientLauncher.portFromServerUrl("http://localhost:8080/mcp", 3001));
     }
 
     @Test
     void portFromServerUrlDefaultsForHttp() {
-        assertEquals(80, McpClientPreviewLauncher.portFromServerUrl("http://localhost/mcp", 3001));
+        assertEquals(80, McpClientLauncher.portFromServerUrl("http://localhost/mcp", 3001));
     }
 
     @Test
     void portFromServerUrlFallsBackWhenBlank() {
-        assertEquals(3001, McpClientPreviewLauncher.portFromServerUrl("", 3001));
+        assertEquals(3001, McpClientLauncher.portFromServerUrl("", 3001));
     }
 
     @Test
@@ -28,8 +28,8 @@ class McpClientPreviewLauncherTest {
         settings.setServerReadyHost("127.0.0.1");
         settings.setServerReadyPort(3001);
 
-        McpClientPreviewLauncher.ReadyEndpoint ready =
-                McpClientPreviewLauncher.resolveReadyEndpoint(settings);
+        McpClientLauncher.ReadyEndpoint ready =
+                McpClientLauncher.resolveReadyEndpoint(settings);
         assertEquals("127.0.0.1", ready.host());
         assertEquals(3001, ready.port());
     }

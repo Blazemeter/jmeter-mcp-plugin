@@ -24,7 +24,7 @@ import javax.swing.SwingWorker;
 
 import com.blazemeter.jmeter.commons.BlazemeterLabsLogo;
 
-import com.blazemeter.jmeter.mcp.client.McpClientPreviewLauncher;
+import com.blazemeter.jmeter.mcp.client.McpClientLauncher;
 import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
 import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
@@ -263,7 +263,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
-                McpClientPreviewLauncher.startNow(settings);
+                McpClientLauncher.startNow(settings);
                 return null;
             }
 
@@ -293,7 +293,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
-                McpClientPreviewLauncher.stopNow(settings);
+                McpClientLauncher.stopNow(settings);
                 return null;
             }
 
