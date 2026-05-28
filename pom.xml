@@ -40,6 +40,7 @@
         <junit4.version>4.13.2</junit4.version>
         <surefire.version>3.2.5</surefire.version>
         <jacoco.version>0.8.12</jacoco.version>
+        <ph-commons.version>10.2.5</ph-commons.version>
     </properties>
 
     <dependencyManagement>
@@ -86,6 +87,14 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- SOURCE-retention annotation for @VisibleForTesting; not bundled in shaded JAR. -->
+        <dependency>
+            <groupId>com.helger.commons</groupId>
+            <artifactId>ph-commons</artifactId>
+            <version>${ph-commons.version}</version>
             <scope>provided</scope>
         </dependency>
 
