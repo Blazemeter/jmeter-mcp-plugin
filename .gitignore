@@ -26,6 +26,9 @@ replay_pid*
 # Maven build output
 target/
 
+# IDE
+.vscode/
+
 # macOS
 .DS_Store
 .AppleDouble
