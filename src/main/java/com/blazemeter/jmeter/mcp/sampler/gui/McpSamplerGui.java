@@ -89,6 +89,16 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         operationCombo.addActionListener(e -> updateCard());
         operationCombo.setSelectedItem(McpOperation.PING);
         updateCard();
+        assignComponentNames();
+    }
+
+    private void assignComponentNames() {
+        configNameField.setName("mcpSampler.configName");
+        operationCombo.setName("mcpSampler.operation");
+        toolNameField.setName("mcpSampler.toolName");
+        resourceUriField.setName("mcpSampler.resourceUri");
+        promptNameField.setName("mcpSampler.promptName");
+        argumentsArea.setName("mcpSampler.arguments");
     }
 
     private JPanel buildHeader() {

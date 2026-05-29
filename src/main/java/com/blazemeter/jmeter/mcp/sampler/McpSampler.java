@@ -9,6 +9,7 @@ import java.util.Map;
 
 import com.blazemeter.jmeter.mcp.client.JsonMappers;
 import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
+import com.helger.commons.annotation.VisibleForTesting;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
 import org.apache.jmeter.samplers.AbstractSampler;
@@ -184,7 +185,8 @@ public class McpSampler extends AbstractSampler {
         }
     }
 
-    private String required(String propKey, String label) {
+    @VisibleForTesting
+    protected String required(String propKey, String label) {
         String value = getPropertyAsString(propKey, "").trim();
         if (value.isEmpty()) {
             throw new IllegalArgumentException(label + " is required for this operation");
@@ -192,8 +194,9 @@ public class McpSampler extends AbstractSampler {
         return value;
     }
 
+    @VisibleForTesting
     @SuppressWarnings("unchecked")
-    private Map<String, Object> parseArguments() {
+    protected Map<String, Object> parseArguments() {
         String raw = getPropertyAsString(ARGUMENTS_JSON, "").trim();
         if (raw.isEmpty()) {
             return new HashMap<>();
