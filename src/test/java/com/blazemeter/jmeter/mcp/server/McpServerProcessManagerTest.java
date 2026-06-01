@@ -3,6 +3,7 @@ package com.blazemeter.jmeter.mcp.server;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,7 +11,9 @@ class McpServerProcessManagerTest {
 
     @AfterEach
     void tearDown() {
-        McpServerProcessManager.getInstance().stop();
+        McpServerProcessManager manager = McpServerProcessManager.getInstance();
+        manager.notifyClientConfigTestEnded(false);
+        manager.stop();
     }
 
     @Test
@@ -43,5 +46,16 @@ class McpServerProcessManagerTest {
                 () -> McpServerProcessManager.getInstance().start(
                         "/usr/bin/false", "", "", "127.0.0.1", 31999, 800));
         assertTrue(ex.getMessage().contains("did not become reachable"));
+    }
+
+    @Test
+    void keepServerFlagTracksClientConfigLifecycle() {
+        McpServerProcessManager manager = McpServerProcessManager.getInstance();
+        manager.notifyClientConfigTestStarted(true);
+        assertTrue(manager.shouldKeepServerRunningAfterTest());
+        manager.notifyClientConfigTestEnded(true);
+        assertTrue(manager.shouldKeepServerRunningAfterTest());
+        manager.notifyClientConfigTestStarted(false);
+        assertFalse(manager.shouldKeepServerRunningAfterTest());
     }
 }

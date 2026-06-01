@@ -57,7 +57,7 @@ public class McpSamplerGuiIT {
 
         frame.textBox("mcpSampler.configName").requireText("shared");
         frame.comboBox("mcpSampler.operation").requireSelection(McpOperation.CALL_TOOL.name());
-        frame.textBox("mcpSampler.toolName").requireText("echo");
+        frame.comboBox("mcpSampler.toolName").requireSelection("echo");
         frame.textBox("mcpSampler.arguments").requireText("{\"x\":1}");
     }
 
@@ -66,7 +66,7 @@ public class McpSamplerGuiIT {
         gui.clearGui();
         frame.textBox("mcpSampler.configName").setText("clientB");
         frame.comboBox("mcpSampler.operation").selectItem(McpOperation.CALL_TOOL.name());
-        frame.textBox("mcpSampler.toolName").setText("add");
+        frame.comboBox("mcpSampler.toolName").enterText("add");
         frame.textBox("mcpSampler.arguments").setText("{\"a\":1}");
 
         McpSampler saved = (McpSampler) gui.createTestElement();
@@ -80,7 +80,7 @@ public class McpSamplerGuiIT {
     public void shouldPersistReadResourceSettingsWhenModifyTestElement() {
         gui.clearGui();
         frame.comboBox("mcpSampler.operation").selectItem(McpOperation.READ_RESOURCE.name());
-        frame.textBox("mcpSampler.resourceUri").setText("resource://docs");
+        frame.comboBox("mcpSampler.resourceUri").enterText("resource://docs");
 
         McpSampler saved = (McpSampler) gui.createTestElement();
         assertEquals(McpOperation.READ_RESOURCE.name(), saved.getPropertyAsString(McpSampler.OPERATION));

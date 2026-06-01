@@ -38,8 +38,37 @@ public final class McpServerProcessManager {
 
     private volatile Process process;
     private volatile ScheduledFuture<?> deferredStop;
+    private volatile boolean keepServerRunningAfterTest;
 
     private McpServerProcessManager() {
+    }
+
+    /**
+     * Called from {@link com.blazemeter.jmeter.mcp.config.McpClientConfig} when a test
+     * run starts. When any client config opts in, managed servers are not stopped at
+     * {@code testEnded()}.
+     */
+    public void notifyClientConfigTestStarted(boolean keepServerRunningAfterTest) {
+        this.keepServerRunningAfterTest = keepServerRunningAfterTest;
+        if (keepServerRunningAfterTest) {
+            cancelDeferredStop();
+        }
+    }
+
+    /**
+     * Called from {@link com.blazemeter.jmeter.mcp.config.McpClientConfig} when a test
+     * run ends.
+     */
+    public void notifyClientConfigTestEnded(boolean keepServerRunningAfterTest) {
+        if (keepServerRunningAfterTest) {
+            cancelDeferredStop();
+            return;
+        }
+        this.keepServerRunningAfterTest = false;
+    }
+
+    public boolean shouldKeepServerRunningAfterTest() {
+        return keepServerRunningAfterTest;
     }
 
     public static McpServerProcessManager getInstance() {
@@ -98,7 +127,8 @@ public final class McpServerProcessManager {
      * order may run before HTTP clients close; cancelled when {@link #stop()} runs.
      */
     public void scheduleDeferredStop(long delayMs) {
-        if (process == null) {
+        if (process == null || keepServerRunningAfterTest) {
+            cancelDeferredStop();
             return;
         }
         cancelDeferredStop();
@@ -154,7 +184,8 @@ public final class McpServerProcessManager {
         return isPortOpen(host, port, 500);
     }
 
-    private static boolean isPortOpen(String host, int port, int connectTimeoutMs) {
+    /** Whether {@code host:port} accepts a TCP connection (for GUI / Start Now checks). */
+    public static boolean isPortOpen(String host, int port, int connectTimeoutMs) {
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(host, port), connectTimeoutMs);
             return true;

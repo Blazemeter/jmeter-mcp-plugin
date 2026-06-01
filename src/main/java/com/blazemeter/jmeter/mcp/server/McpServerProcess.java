@@ -76,7 +76,10 @@ public class McpServerProcess extends ConfigTestElement
      * stops it after closing HTTP/SSE clients; a short deferred stop covers server-only plans.
      */
     private void stopServer() {
-        McpServerProcessManager.getInstance().scheduleDeferredStop(
-                McpServerProcessManager.DEFERRED_STOP_FALLBACK_MS);
+        McpServerProcessManager manager = McpServerProcessManager.getInstance();
+        if (manager.shouldKeepServerRunningAfterTest()) {
+            return;
+        }
+        manager.scheduleDeferredStop(McpServerProcessManager.DEFERRED_STOP_FALLBACK_MS);
     }
 }

@@ -53,39 +53,40 @@ public class McpSampler extends AbstractSampler {
         result.setDataType(SampleResult.TEXT);
         result.setContentType(CONTENT_TYPE_JSON);
 
-        boolean sampleStarted = false;
+        boolean[] sampleStarted = {false};
+        long[] connectMillis = new long[1];
         try {
-            long connectStart = System.currentTimeMillis();
-            McpSyncClient client = McpClientRegistry.getInstance().getOrConnect(configName);
-            long connectElapsed = System.currentTimeMillis() - connectStart;
-            if (connectElapsed > 0) {
-                result.setConnectTime(connectElapsed);
-            }
-            if (client == null) {
-                throw new IllegalStateException(
-                        "No MCP client settings for '" + configName
-                                + "'. Add a 'bzm - MCP Client Config' element whose Variable Name "
-                                + "matches this sampler's Client Config field.");
-            }
+            SampleResult sample = McpClientRegistry.getInstance().withClient(configName, client -> {
+                if (client == null) {
+                    throw new IllegalStateException(
+                            "No MCP client settings for '" + configName
+                                    + "'. Add a 'bzm - MCP Client Config' element whose Variable Name "
+                                    + "matches this sampler's Client Config field.");
+                }
 
-            // Timers start after the client is ready so connect + initialize (including
-            // background "connect on test start") are not counted as sample latency.
-            result.sampleStart();
-            sampleStarted = true;
+                // Timers start after the client is ready so connect + initialize (including
+                // background "connect on test start") are not counted as sample latency.
+                result.sampleStart();
+                sampleStarted[0] = true;
 
-            Object operationResult = invoke(client, operation);
-            String responseBody = toPrettyJson(operationResult);
+                Object operationResult = invoke(client, operation);
+                String responseBody = toPrettyJson(operationResult);
 
-            result.setResponseHeaders(buildResponseHeaders(client, operation));
-            result.setResponseData(responseBody, "UTF-8");
-            result.setDataEncoding("UTF-8");
-            result.setResponseCodeOK();
-            result.setResponseMessageOK();
-            result.setSuccessful(!isErrorResponse(operationResult));
-            if (!result.isSuccessful()) {
-                result.setResponseMessage("MCP tool returned isError=true");
+                result.setResponseHeaders(buildResponseHeaders(client, operation));
+                result.setResponseData(responseBody, "UTF-8");
+                result.setDataEncoding("UTF-8");
+                result.setResponseCodeOK();
+                result.setResponseMessageOK();
+                result.setSuccessful(!isErrorResponse(operationResult));
+                if (!result.isSuccessful()) {
+                    result.setResponseMessage("MCP tool returned isError=true");
+                }
+                return result;
+            }, connectMillis);
+            if (connectMillis[0] > 0) {
+                sample.setConnectTime(connectMillis[0]);
             }
-            return result;
+            return sample;
         } catch (Exception ex) {
             LOG.warn("MCP sampler '{}' failed: {}", getName(), ex.getMessage(), ex);
             result.setSuccessful(false);
@@ -94,7 +95,7 @@ public class McpSampler extends AbstractSampler {
             result.setResponseData(stackTrace(ex), "UTF-8");
             return result;
         } finally {
-            if (sampleStarted) {
+            if (sampleStarted[0]) {
                 result.sampleEnd();
             }
         }

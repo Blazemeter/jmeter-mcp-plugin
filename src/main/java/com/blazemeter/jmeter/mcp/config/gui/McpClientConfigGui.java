@@ -2,23 +2,32 @@ package com.blazemeter.jmeter.mcp.config.gui;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Rectangle;
 
+import javax.swing.BoxLayout;
 import javax.swing.BorderFactory;
+import javax.swing.JComponent;
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.Scrollable;
+import javax.swing.SwingWorker;
 
 import com.blazemeter.jmeter.commons.BlazemeterLabsLogo;
 
+import com.blazemeter.jmeter.mcp.client.McpClientLauncher;
+import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
+import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import com.blazemeter.jmeter.mcp.config.McpClientConfig;
 import com.blazemeter.jmeter.mcp.gui.EnvVarsField;
@@ -48,6 +57,8 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
             new JComboBox<>(TransportType.values());
     private final JCheckBox connectOnStartupCheck =
             new JCheckBox("Connect on test start (otherwise wait for first sampler)");
+    private final JCheckBox keepServerRunningAfterTestCheck =
+            new JCheckBox("Keep server running after test ends");
 
     private final JTextField serverUrlField = new JTextField(30);
     private final JLabel httpEndpointLabel = new JLabel("Endpoint (default /mcp):");
@@ -60,6 +71,18 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     private final JTextField clientVersionField = new JTextField(10);
     private final JTextField requestTimeoutField = new JTextField(8);
     private final JTextField initTimeoutField = new JTextField(8);
+
+    private final JTextField serverLaunchCommandField = new JTextField(20);
+    private final JTextField serverLaunchArgsField = new JTextField(40);
+    private final JTextArea serverLaunchEnvArea = EnvVarsField.newTextArea();
+    private final JTextField serverReadyHostField = new JTextField(15);
+    private final JTextField serverReadyPortField = new JTextField(8);
+    private final JTextField serverStartupWaitField = new JTextField(8);
+    private final JPanel serverLaunchPanel = new JPanel(new GridBagLayout());
+
+    private final JButton startNowButton = new JButton("Start Now");
+    private final JButton stopNowButton = new JButton("Stop");
+    private final JLabel connectionStatusLabel = new JLabel("Not connected");
 
     private final CardLayout transportCards = new CardLayout();
     private final JPanel transportPanel = new JPanel(transportCards);
@@ -85,10 +108,16 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         setBorder(makeBorder());
         add(makeTitlePanel(), BorderLayout.NORTH);
 
+        JPanel stack = new JPanel();
+        stack.setLayout(new BoxLayout(stack, BoxLayout.Y_AXIS));
+        addStackSection(stack, buildCommonPanel());
+        addStackSection(stack, buildTransportPanel());
+        addStackSection(stack, buildServerLaunchPanel());
+        addStackSection(stack, buildPreviewPanel());
+        addStackSection(stack, buildAdvancedPanel());
+
         JPanel center = new JPanel(new BorderLayout(0, 5));
-        center.add(buildCommonPanel(), BorderLayout.NORTH);
-        center.add(buildTransportPanel(), BorderLayout.CENTER);
-        center.add(buildAdvancedPanel(), BorderLayout.SOUTH);
+        center.add(stack, BorderLayout.NORTH);
         add(center, BorderLayout.CENTER);
         add(new BlazemeterLabsLogo(PluginGuiConstants.PLUGIN_REPOSITORY_URL), BorderLayout.PAGE_END);
 
@@ -96,6 +125,8 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
 
         transportCombo.addActionListener(e -> showSelectedTransport());
         transportCombo.setSelectedItem(TransportType.STDIO);
+        startNowButton.addActionListener(e -> startNow());
+        stopNowButton.addActionListener(e -> stopNow());
         showSelectedTransport();
         assignComponentNames();
     }
@@ -113,6 +144,14 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         clientVersionField.setName("mcpClientConfig.clientVersion");
         requestTimeoutField.setName("mcpClientConfig.requestTimeout");
         initTimeoutField.setName("mcpClientConfig.initTimeout");
+        refreshConnectionStatus();
+    }
+
+    private static void addStackSection(JPanel stack, Component section) {
+        if (section instanceof JComponent) {
+            ((JComponent) section).setAlignmentX(Component.LEFT_ALIGNMENT);
+        }
+        stack.add(section);
     }
 
     private JPanel buildCommonPanel() {
@@ -123,6 +162,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         GridBagForm.addLabelAndField(p, c, 0, "Variable Name:", nameField);
         GridBagForm.addLabelAndField(p, c, 1, "Transport:", transportCombo);
         GridBagForm.addLabelAndField(p, c, 2, "", connectOnStartupCheck);
+        GridBagForm.addLabelAndField(p, c, 3, "", keepServerRunningAfterTestCheck);
         return p;
     }
 
@@ -161,6 +201,37 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         return p;
     }
 
+    private JPanel buildServerLaunchPanel() {
+        serverLaunchPanel.setBorder(BorderFactory.createTitledBorder(
+                "Server launch (Start Now — HTTP/SSE only)"));
+        GridBagConstraints c = GridBagForm.horizontalRowConstraints();
+        GridBagForm.addLabelAndField(serverLaunchPanel, c, 0, "Command:", serverLaunchCommandField);
+        GridBagForm.addLabelAndField(serverLaunchPanel, c, 1, "Args:", serverLaunchArgsField);
+        JScrollPane envScroll = makeScrollPane(serverLaunchEnvArea);
+        EnvVarsField.applyScrollPaneSize(envScroll, serverLaunchEnvArea);
+        GridBagForm.addLabelAndMultilineField(serverLaunchPanel, c, 2, "Env:", envScroll);
+        GridBagForm.addLabelAndField(serverLaunchPanel, c, 3, "Ready host:", serverReadyHostField);
+        GridBagForm.addLabelAndField(serverLaunchPanel, c, 4, "Ready port:", serverReadyPortField);
+        GridBagForm.addLabelAndField(serverLaunchPanel, c, 5, "Startup wait (ms):", serverStartupWaitField);
+        return serverLaunchPanel;
+    }
+
+    private JPanel buildPreviewPanel() {
+        JPanel p = new JPanel(new GridBagLayout());
+        p.setBorder(BorderFactory.createTitledBorder("Manually start connection"));
+        GridBagConstraints c = GridBagForm.horizontalRowConstraints();
+        JPanel buttons = new JPanel();
+        buttons.add(startNowButton);
+        buttons.add(stopNowButton);
+        GridBagForm.addLabelAndField(p, c, 0, "", buttons);
+        c.gridx = 0;
+        c.gridy = 1;
+        c.gridwidth = 3;
+        connectionStatusLabel.setOpaque(false);
+        p.add(connectionStatusLabel, c);
+        return p;
+    }
+
     private JPanel buildAdvancedPanel() {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBorder(BorderFactory.createTitledBorder("Client Identity & Timeouts"));
@@ -194,6 +265,111 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         if (transportCardHost != null) {
             transportCardHost.afterCardShown();
         }
+        boolean http = t == TransportType.SSE || t == TransportType.STREAMABLE_HTTP;
+        serverLaunchPanel.setVisible(http);
+        if (http) {
+            applyDefaultServerLaunchArgs(t);
+        }
+        refreshConnectionStatus();
+    }
+
+    private void applyDefaultServerLaunchArgs(TransportType transport) {
+        if (!serverLaunchCommandField.getText().isBlank()) {
+            return;
+        }
+        serverLaunchCommandField.setText("npx");
+        if (transport == TransportType.SSE) {
+            serverLaunchArgsField.setText("-y @modelcontextprotocol/server-everything sse");
+        } else {
+            serverLaunchArgsField.setText("-y @modelcontextprotocol/server-everything streamableHttp");
+        }
+    }
+
+    private void startNow() {
+        McpClientSettings settings = readSettingsFromGui();
+        startNowButton.setEnabled(false);
+        stopNowButton.setEnabled(false);
+        connectionStatusLabel.setText("Starting…");
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                McpClientLauncher.startNow(settings);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                startNowButton.setEnabled(true);
+                stopNowButton.setEnabled(true);
+                try {
+                    get();
+                    refreshConnectionStatus();
+                } catch (Exception ex) {
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                    connectionStatusLabel.setText("Not connected");
+                    JOptionPane.showMessageDialog(McpClientConfigGui.this,
+                            cause.getMessage(),
+                            "Start Now failed",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
+    }
+
+    private void stopNow() {
+        McpClientSettings settings = readSettingsFromGui();
+        startNowButton.setEnabled(false);
+        stopNowButton.setEnabled(false);
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                McpClientLauncher.stopNow(settings);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                startNowButton.setEnabled(true);
+                stopNowButton.setEnabled(true);
+                refreshConnectionStatus();
+            }
+        }.execute();
+    }
+
+    private void refreshConnectionStatus() {
+        String name = Strings.trimToDefault(nameField.getText(), "mcpClient");
+        if (McpClientRegistry.getInstance().isConnected(name)) {
+            connectionStatusLabel.setText("Connected as '" + name + "' (reused on test run)");
+            stopNowButton.setEnabled(true);
+        } else {
+            connectionStatusLabel.setText("Not connected");
+            stopNowButton.setEnabled(false);
+        }
+    }
+
+    private McpClientSettings readSettingsFromGui() {
+        McpClientSettings s = new McpClientSettings();
+        s.setName(Strings.trimToDefault(nameField.getText(), "mcpClient"));
+        TransportType selected = (TransportType) transportCombo.getSelectedItem();
+        s.setTransport(selected != null ? selected : TransportType.STDIO);
+        s.setServerUrl(serverUrlField.getText());
+        s.setEndpoint(endpointField.getText());
+        s.setStdioCommand(stdioCommandField.getText());
+        s.setStdioArgs(stdioArgsField.getText());
+        s.setStdioEnv(stdioEnvArea.getText());
+        s.setClientName(Strings.trimToDefault(clientNameField.getText(), "jmeter-mcp-plugin"));
+        s.setClientVersion(Strings.trimToDefault(clientVersionField.getText(), "0.1.0"));
+        s.setRequestTimeoutMillis(GridBagForm.parseLong(requestTimeoutField.getText(), 30_000L));
+        s.setInitializationTimeoutMillis(GridBagForm.parseLong(initTimeoutField.getText(), 30_000L));
+        s.setConnectOnStartup(connectOnStartupCheck.isSelected());
+        s.setKeepServerRunningAfterTest(keepServerRunningAfterTestCheck.isSelected());
+        s.setServerLaunchCommand(serverLaunchCommandField.getText());
+        s.setServerLaunchArgs(serverLaunchArgsField.getText());
+        s.setServerLaunchEnv(serverLaunchEnvArea.getText());
+        s.setServerReadyHost(Strings.trimToDefault(serverReadyHostField.getText(), "localhost"));
+        s.setServerReadyPort((int) GridBagForm.parseLong(serverReadyPortField.getText(), 3001L));
+        s.setServerStartupWaitMs(GridBagForm.parseLong(serverStartupWaitField.getText(), 60_000L));
+        return s;
     }
 
     @Override
@@ -256,6 +432,16 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         cfg.setProperty(McpClientConfig.INIT_TIMEOUT_MS,
                 GridBagForm.parseLong(initTimeoutField.getText(), 30_000L));
         cfg.setProperty(McpClientConfig.CONNECT_ON_STARTUP, connectOnStartupCheck.isSelected());
+        cfg.setProperty(McpClientConfig.KEEP_SERVER_RUNNING_AFTER_TEST,
+                keepServerRunningAfterTestCheck.isSelected());
+        cfg.setProperty(McpClientConfig.SERVER_LAUNCH_COMMAND, serverLaunchCommandField.getText());
+        cfg.setProperty(McpClientConfig.SERVER_LAUNCH_ARGS, serverLaunchArgsField.getText());
+        cfg.setProperty(McpClientConfig.SERVER_LAUNCH_ENV, serverLaunchEnvArea.getText());
+        cfg.setProperty(McpClientConfig.SERVER_READY_HOST, serverReadyHostField.getText());
+        cfg.setProperty(McpClientConfig.SERVER_READY_PORT,
+                GridBagForm.parseLong(serverReadyPortField.getText(), 3001L));
+        cfg.setProperty(McpClientConfig.SERVER_STARTUP_WAIT_MS,
+                GridBagForm.parseLong(serverStartupWaitField.getText(), 60_000L));
     }
 
     @Override
@@ -284,7 +470,20 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
                 cfg.getPropertyAsLong(McpClientConfig.INIT_TIMEOUT_MS, 30_000L)));
         connectOnStartupCheck.setSelected(
                 cfg.getPropertyAsBoolean(McpClientConfig.CONNECT_ON_STARTUP, false));
+        keepServerRunningAfterTestCheck.setSelected(
+                cfg.getPropertyAsBoolean(McpClientConfig.KEEP_SERVER_RUNNING_AFTER_TEST, true));
+        serverLaunchCommandField.setText(
+                cfg.getPropertyAsString(McpClientConfig.SERVER_LAUNCH_COMMAND, ""));
+        serverLaunchArgsField.setText(cfg.getPropertyAsString(McpClientConfig.SERVER_LAUNCH_ARGS, ""));
+        serverLaunchEnvArea.setText(cfg.getPropertyAsString(McpClientConfig.SERVER_LAUNCH_ENV, ""));
+        serverReadyHostField.setText(
+                cfg.getPropertyAsString(McpClientConfig.SERVER_READY_HOST, "localhost"));
+        serverReadyPortField.setText(String.valueOf(
+                cfg.getPropertyAsLong(McpClientConfig.SERVER_READY_PORT, 3001L)));
+        serverStartupWaitField.setText(String.valueOf(
+                cfg.getPropertyAsLong(McpClientConfig.SERVER_STARTUP_WAIT_MS, 60_000L)));
         showSelectedTransport();
+        refreshConnectionStatus();
     }
 
     @Override
@@ -302,6 +501,14 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         requestTimeoutField.setText("30000");
         initTimeoutField.setText("30000");
         connectOnStartupCheck.setSelected(false);
+        keepServerRunningAfterTestCheck.setSelected(true);
+        serverLaunchCommandField.setText("npx");
+        serverLaunchArgsField.setText("-y @modelcontextprotocol/server-everything sse");
+        serverLaunchEnvArea.setText("");
+        serverReadyHostField.setText("localhost");
+        serverReadyPortField.setText("3001");
+        serverStartupWaitField.setText("60000");
         showSelectedTransport();
+        refreshConnectionStatus();
     }
 }

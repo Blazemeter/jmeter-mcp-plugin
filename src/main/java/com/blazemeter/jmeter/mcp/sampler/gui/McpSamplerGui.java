@@ -17,7 +17,9 @@ import javax.swing.Scrollable;
 
 import com.blazemeter.jmeter.commons.BlazemeterLabsLogo;
 
+import com.blazemeter.jmeter.mcp.gui.EditableCatalogField;
 import com.blazemeter.jmeter.mcp.gui.GridBagForm;
+import com.blazemeter.jmeter.mcp.gui.McpSamplerCatalogSync;
 import com.blazemeter.jmeter.mcp.gui.PluginGuiConstants;
 import com.blazemeter.jmeter.mcp.gui.responsive.AdaptiveCardLayoutHost;
 import com.blazemeter.jmeter.mcp.gui.responsive.ResponsiveSizing;
@@ -46,9 +48,12 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
     private final JComboBox<McpOperation> operationCombo =
             new JComboBox<>(McpOperation.values());
 
-    private final JTextField toolNameField = new JTextField(25);
-    private final JTextField resourceUriField = new JTextField(35);
-    private final JTextField promptNameField = new JTextField(25);
+    private final EditableCatalogField toolNameField =
+            new EditableCatalogField(25, "Sync");
+    private final EditableCatalogField resourceUriField =
+            new EditableCatalogField(35, "Sync");
+    private final EditableCatalogField promptNameField =
+            new EditableCatalogField(25, "Sync");
 
     private final JSyntaxTextArea argumentsArea =
             JSyntaxTextArea.getInstance(8, 60);
@@ -88,6 +93,9 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
 
         operationCombo.addActionListener(e -> updateCard());
         operationCombo.setSelectedItem(McpOperation.PING);
+        toolNameField.getSyncButton().addActionListener(e -> syncCatalog(McpOperation.CALL_TOOL, toolNameField));
+        resourceUriField.getSyncButton().addActionListener(e -> syncCatalog(McpOperation.READ_RESOURCE, resourceUriField));
+        promptNameField.getSyncButton().addActionListener(e -> syncCatalog(McpOperation.GET_PROMPT, promptNameField));
         updateCard();
         assignComponentNames();
     }
@@ -99,6 +107,14 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         resourceUriField.setName("mcpSampler.resourceUri");
         promptNameField.setName("mcpSampler.promptName");
         argumentsArea.setName("mcpSampler.arguments");
+    }
+
+    private void syncCatalog(McpOperation operation, EditableCatalogField field) {
+        String configName = configNameField.getText().trim();
+        if (configName.isEmpty()) {
+            configName = "mcpClient";
+        }
+        McpSamplerCatalogSync.syncAsync(configName, operation, field, this::updateCard);
     }
 
     private JPanel buildHeader() {
@@ -221,9 +237,9 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         McpOperation op = (McpOperation) operationCombo.getSelectedItem();
         sampler.setProperty(McpSampler.OPERATION,
                 op != null ? op.name() : McpOperation.PING.name());
-        sampler.setProperty(McpSampler.TOOL_NAME, toolNameField.getText());
-        sampler.setProperty(McpSampler.RESOURCE_URI, resourceUriField.getText());
-        sampler.setProperty(McpSampler.PROMPT_NAME, promptNameField.getText());
+        sampler.setProperty(McpSampler.TOOL_NAME, toolNameField.getText().trim());
+        sampler.setProperty(McpSampler.RESOURCE_URI, resourceUriField.getText().trim());
+        sampler.setProperty(McpSampler.PROMPT_NAME, promptNameField.getText().trim());
         sampler.setProperty(McpSampler.ARGUMENTS_JSON, argumentsArea.getText());
     }
 
@@ -237,9 +253,9 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         configNameField.setText(sampler.getPropertyAsString(McpSampler.CONFIG_NAME, "mcpClient"));
         operationCombo.setSelectedItem(McpOperation.fromString(
                 sampler.getPropertyAsString(McpSampler.OPERATION, McpOperation.PING.name())));
-        toolNameField.setText(sampler.getPropertyAsString(McpSampler.TOOL_NAME, ""));
-        resourceUriField.setText(sampler.getPropertyAsString(McpSampler.RESOURCE_URI, ""));
-        promptNameField.setText(sampler.getPropertyAsString(McpSampler.PROMPT_NAME, ""));
+        toolNameField.setText(sampler.getPropertyAsString(McpSampler.TOOL_NAME, "").trim());
+        resourceUriField.setText(sampler.getPropertyAsString(McpSampler.RESOURCE_URI, "").trim());
+        promptNameField.setText(sampler.getPropertyAsString(McpSampler.PROMPT_NAME, "").trim());
         argumentsArea.setText(sampler.getPropertyAsString(McpSampler.ARGUMENTS_JSON, ""));
         updateCard();
     }
@@ -249,9 +265,9 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         super.clearGui();
         configNameField.setText("mcpClient");
         operationCombo.setSelectedItem(McpOperation.PING);
-        toolNameField.setText("");
-        resourceUriField.setText("");
-        promptNameField.setText("");
+        toolNameField.setChoices(java.util.List.of(), "");
+        resourceUriField.setChoices(java.util.List.of(), "");
+        promptNameField.setChoices(java.util.List.of(), "");
         argumentsArea.setText("");
         updateCard();
     }
