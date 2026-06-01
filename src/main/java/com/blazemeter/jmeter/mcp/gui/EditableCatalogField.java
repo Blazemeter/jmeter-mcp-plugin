@@ -35,11 +35,24 @@ public final class EditableCatalogField extends JPanel {
         add(syncButton, c);
     }
 
+    @Override
+    public void setName(String name) {
+        super.setName(name);
+        combo.setName(name);
+    }
+
     public JButton getSyncButton() {
         return syncButton;
     }
 
     public String getText() {
+        if (combo.isEditable()
+                && combo.getEditor().getEditorComponent() instanceof javax.swing.JTextField editor) {
+            String editorText = editor.getText();
+            if (editorText != null && !editorText.isEmpty()) {
+                return editorText;
+            }
+        }
         Object selected = combo.getSelectedItem();
         if (selected != null) {
             return selected.toString();

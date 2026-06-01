@@ -49,9 +49,8 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
 
     private static final long serialVersionUID = 1L;
 
+    private static final String CARD_HTTP = "HTTP";
     private static final String CARD_STDIO = "STDIO";
-    private static final String CARD_SSE = "SSE";
-    private static final String CARD_STREAMABLE_HTTP = "STREAMABLE_HTTP";
 
     private final JTextField nameField = new JTextField(20);
     private final JComboBox<TransportType> transportCombo =
@@ -62,6 +61,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
             new JCheckBox("Keep server running after test ends");
 
     private final JTextField serverUrlField = new JTextField(30);
+    private final JLabel httpEndpointLabel = new JLabel("Endpoint (default /mcp):");
     private final JTextField endpointField = new JTextField(20);
     private final JTextField stdioCommandField = new JTextField(20);
     private final JTextField stdioArgsField = new JTextField(30);
@@ -128,6 +128,22 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         startNowButton.addActionListener(e -> startNow());
         stopNowButton.addActionListener(e -> stopNow());
         showSelectedTransport();
+        assignComponentNames();
+    }
+
+    private void assignComponentNames() {
+        nameField.setName("mcpClientConfig.name");
+        transportCombo.setName("mcpClientConfig.transport");
+        connectOnStartupCheck.setName("mcpClientConfig.connectOnStartup");
+        serverUrlField.setName("mcpClientConfig.serverUrl");
+        endpointField.setName("mcpClientConfig.endpoint");
+        stdioCommandField.setName("mcpClientConfig.stdioCommand");
+        stdioArgsField.setName("mcpClientConfig.stdioArgs");
+        stdioEnvArea.setName("mcpClientConfig.stdioEnv");
+        clientNameField.setName("mcpClientConfig.clientName");
+        clientVersionField.setName("mcpClientConfig.clientVersion");
+        requestTimeoutField.setName("mcpClientConfig.requestTimeout");
+        initTimeoutField.setName("mcpClientConfig.initTimeout");
         refreshConnectionStatus();
     }
 
@@ -153,20 +169,24 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     private AdaptiveCardLayoutHost buildTransportPanel() {
         transportPanel.setBorder(BorderFactory.createTitledBorder("Transport Settings"));
 
-        transportPanel.add(buildHttpPanel(true), CARD_STREAMABLE_HTTP);
-        transportPanel.add(buildHttpPanel(false), CARD_SSE);
+        transportPanel.add(buildHttpPanel(), CARD_HTTP);
         transportPanel.add(buildStdioPanel(), CARD_STDIO);
 
         transportCardHost = new AdaptiveCardLayoutHost(transportPanel);
         return transportCardHost;
     }
 
-    private JPanel buildHttpPanel(boolean streamable) {
+    private JPanel buildHttpPanel() {
         JPanel p = new JPanel(new GridBagLayout());
         GridBagConstraints c = GridBagForm.horizontalRowConstraints();
         GridBagForm.addLabelAndField(p, c, 0, "Server URL:", serverUrlField);
-        GridBagForm.addLabelAndField(p, c, 1, streamable ? "Endpoint (default /mcp):" : "SSE Endpoint:",
-                endpointField);
+        c.gridy = 1;
+        c.gridx = 0;
+        c.weightx = 0;
+        p.add(httpEndpointLabel, c);
+        c.gridx = 1;
+        c.weightx = 1;
+        p.add(endpointField, c);
         return p;
     }
 
@@ -233,11 +253,13 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
                 transportCards.show(transportPanel, CARD_STDIO);
                 break;
             case SSE:
-                transportCards.show(transportPanel, CARD_SSE);
+                httpEndpointLabel.setText("SSE Endpoint:");
+                transportCards.show(transportPanel, CARD_HTTP);
                 break;
             case STREAMABLE_HTTP:
             default:
-                transportCards.show(transportPanel, CARD_STREAMABLE_HTTP);
+                httpEndpointLabel.setText("Endpoint (default /mcp):");
+                transportCards.show(transportPanel, CARD_HTTP);
                 break;
         }
         if (transportCardHost != null) {

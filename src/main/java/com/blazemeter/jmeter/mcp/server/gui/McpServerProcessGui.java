@@ -74,6 +74,16 @@ public class McpServerProcessGui extends AbstractConfigGui implements Scrollable
         ResponsiveSizing.applyTree(this);
 
         clearGui();
+        assignComponentNames();
+    }
+
+    private void assignComponentNames() {
+        commandField.setName("mcpServerProcess.command");
+        argsField.setName("mcpServerProcess.args");
+        envArea.setName("mcpServerProcess.env");
+        readyHostField.setName("mcpServerProcess.readyHost");
+        readyPortField.setName("mcpServerProcess.readyPort");
+        startupWaitField.setName("mcpServerProcess.startupWait");
     }
 
     @Override

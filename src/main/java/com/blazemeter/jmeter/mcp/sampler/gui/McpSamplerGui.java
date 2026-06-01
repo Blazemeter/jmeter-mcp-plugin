@@ -97,6 +97,16 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         resourceUriField.getSyncButton().addActionListener(e -> syncCatalog(McpOperation.READ_RESOURCE, resourceUriField));
         promptNameField.getSyncButton().addActionListener(e -> syncCatalog(McpOperation.GET_PROMPT, promptNameField));
         updateCard();
+        assignComponentNames();
+    }
+
+    private void assignComponentNames() {
+        configNameField.setName("mcpSampler.configName");
+        operationCombo.setName("mcpSampler.operation");
+        toolNameField.setName("mcpSampler.toolName");
+        resourceUriField.setName("mcpSampler.resourceUri");
+        promptNameField.setName("mcpSampler.promptName");
+        argumentsArea.setName("mcpSampler.arguments");
     }
 
     private void syncCatalog(McpOperation operation, EditableCatalogField field) {

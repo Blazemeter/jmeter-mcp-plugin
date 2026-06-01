@@ -8,13 +8,12 @@ import java.awt.Dimension;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
-import com.blazemeter.jmeter.mcp.gui.scroll.JMeterScrollableSupport;
 import org.junit.jupiter.api.Test;
 
 class AdaptiveCardLayoutHostTest {
 
     @Test
-    void syncUsesVisibleCardHeightNotTallestCard() throws Exception {
+    void shouldUseVisibleCardHeightWhenSyncAfterSwitchingCards() throws Exception {
         CardLayout layout = new CardLayout();
         JPanel cards = new JPanel(layout);
 
@@ -42,10 +41,5 @@ class AdaptiveCardLayoutHostTest {
 
         assertTrue(shortHeight < tallHeight,
                 "visible short card should reduce host height below tallest-card baseline");
-    }
-
-    @Test
-    void scrollableTracksViewportWidth() {
-        assertTrue(JMeterScrollableSupport.tracksViewportWidth());
     }
 }

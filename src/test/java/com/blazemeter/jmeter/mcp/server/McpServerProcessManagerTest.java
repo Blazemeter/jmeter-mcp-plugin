@@ -17,17 +17,35 @@ class McpServerProcessManagerTest {
     }
 
     @Test
-    void rejectsBlankCommand() {
-        assertThrows(IllegalArgumentException.class,
+    void shouldRejectBlankCommandWhenStart() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> McpServerProcessManager.getInstance().start(
                         "  ", "", "", "localhost", 3001, 1000));
+        assertTrue(ex.getMessage().contains("command must not be empty"));
     }
 
     @Test
-    void stopIsIdempotentWhenNoProcess() {
-        McpServerProcessManager manager = McpServerProcessManager.getInstance();
-        manager.stop();
-        assertFalse(manager.isManagedProcessRunning());
+    void shouldRejectNullCommandWhenStart() {
+        assertThrows(IllegalArgumentException.class,
+                () -> McpServerProcessManager.getInstance().start(
+                        null, "", "", "localhost", 3001, 1000));
+    }
+
+    @Test
+    void shouldFailWhenExecutableDoesNotExist() {
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> McpServerProcessManager.getInstance().start(
+                        "/no-such-mcp-server-cmd-xyzzy", "-bad-arg", "",
+                        "localhost", 3001, 500));
+        assertTrue(ex.getMessage().contains("Failed to start MCP server process"));
+    }
+
+    @Test
+    void shouldFailWhenReadyPortNeverOpens() {
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> McpServerProcessManager.getInstance().start(
+                        "/usr/bin/false", "", "", "127.0.0.1", 31999, 800));
+        assertTrue(ex.getMessage().contains("did not become reachable"));
     }
 
     @Test
