@@ -1,6 +1,10 @@
 package com.blazemeter.jmeter.mcp.client;
 
 import java.net.URI;
+import java.util.Objects;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
 import com.blazemeter.jmeter.mcp.util.Strings;
@@ -12,10 +16,13 @@ import com.blazemeter.jmeter.mcp.util.Strings;
  */
 public final class McpClientLauncher {
 
+    private static final Logger LOG = LoggerFactory.getLogger(McpClientLauncher.class);
+
     private McpClientLauncher() {
     }
 
     public static void startNow(McpClientSettings settings) {
+        Objects.requireNonNull(settings, "settings");
         boolean startedManagedServer = false;
         if (settings.getTransport() != TransportType.STDIO) {
             startedManagedServer = ensureHttpServerReachable(settings);
@@ -31,7 +38,8 @@ public final class McpClientLauncher {
     }
 
     public static void stopNow(McpClientSettings settings) {
-        String clientName = settings != null ? settings.getName() : null;
+        Objects.requireNonNull(settings, "settings");
+        String clientName = settings.getName();
         McpClientRegistry registry = McpClientRegistry.getInstance();
         boolean stopManagedServer = registry.disconnectNow(clientName);
         if (stopManagedServer && settings.getTransport() != TransportType.STDIO) {
@@ -76,8 +84,9 @@ public final class McpClientLauncher {
         if (serverUrl == null || serverUrl.isBlank()) {
             return defaultPort;
         }
+        String trimmed = serverUrl.trim();
         try {
-            URI uri = URI.create(serverUrl.trim());
+            URI uri = URI.create(trimmed);
             if (uri.getPort() > 0) {
                 return uri.getPort();
             }
@@ -88,8 +97,11 @@ public final class McpClientLauncher {
             if ("http".equalsIgnoreCase(scheme)) {
                 return 80;
             }
+            LOG.warn(
+                    "Could not resolve port from MCP server URL '{}' (no explicit port and scheme is not http/https), using default port {}",
+                    trimmed, defaultPort);
         } catch (IllegalArgumentException ex) {
-            // fall through
+            LOG.warn("Could not parse MCP server URL '{}', using default port {}", trimmed, defaultPort, ex);
         }
         return defaultPort;
     }
