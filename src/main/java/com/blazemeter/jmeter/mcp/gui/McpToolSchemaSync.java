@@ -1,0 +1,74 @@
+package com.blazemeter.jmeter.mcp.gui;
+
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+
+import javax.swing.SwingWorker;
+
+import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
+import com.blazemeter.jmeter.mcp.client.McpToolSchemaLoader;
+import io.modelcontextprotocol.client.McpSyncClient;
+
+/**
+ * Loads a tool's {@code inputSchema} from a connected preview client for the sampler GUI.
+ */
+public final class McpToolSchemaSync {
+
+    public record LoadedSchema(Map<String, Object> schemaMap, String prettySchemaJson) {
+
+        public static LoadedSchema from(McpToolSchemaLoader.LoadedSchema loaded) {
+            return new LoadedSchema(loaded.schemaMap(), loaded.prettySchemaJson());
+        }
+    }
+
+    private McpToolSchemaSync() {
+    }
+
+    static LoadedSchema loadFromConnectedClient(McpSyncClient client, String configName,
+                                                String toolName) {
+        if (client == null) {
+            throw new IllegalStateException(
+                    "No connected MCP client for '" + configName + "'. "
+                            + "Use Start Now on bzm - MCP Client Config first.");
+        }
+        try {
+            return LoadedSchema.from(McpToolSchemaLoader.load(client, toolName));
+        } catch (java.io.IOException ex) {
+            throw new IllegalStateException(
+                    "Could not read input schema for tool '" + toolName + "'", ex);
+        }
+    }
+
+    public static void loadAsync(String configName, String toolName,
+                                 SchemaLoadListener listener) {
+        new SwingWorker<LoadedSchema, Void>() {
+            @Override
+            protected LoadedSchema doInBackground() {
+                return McpClientRegistry.getInstance().withConnectedClient(configName,
+                        client -> loadFromConnectedClient(client, configName, toolName));
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    listener.onSuccess(get());
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    listener.onFailure(ex);
+                } catch (ExecutionException ex) {
+                    Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+                    listener.onFailure(cause);
+                }
+            }
+        }.execute();
+    }
+
+    @FunctionalInterface
+    public interface SchemaLoadListener {
+        void onSuccess(LoadedSchema schema);
+
+        default void onFailure(Throwable error) {
+            // optional
+        }
+    }
+}

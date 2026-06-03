@@ -2,6 +2,7 @@ package com.blazemeter.jmeter.mcp.sampler.gui;
 
 import static org.assertj.swing.fixture.Containers.showInFrame;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.blazemeter.jmeter.mcp.JMeterTestUtils;
 import com.blazemeter.jmeter.mcp.SwingTestRunner;
@@ -74,6 +75,30 @@ public class McpSamplerGuiIT {
         assertEquals(McpOperation.CALL_TOOL.name(), saved.getPropertyAsString(McpSampler.OPERATION));
         assertEquals("add", saved.getPropertyAsString(McpSampler.TOOL_NAME));
         assertEquals("{\"a\":1}", saved.getPropertyAsString(McpSampler.ARGUMENTS_JSON));
+    }
+
+    @Test
+    public void shouldShowSchemaActionsWhenCallToolSelected() {
+        gui.clearGui();
+        frame.comboBox("mcpSampler.operation").selectItem(McpOperation.CALL_TOOL.name());
+
+        frame.button("mcpSampler.loadSchema").requireVisible();
+        frame.button("mcpSampler.generateSample").requireVisible();
+        frame.button("mcpSampler.validateArguments").requireVisible();
+        frame.textBox("mcpSampler.arguments").requireVisible();
+    }
+
+    @Test
+    public void shouldHideSchemaActionsWhenPingSelected() {
+        gui.clearGui();
+        frame.comboBox("mcpSampler.operation").selectItem(McpOperation.PING.name());
+
+        try {
+            frame.button("mcpSampler.loadSchema");
+            org.junit.Assert.fail("Load schema should not be visible for PING");
+        } catch (org.assertj.swing.exception.ComponentLookupException expected) {
+            // expected
+        }
     }
 
     @Test

@@ -21,13 +21,12 @@ import com.blazemeter.jmeter.mcp.gui.EditableCatalogField;
 import com.blazemeter.jmeter.mcp.gui.GridBagForm;
 import com.blazemeter.jmeter.mcp.gui.McpSamplerCatalogSync;
 import com.blazemeter.jmeter.mcp.gui.PluginGuiConstants;
+import com.blazemeter.jmeter.mcp.gui.ToolArgumentsEditor;
 import com.blazemeter.jmeter.mcp.gui.responsive.AdaptiveCardLayoutHost;
 import com.blazemeter.jmeter.mcp.gui.responsive.ResponsiveSizing;
 import com.blazemeter.jmeter.mcp.gui.scroll.JMeterScrollableSupport;
 import com.blazemeter.jmeter.mcp.sampler.McpOperation;
 import com.blazemeter.jmeter.mcp.sampler.McpSampler;
-import org.apache.jmeter.gui.util.JSyntaxTextArea;
-import org.apache.jmeter.gui.util.JTextScrollPane;
 import org.apache.jmeter.samplers.gui.AbstractSamplerGui;
 import org.apache.jmeter.testelement.TestElement;
 
@@ -55,12 +54,12 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
     private final EditableCatalogField promptNameField =
             new EditableCatalogField(25, "Sync");
 
-    private final JSyntaxTextArea argumentsArea =
-            JSyntaxTextArea.getInstance(8, 60);
+    private final ToolArgumentsEditor toolArgumentsEditor = new ToolArgumentsEditor();
 
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel cards = new JPanel(cardLayout);
     private AdaptiveCardLayoutHost operationCardHost;
+    private JPanel centerPanel;
 
     public McpSamplerGui() {
         super();
@@ -82,14 +81,17 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         setBorder(makeBorder());
         add(makeTitlePanel(), BorderLayout.NORTH);
 
-        JPanel center = new JPanel(new BorderLayout(0, 5));
-        center.add(buildHeader(), BorderLayout.NORTH);
-        center.add(buildCards(), BorderLayout.CENTER);
-        center.add(buildArguments(), BorderLayout.SOUTH);
-        add(center, BorderLayout.CENTER);
+        centerPanel = new JPanel(new BorderLayout(0, 5));
+        centerPanel.add(buildHeader(), BorderLayout.NORTH);
+        centerPanel.add(buildCards(), BorderLayout.CENTER);
+        centerPanel.add(toolArgumentsEditor, BorderLayout.SOUTH);
+        add(centerPanel, BorderLayout.CENTER);
         add(new BlazemeterLabsLogo(PluginGuiConstants.PLUGIN_REPOSITORY_URL), BorderLayout.PAGE_END);
 
         ResponsiveSizing.applyTree(this);
+
+        toolArgumentsEditor.setConfigNameSupplier(() -> configNameField.getText());
+        toolArgumentsEditor.setToolNameSupplier(toolNameField::getText);
 
         operationCombo.addActionListener(e -> updateCard());
         operationCombo.setSelectedItem(McpOperation.PING);
@@ -106,7 +108,6 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         toolNameField.setName("mcpSampler.toolName");
         resourceUriField.setName("mcpSampler.resourceUri");
         promptNameField.setName("mcpSampler.promptName");
-        argumentsArea.setName("mcpSampler.arguments");
     }
 
     private void syncCatalog(McpOperation operation, EditableCatalogField field) {
@@ -150,16 +151,6 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         return operationCardHost;
     }
 
-    private JPanel buildArguments() {
-        JPanel p = new JPanel(new BorderLayout());
-        p.setBorder(BorderFactory.createTitledBorder(
-                "Arguments (JSON object - used by CALL_TOOL and GET_PROMPT)"));
-        JTextScrollPane scroll = JTextScrollPane.getInstance(argumentsArea);
-        p.add(scroll, BorderLayout.CENTER);
-        p.add(new JLabel("Example: {\"a\": 1, \"b\": 2}"), BorderLayout.SOUTH);
-        return p;
-    }
-
     private JPanel infoCard(String text) {
         JPanel p = new JPanel(new BorderLayout());
         JTextArea area = new JTextArea(text);
@@ -192,6 +183,14 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         if (operationCardHost != null) {
             operationCardHost.afterCardShown();
         }
+        boolean callTool = op == McpOperation.CALL_TOOL;
+        boolean usesArguments = callTool || op == McpOperation.GET_PROMPT;
+        toolArgumentsEditor.setVisible(usesArguments);
+        toolArgumentsEditor.setCallToolMode(callTool);
+        centerPanel.revalidate();
+        centerPanel.repaint();
+        revalidate();
+        repaint();
     }
 
     @Override
@@ -240,7 +239,7 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         sampler.setProperty(McpSampler.TOOL_NAME, toolNameField.getText().trim());
         sampler.setProperty(McpSampler.RESOURCE_URI, resourceUriField.getText().trim());
         sampler.setProperty(McpSampler.PROMPT_NAME, promptNameField.getText().trim());
-        sampler.setProperty(McpSampler.ARGUMENTS_JSON, argumentsArea.getText());
+        sampler.setProperty(McpSampler.ARGUMENTS_JSON, toolArgumentsEditor.getArgumentsText());
     }
 
     @Override
@@ -256,7 +255,7 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         toolNameField.setText(sampler.getPropertyAsString(McpSampler.TOOL_NAME, "").trim());
         resourceUriField.setText(sampler.getPropertyAsString(McpSampler.RESOURCE_URI, "").trim());
         promptNameField.setText(sampler.getPropertyAsString(McpSampler.PROMPT_NAME, "").trim());
-        argumentsArea.setText(sampler.getPropertyAsString(McpSampler.ARGUMENTS_JSON, ""));
+        toolArgumentsEditor.setArgumentsText(sampler.getPropertyAsString(McpSampler.ARGUMENTS_JSON, ""));
         updateCard();
     }
 
@@ -268,7 +267,7 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
         toolNameField.setChoices(java.util.List.of(), "");
         resourceUriField.setChoices(java.util.List.of(), "");
         promptNameField.setChoices(java.util.List.of(), "");
-        argumentsArea.setText("");
+        toolArgumentsEditor.clear();
         updateCard();
     }
 }
