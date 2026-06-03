@@ -2,7 +2,10 @@ package com.blazemeter.jmeter.mcp.gui;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.swing.BorderFactory;
@@ -13,8 +16,10 @@ import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
+import com.blazemeter.jmeter.mcp.client.McpToolSchemaLoader.LoadedSchema;
 import com.blazemeter.jmeter.mcp.client.ToolArgumentsSchemaSupport;
 import com.blazemeter.jmeter.mcp.client.ToolArgumentsSchemaSupport.ValidationResult;
+import com.blazemeter.jmeter.mcp.util.Strings;
 import org.apache.jmeter.gui.util.JSyntaxTextArea;
 import org.apache.jmeter.gui.util.JTextScrollPane;
 
@@ -144,39 +149,11 @@ public final class ToolArgumentsEditor extends JPanel {
     }
 
     private void loadSchema() {
-        String configName = configNameSupplier.get().trim();
-        if (configName.isEmpty()) {
-            configName = "mcpClient";
-        }
-        String toolName = toolNameSupplier.get().trim();
-        if (toolName.isEmpty()) {
-            showError("Enter a tool name before loading the input schema.");
-            return;
-        }
-        setSchemaActionsEnabled(false);
-        statusLabel.setText("Loading input schema…");
-        McpToolSchemaSync.loadAsync(configName, toolName, new McpToolSchemaSync.SchemaLoadListener() {
-            @Override
-            public void onSuccess(McpToolSchemaSync.LoadedSchema schema) {
-                SwingUtilities.invokeLater(() -> {
-                    loadedSchema = schema.schemaMap();
-                    schemaPreviewArea.setText(schema.prettySchemaJson());
-                    statusLabel.setText("Input schema loaded for tool '" + toolName + "'");
-                    setSchemaActionsEnabled(true);
-                });
-            }
-
-            @Override
-            public void onFailure(Throwable error) {
-                SwingUtilities.invokeLater(() -> {
-                    loadedSchema = null;
-                    schemaPreviewArea.setText("");
-                    statusLabel.setText(" ");
-                    setSchemaActionsEnabled(true);
-                    showError(error.getMessage());
-                });
-            }
-        });
+        prepareSchemaLoad("Enter a tool name before loading the input schema.")
+                .ifPresent(req -> startSchemaLoad(req, schema -> {
+                    applyLoadedSchema(schema);
+                    statusLabel.setText("Input schema loaded for tool '" + req.toolName() + "'");
+                }, true));
     }
 
     private void generateSample() {
@@ -194,7 +171,7 @@ public final class ToolArgumentsEditor extends JPanel {
         try {
             argumentsArea.setText(ToolArgumentsSchemaSupport.generateSampleJson(loadedSchema));
             statusLabel.setText("Generated sample arguments from the input schema");
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             showError("Could not generate sample JSON: " + ex.getMessage());
         }
     }
@@ -223,36 +200,54 @@ public final class ToolArgumentsEditor extends JPanel {
     }
 
     private void loadSchemaThen(Runnable next) {
-        String configName = configNameSupplier.get().trim();
-        if (configName.isEmpty()) {
-            configName = "mcpClient";
-        }
+        prepareSchemaLoad("Enter a tool name first.")
+                .ifPresent(req -> startSchemaLoad(req, schema -> {
+                    applyLoadedSchema(schema);
+                    next.run();
+                }, false));
+    }
+
+    private Optional<SchemaLoadRequest> prepareSchemaLoad(String emptyToolMessage) {
+        String configName = Strings.trimToDefault(configNameSupplier.get(), "mcpClient");
         String toolName = toolNameSupplier.get().trim();
         if (toolName.isEmpty()) {
-            showError("Enter a tool name first.");
-            return;
+            showError(emptyToolMessage);
+            return Optional.empty();
         }
+        return Optional.of(new SchemaLoadRequest(configName, toolName));
+    }
+
+    private void startSchemaLoad(SchemaLoadRequest request,
+                                 Consumer<LoadedSchema> onSuccess,
+                                 boolean clearOnFailure) {
         setSchemaActionsEnabled(false);
         statusLabel.setText("Loading input schema…");
-        McpToolSchemaSync.loadAsync(configName, toolName, new McpToolSchemaSync.SchemaLoadListener() {
-            @Override
-            public void onSuccess(McpToolSchemaSync.LoadedSchema schema) {
-                SwingUtilities.invokeLater(() -> {
-                    loadedSchema = schema.schemaMap();
-                    schemaPreviewArea.setText(schema.prettySchemaJson());
-                    setSchemaActionsEnabled(true);
-                    next.run();
-                });
-            }
+        McpToolSchemaSync.loadAsync(request.configName(), request.toolName(),
+                new McpToolSchemaSync.SchemaLoadListener() {
+                    @Override
+                    public void onSuccess(LoadedSchema schema) {
+                        SwingUtilities.invokeLater(() -> {
+                            onSuccess.accept(schema);
+                            setSchemaActionsEnabled(true);
+                        });
+                    }
 
-            @Override
-            public void onFailure(Throwable error) {
-                SwingUtilities.invokeLater(() -> {
-                    setSchemaActionsEnabled(true);
-                    showError(error.getMessage());
+                    @Override
+                    public void onFailure(Throwable error) {
+                        SwingUtilities.invokeLater(() -> {
+                            if (clearOnFailure) {
+                                clearSchemaState();
+                            }
+                            setSchemaActionsEnabled(true);
+                            showError(error.getMessage());
+                        });
+                    }
                 });
-            }
-        });
+    }
+
+    private void applyLoadedSchema(LoadedSchema schema) {
+        loadedSchema = schema.schemaMap();
+        schemaPreviewArea.setText(schema.prettySchemaJson());
     }
 
     private void setSchemaActionsEnabled(boolean enabled) {
@@ -266,5 +261,8 @@ public final class ToolArgumentsEditor extends JPanel {
                 message,
                 "MCP tool schema",
                 JOptionPane.ERROR_MESSAGE);
+    }
+
+    private record SchemaLoadRequest(String configName, String toolName) {
     }
 }

@@ -28,7 +28,7 @@ public final class McpToolSchemaLoader {
                 .orElseThrow(() -> new IllegalStateException(
                         "Tool '" + toolName + "' was not found on the MCP server"));
         Map<String, Object> schemaMap = ToolArgumentsSchemaSupport.toSchemaMap(tool.inputSchema());
-        String pretty = ToolArgumentsSchemaSupport.toPrettySchemaJson(tool.inputSchema());
+        String pretty = JsonMappers.writeValueAsPrettyString(schemaMap);
         return new LoadedSchema(schemaMap, pretty);
     }
 }

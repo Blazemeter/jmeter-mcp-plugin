@@ -1,8 +1,6 @@
 package com.blazemeter.jmeter.mcp.client;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.ServiceLoader;
 
 import io.modelcontextprotocol.json.McpJsonMapper;
 import io.modelcontextprotocol.json.McpJsonMapperSupplier;
@@ -55,17 +53,10 @@ public final class JsonMappers {
     }
 
     private static McpJsonMapper resolve() {
-        ServiceLoader<McpJsonMapperSupplier> loader =
-                ServiceLoader.load(McpJsonMapperSupplier.class,
-                        JsonMappers.class.getClassLoader());
-        Iterator<McpJsonMapperSupplier> it = loader.iterator();
-        if (it.hasNext()) {
-            McpJsonMapper mapper = it.next().get();
-            if (mapper != null) {
-                return mapper;
-            }
-        }
-        throw new IllegalStateException(
+        return ServiceLoaderSupport.loadFirst(
+                McpJsonMapperSupplier.class,
+                JsonMappers.class,
+                McpJsonMapperSupplier::get,
                 "No McpJsonMapper implementation found on the classpath. "
                         + "The 'jmeter-mcp-plugin' shaded JAR is expected to "
                         + "ship 'mcp-json-jackson3'; check that it was bundled "

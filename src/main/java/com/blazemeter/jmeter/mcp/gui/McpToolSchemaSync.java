@@ -1,12 +1,13 @@
 package com.blazemeter.jmeter.mcp.gui;
 
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.SwingWorker;
 
 import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
+import com.blazemeter.jmeter.mcp.client.McpPreviewClients;
 import com.blazemeter.jmeter.mcp.client.McpToolSchemaLoader;
+import com.blazemeter.jmeter.mcp.client.McpToolSchemaLoader.LoadedSchema;
 import io.modelcontextprotocol.client.McpSyncClient;
 
 /**
@@ -14,25 +15,14 @@ import io.modelcontextprotocol.client.McpSyncClient;
  */
 public final class McpToolSchemaSync {
 
-    public record LoadedSchema(Map<String, Object> schemaMap, String prettySchemaJson) {
-
-        public static LoadedSchema from(McpToolSchemaLoader.LoadedSchema loaded) {
-            return new LoadedSchema(loaded.schemaMap(), loaded.prettySchemaJson());
-        }
-    }
-
     private McpToolSchemaSync() {
     }
 
     static LoadedSchema loadFromConnectedClient(McpSyncClient client, String configName,
                                                 String toolName) {
-        if (client == null) {
-            throw new IllegalStateException(
-                    "No connected MCP client for '" + configName + "'. "
-                            + "Use Start Now on bzm - MCP Client Config first.");
-        }
         try {
-            return LoadedSchema.from(McpToolSchemaLoader.load(client, toolName));
+            return McpToolSchemaLoader.load(
+                    McpPreviewClients.requireConnected(configName, client), toolName);
         } catch (java.io.IOException ex) {
             throw new IllegalStateException(
                     "Could not read input schema for tool '" + toolName + "'", ex);

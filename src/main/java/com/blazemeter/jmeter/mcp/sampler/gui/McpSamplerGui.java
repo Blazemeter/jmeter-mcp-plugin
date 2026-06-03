@@ -27,6 +27,7 @@ import com.blazemeter.jmeter.mcp.gui.responsive.ResponsiveSizing;
 import com.blazemeter.jmeter.mcp.gui.scroll.JMeterScrollableSupport;
 import com.blazemeter.jmeter.mcp.sampler.McpOperation;
 import com.blazemeter.jmeter.mcp.sampler.McpSampler;
+import com.blazemeter.jmeter.mcp.util.Strings;
 import org.apache.jmeter.samplers.gui.AbstractSamplerGui;
 import org.apache.jmeter.testelement.TestElement;
 
@@ -111,10 +112,7 @@ public class McpSamplerGui extends AbstractSamplerGui implements Scrollable {
     }
 
     private void syncCatalog(McpOperation operation, EditableCatalogField field) {
-        String configName = configNameField.getText().trim();
-        if (configName.isEmpty()) {
-            configName = "mcpClient";
-        }
+        String configName = Strings.trimToDefault(configNameField.getText(), "mcpClient");
         McpSamplerCatalogSync.syncAsync(configName, operation, field, this::updateCard);
     }
 
