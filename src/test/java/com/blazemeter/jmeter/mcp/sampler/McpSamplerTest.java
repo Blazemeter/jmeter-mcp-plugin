@@ -1,5 +1,10 @@
 package com.blazemeter.jmeter.mcp.sampler;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
 import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
@@ -7,87 +12,85 @@ import org.apache.jmeter.samplers.SampleResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class McpSamplerTest {
 
-    private static final String CLIENT = "sampler-exception-test";
+  private static final String CLIENT = "sampler-exception-test";
 
-    @AfterEach
-    void tearDown() {
-        McpClientRegistry.getInstance().remove(CLIENT);
-    }
+  @AfterEach
+  void tearDown() {
+    McpClientRegistry.getInstance().remove(CLIENT);
+  }
 
-    @Test
-    void shouldMarkSampleFailureWhenClientConfigIsMissing() {
-        McpSampler sampler = new McpSampler();
-        sampler.setProperty(McpSampler.CONFIG_NAME, "missing-config");
-        sampler.setProperty(McpSampler.OPERATION, McpOperation.PING.name());
+  @Test
+  void shouldMarkSampleFailureWhenClientConfigIsMissing() {
+    McpSampler sampler = new McpSampler();
+    sampler.setProperty(McpSampler.CONFIG_NAME, "missing-config");
+    sampler.setProperty(McpSampler.OPERATION, McpOperation.PING.name());
 
-        SampleResult result = sampler.sample(null);
+    SampleResult result = sampler.sample(null);
 
-        assertFalse(result.isSuccessful());
-        assertEquals("IllegalStateException", result.getResponseCode());
-        assertTrue(result.getResponseMessage().contains("missing-config"));
-        assertTrue(result.getResponseMessage().contains("MCP Client Config"));
-    }
+    assertFalse(result.isSuccessful());
+    assertEquals("IllegalStateException", result.getResponseCode());
+    assertTrue(result.getResponseMessage().contains("missing-config"));
+    assertTrue(result.getResponseMessage().contains("MCP Client Config"));
+  }
 
-    @Test
-    void shouldMarkSampleFailureWhenClientSettingsAreInvalid() {
-        McpClientSettings settings = new McpClientSettings();
-        settings.setName(CLIENT);
-        settings.setTransport(TransportType.STDIO);
-        settings.setStdioCommand("   ");
-        McpClientRegistry.getInstance().registerDeferred(CLIENT, settings);
+  @Test
+  void shouldMarkSampleFailureWhenClientSettingsAreInvalid() {
+    McpClientSettings settings = new McpClientSettings();
+    settings.setName(CLIENT);
+    settings.setTransport(TransportType.STDIO);
+    settings.setStdioCommand("   ");
+    McpClientRegistry.getInstance().registerDeferred(CLIENT, settings);
 
-        McpSampler sampler = new McpSampler();
-        sampler.setProperty(McpSampler.CONFIG_NAME, CLIENT);
-        sampler.setProperty(McpSampler.OPERATION, McpOperation.PING.name());
+    McpSampler sampler = new McpSampler();
+    sampler.setProperty(McpSampler.CONFIG_NAME, CLIENT);
+    sampler.setProperty(McpSampler.OPERATION, McpOperation.PING.name());
 
-        SampleResult result = sampler.sample(null);
+    SampleResult result = sampler.sample(null);
 
-        assertFalse(result.isSuccessful());
-        assertTrue(result.getResponseDataAsString().contains("command")
-                || result.getResponseMessage().contains("command"));
-    }
+    assertFalse(result.isSuccessful());
+    assertTrue(
+        result.getResponseDataAsString().contains("command")
+            || result.getResponseMessage().contains("command"));
+  }
 
-    @Test
-    void shouldRejectBlankToolNameWhenRequiredIsCalled() {
-        McpSampler sampler = new McpSampler();
-        sampler.setProperty(McpSampler.TOOL_NAME, "  ");
+  @Test
+  void shouldRejectBlankToolNameWhenRequiredIsCalled() {
+    McpSampler sampler = new McpSampler();
+    sampler.setProperty(McpSampler.TOOL_NAME, "  ");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> sampler.required(McpSampler.TOOL_NAME, "Tool Name"));
-        assertTrue(ex.getMessage().contains("Tool Name"));
-        assertTrue(ex.getMessage().contains("required"));
-    }
+    IllegalArgumentException ex =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> sampler.required(McpSampler.TOOL_NAME, "Tool Name"));
+    assertTrue(ex.getMessage().contains("Tool Name"));
+    assertTrue(ex.getMessage().contains("required"));
+  }
 
-    @Test
-    void shouldRejectInvalidJsonWhenParseArguments() {
-        McpSampler sampler = new McpSampler();
-        sampler.setProperty(McpSampler.ARGUMENTS_JSON, "{not-valid-json");
+  @Test
+  void shouldRejectInvalidJsonWhenParseArguments() {
+    McpSampler sampler = new McpSampler();
+    sampler.setProperty(McpSampler.ARGUMENTS_JSON, "{not-valid-json");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                sampler::parseArguments);
-        assertTrue(ex.getMessage().contains("JSON object"));
-    }
-
-    @Test
-    void shouldReturnEmptyMapWhenArgumentsJsonIsBlank() {
-        McpSampler sampler = new McpSampler();
-        sampler.setProperty(McpSampler.ARGUMENTS_JSON, "");
-
-        assertTrue(sampler.parseArguments().isEmpty());
-    }
-
-    @Test
-    void shouldRejectJsonArrayWhenParseArguments() {
-        McpSampler sampler = new McpSampler();
-        sampler.setProperty(McpSampler.ARGUMENTS_JSON, "[1, 2]");
-
+    IllegalArgumentException ex =
         assertThrows(IllegalArgumentException.class, sampler::parseArguments);
-    }
+    assertTrue(ex.getMessage().contains("JSON object"));
+  }
+
+  @Test
+  void shouldReturnEmptyMapWhenArgumentsJsonIsBlank() {
+    McpSampler sampler = new McpSampler();
+    sampler.setProperty(McpSampler.ARGUMENTS_JSON, "");
+
+    assertTrue(sampler.parseArguments().isEmpty());
+  }
+
+  @Test
+  void shouldRejectJsonArrayWhenParseArguments() {
+    McpSampler sampler = new McpSampler();
+    sampler.setProperty(McpSampler.ARGUMENTS_JSON, "[1, 2]");
+
+    assertThrows(IllegalArgumentException.class, sampler::parseArguments);
+  }
 }

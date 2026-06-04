@@ -41,6 +41,10 @@
         <surefire.version>3.2.5</surefire.version>
         <jacoco.version>0.8.12</jacoco.version>
         <ph-commons.version>10.2.5</ph-commons.version>
+        <checkstyle.skip>false</checkstyle.skip>
+        <checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
+        <!-- Checkstyle 13.x requires JRE 21+; 12.x is latest for this project's Java 17 build. -->
+        <checkstyle.version>12.3.1</checkstyle.version>
     </properties>
 
     <dependencyManagement>
@@ -155,6 +159,34 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${checkstyle.plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>checkstyle.xml</configLocation>
+                    <failsOnError>true</failsOnError>
+                    <consoleOutput>true</consoleOutput>
+                    <skip>${checkstyle.skip}</skip>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>validate</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Coverage: mvn test -> target/site/jacoco (unit tests only).
