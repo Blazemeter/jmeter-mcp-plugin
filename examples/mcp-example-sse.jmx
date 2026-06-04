@@ -126,7 +126,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-streamable-http.jmx.</stringProp>
           </JSONPathAssertion>
           <hashTree/>
         </hashTree>
-        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">CALL_TOOL</stringProp>
           <stringProp name="McpSampler.toolName">echo</stringProp>
