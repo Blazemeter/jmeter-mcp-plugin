@@ -124,6 +124,29 @@ class McpCatalogExtractorTest {
         assertEquals(List.of("greet"), names);
     }
 
+    @Test
+    void shouldSkipToolPageWhenToolsListIsNull() {
+        McpSchema.ListToolsResult empty = new McpSchema.ListToolsResult(null, null, null);
+
+        List<String> names = McpCatalogExtractor.toolNames(cursor -> empty);
+
+        assertTrue(names.isEmpty());
+    }
+
+    @Test
+    void shouldStopSearchingAfterToolIsFoundOnFirstPage() {
+        McpSchema.Tool echo = tool("echo", SAMPLE_SCHEMA);
+        java.util.concurrent.atomic.AtomicInteger pageCalls = new java.util.concurrent.atomic.AtomicInteger();
+
+        Optional<McpSchema.Tool> found = McpCatalogExtractor.findTool(cursor -> {
+            pageCalls.incrementAndGet();
+            return page(echo);
+        }, "echo");
+
+        assertTrue(found.isPresent());
+        assertEquals(1, pageCalls.get());
+    }
+
     private static McpSchema.ListToolsResult page(McpSchema.Tool... tools) {
         return new McpSchema.ListToolsResult(List.of(tools), null, null);
     }

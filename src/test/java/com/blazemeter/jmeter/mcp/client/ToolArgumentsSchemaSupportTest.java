@@ -127,4 +127,33 @@ class ToolArgumentsSchemaSupportTest {
         assertFalse(result.valid());
         assertTrue(result.message().contains("Invalid JSON"));
     }
+
+    @Test
+    void shouldGenerateNumberTypeWhenSchemaSpecifiesNumber() {
+        assertEquals(0, ToolArgumentsSchemaSupport.generateValue(Map.of("type", "number")));
+    }
+
+    @Test
+    void shouldRejectWhenSchemaMapIsEmpty() {
+        var result = ToolArgumentsSchemaSupport.validateArgumentsJson("{}", Map.of());
+        assertFalse(result.valid());
+        assertTrue(result.message().contains("No input schema"));
+    }
+
+    @Test
+    void shouldGenerateNestedObjectWhenPropertiesPresentWithoutExplicitType() throws Exception {
+        Map<String, Object> schema = Map.of(
+                "properties", Map.of("id", Map.of("type", "integer")));
+
+        String json = ToolArgumentsSchemaSupport.generateSampleJson(schema);
+        assertTrue(json.contains("\"id\""));
+    }
+
+    @Test
+    void shouldGenerateEmptyArrayWhenItemsSchemaMissing() {
+        @SuppressWarnings("unchecked")
+        List<Object> array = (List<Object>) ToolArgumentsSchemaSupport.generateValue(
+                Map.of("type", "array"));
+        assertTrue(array.isEmpty());
+    }
 }
