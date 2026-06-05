@@ -104,7 +104,7 @@ public class McpClientConfigGuiIT {
     initial.setProperty(McpClientConfig.CLIENT_VERSION, "0.1.0");
     initial.setProperty(McpClientConfig.REQUEST_TIMEOUT_MS, 30_000L);
     initial.setProperty(McpClientConfig.INIT_TIMEOUT_MS, 30_000L);
-    initial.setProperty(McpClientConfig.CONNECT_ON_STARTUP, false);
+    initial.setProperty(McpClientConfig.CONNECT_ON_STARTUP, true);
     gui.configure(initial);
 
     frame.comboBox("mcpClientConfig.transport").requireSelection(TransportType.STREAMABLE_HTTP.name());
@@ -116,10 +116,9 @@ public class McpClientConfigGuiIT {
     frame.textBox("mcpClientConfig.clientVersion").setText("3.1");
     frame.textBox("mcpClientConfig.requestTimeout").setText("45000");
     frame.textBox("mcpClientConfig.initTimeout").setText("5000");
-    frame.checkBox("mcpClientConfig.connectOnStartup").check();
 
-    TestElement element = gui.createTestElement();
-    McpClientConfig saved = (McpClientConfig) element;
+    McpClientConfig saved = new McpClientConfig();
+    gui.modifyTestElement(saved);
 
     assertEquals("edited", saved.getPropertyAsString(McpClientConfig.NAME));
     assertEquals(
