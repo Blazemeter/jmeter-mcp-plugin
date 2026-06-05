@@ -97,7 +97,9 @@ public class McpClientConfigGuiIT {
   public void shouldPersistStreamableHttpFieldsWhenModifyTestElement() {
     gui.clearGui();
     frame.textBox("mcpClientConfig.name").setText("edited");
-    frame.comboBox("mcpClientConfig.transport").selectItem(TransportType.STREAMABLE_HTTP.name());
+    frame.comboBox("mcpClientConfig.transport").selectItem(TransportType.STREAMABLE_HTTP.ordinal());
+    frame.comboBox("mcpClientConfig.transport").requireSelection(TransportType.STREAMABLE_HTTP.name());
+    frame.textBox("mcpClientConfig.serverUrl").requireVisible();
     frame.textBox("mcpClientConfig.serverUrl").setText("http://mcp.local");
     frame.textBox("mcpClientConfig.endpoint").setText("/custom");
     frame.textBox("mcpClientConfig.clientName").setText("name");

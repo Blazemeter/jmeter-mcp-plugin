@@ -41,6 +41,7 @@ public final class AdaptiveCardLayoutHost extends JPanel {
 
   /** Call after {@link java.awt.CardLayout#show} so height matches the new card. */
   public void afterCardShown() {
+    sync();
     SwingUtilities.invokeLater(
         () -> {
           sync();
