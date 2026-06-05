@@ -36,7 +36,11 @@ public final class McpServerProcessManager {
             return t;
           });
 
+  private static final long PORT_RELEASE_WAIT_MS = 15_000L;
+
   private volatile Process process;
+  private volatile String lastReadyHost;
+  private volatile int lastReadyPort = -1;
   private volatile ScheduledFuture<?> deferredStop;
   private volatile boolean keepServerRunningAfterTest;
 
@@ -109,6 +113,9 @@ public final class McpServerProcessManager {
     }
 
     String host = (readyHost == null || readyHost.isBlank()) ? "localhost" : readyHost.trim();
+    waitForPortClosed(host, readyPort, PORT_RELEASE_WAIT_MS);
+    lastReadyHost = host;
+    lastReadyPort = readyPort;
     LOG.info("Waiting for MCP server at {}:{} (timeout {} ms)", host, readyPort, startupWaitMs);
     if (!waitForPort(host, readyPort, startupWaitMs)) {
       stop();
@@ -163,20 +170,50 @@ public final class McpServerProcessManager {
     cancelDeferredStop();
     Process p = process;
     process = null;
+    String host = lastReadyHost;
+    int port = lastReadyPort;
     if (p == null) {
+      if (host != null && port > 0) {
+        waitForPortClosed(host, port, PORT_RELEASE_WAIT_MS);
+      }
       return;
     }
     LOG.info("Stopping MCP server process (pid {})", p.pid());
-    p.destroy();
+    destroyProcessTree(p);
+    if (host != null && port > 0) {
+      waitForPortClosed(host, port, PORT_RELEASE_WAIT_MS);
+    }
+  }
+
+  private static void destroyProcessTree(Process process) {
+    ProcessHandle handle = process.toHandle();
+    handle.descendants().forEach(child -> child.destroyForcibly());
+    process.destroy();
     try {
-      if (!p.waitFor(5, TimeUnit.SECONDS)) {
-        p.destroyForcibly();
-        p.waitFor(5, TimeUnit.SECONDS);
+      if (!process.waitFor(5, TimeUnit.SECONDS)) {
+        process.destroyForcibly();
+        process.waitFor(5, TimeUnit.SECONDS);
       }
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      p.destroyForcibly();
+      process.destroyForcibly();
     }
+  }
+
+  private static void waitForPortClosed(String host, int port, long timeoutMs) {
+    long deadline = System.currentTimeMillis() + timeoutMs;
+    while (System.currentTimeMillis() < deadline) {
+      if (!isPortOpen(host, port, 200)) {
+        return;
+      }
+      try {
+        Thread.sleep(100);
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+        return;
+      }
+    }
+    LOG.warn("Port {}:{} still open after {} ms", host, port, timeoutMs);
   }
 
   private static boolean waitForPort(String host, int port, long timeoutMs) {

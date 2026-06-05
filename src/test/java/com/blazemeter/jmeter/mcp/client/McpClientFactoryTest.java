@@ -18,8 +18,6 @@ import org.junit.jupiter.api.condition.EnabledIf;
 
 class McpClientFactoryTest {
 
-  private static final int HTTP_PORT = 31997;
-
   @AfterEach
   void stopManagedServer() {
     McpServerProcessManager.getInstance().stop();
@@ -148,9 +146,10 @@ class McpClientFactoryTest {
   @Test
   @EnabledIf("com.blazemeter.jmeter.mcp.client.McpClientTestFixtures#isNpxAvailable")
   void shouldInitializeSseClientWhenHttpServerEverythingIsRunning() {
-    startHttpServer("sse");
+    int port = McpClientTestFixtures.findAvailablePort();
+    startHttpServer("sse", port);
     McpClientSettings settings =
-        McpClientTestFixtures.sseServerEverythingSettings("factory-sse", HTTP_PORT);
+        McpClientTestFixtures.sseServerEverythingSettings("factory-sse", port);
 
     try (var client = McpClientFactory.buildAndInitialize(settings)) {
       assertNotNull(client.ping());
@@ -160,24 +159,25 @@ class McpClientFactoryTest {
   @Test
   @EnabledIf("com.blazemeter.jmeter.mcp.client.McpClientTestFixtures#isNpxAvailable")
   void shouldInitializeStreamableHttpClientWhenHttpServerEverythingIsRunning() {
-    startHttpServer("streamableHttp");
+    int port = McpClientTestFixtures.findAvailablePort();
+    startHttpServer("streamableHttp", port);
     McpClientSettings settings =
         McpClientTestFixtures.streamableHttpServerEverythingSettings(
-            "factory-streamable", HTTP_PORT);
+            "factory-streamable", port);
 
     try (var client = McpClientFactory.buildAndInitialize(settings)) {
       assertNotNull(client.ping());
     }
   }
 
-  private static void startHttpServer(String mode) {
+  private static void startHttpServer(String mode, int port) {
     McpServerProcessManager.getInstance()
         .start(
             "npx",
             McpClientTestFixtures.SERVER_EVERYTHING_ARGS + " " + mode,
-            "PORT=" + HTTP_PORT,
+            "PORT=" + port,
             "127.0.0.1",
-            HTTP_PORT,
+            port,
             McpClientTestFixtures.LIVE_SERVER_TIMEOUT_MS);
   }
 

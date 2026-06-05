@@ -255,6 +255,7 @@
                     <excludes>
                         <exclude>**/*IT.java</exclude>
                     </excludes>
+                    <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>
                 </configuration>
             </plugin>
 
@@ -273,6 +274,7 @@
                 </dependencies>
                 <configuration>
                     <argLine>@{argLine} --add-opens java.base/java.util=ALL-UNNAMED</argLine>
+                    <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>

@@ -1,5 +1,7 @@
 package com.blazemeter.jmeter.mcp.client;
 
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.util.concurrent.TimeUnit;
 
 /** Shared settings builders and environment checks for MCP client tests. */
@@ -37,9 +39,19 @@ final class McpClientTestFixtures {
     settings.setName(name);
     settings.setTransport(TransportType.STREAMABLE_HTTP);
     settings.setServerUrl("http://127.0.0.1:" + port);
+    settings.setEndpoint("/mcp");
     settings.setRequestTimeoutMillis(LIVE_SERVER_TIMEOUT_MS);
     settings.setInitializationTimeoutMillis(LIVE_SERVER_TIMEOUT_MS);
     return settings;
+  }
+
+  static int findAvailablePort() {
+    try (ServerSocket socket =
+        new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))) {
+      return socket.getLocalPort();
+    } catch (Exception ex) {
+      throw new IllegalStateException("Failed to allocate a free TCP port for MCP tests", ex);
+    }
   }
 
   static boolean isNpxAvailable() {
