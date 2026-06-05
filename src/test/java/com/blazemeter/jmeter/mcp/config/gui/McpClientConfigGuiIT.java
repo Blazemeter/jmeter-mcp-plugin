@@ -95,11 +95,21 @@ public class McpClientConfigGuiIT {
 
   @Test
   public void shouldPersistStreamableHttpFieldsWhenModifyTestElement() {
-    gui.clearGui();
-    frame.textBox("mcpClientConfig.name").setText("edited");
-    frame.comboBox("mcpClientConfig.transport").selectItem(TransportType.STREAMABLE_HTTP.ordinal());
+    McpClientConfig initial = new McpClientConfig();
+    initial.setProperty(McpClientConfig.NAME, "mcpClient");
+    initial.setProperty(McpClientConfig.TRANSPORT, TransportType.STREAMABLE_HTTP.name());
+    initial.setProperty(McpClientConfig.SERVER_URL, "http://localhost:8080");
+    initial.setProperty(McpClientConfig.ENDPOINT, "");
+    initial.setProperty(McpClientConfig.CLIENT_NAME, "jmeter-mcp-plugin");
+    initial.setProperty(McpClientConfig.CLIENT_VERSION, "0.1.0");
+    initial.setProperty(McpClientConfig.REQUEST_TIMEOUT_MS, 30_000L);
+    initial.setProperty(McpClientConfig.INIT_TIMEOUT_MS, 30_000L);
+    initial.setProperty(McpClientConfig.CONNECT_ON_STARTUP, false);
+    gui.configure(initial);
+
     frame.comboBox("mcpClientConfig.transport").requireSelection(TransportType.STREAMABLE_HTTP.name());
     frame.textBox("mcpClientConfig.serverUrl").requireVisible();
+    frame.textBox("mcpClientConfig.name").setText("edited");
     frame.textBox("mcpClientConfig.serverUrl").setText("http://mcp.local");
     frame.textBox("mcpClientConfig.endpoint").setText("/custom");
     frame.textBox("mcpClientConfig.clientName").setText("name");
