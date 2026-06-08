@@ -11,6 +11,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import com.blazemeter.jmeter.mcp.McpRuntimeCleanup;
 import com.blazemeter.jmeter.mcp.client.McpClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,10 @@ public final class McpServerProcessManager {
     private static final Logger LOG = LoggerFactory.getLogger(McpServerProcessManager.class);
 
     private static final McpServerProcessManager INSTANCE = new McpServerProcessManager();
+
+    static {
+        McpRuntimeCleanup.ensureRegistered();
+    }
 
     private static final ScheduledExecutorService DEFERRED_STOP_EXECUTOR =
             Executors.newSingleThreadScheduledExecutor(r -> {
@@ -166,6 +171,12 @@ public final class McpServerProcessManager {
             Thread.currentThread().interrupt();
             p.destroyForcibly();
         }
+    }
+
+    /** Force-stop the managed server, ignoring keep-after-test settings. */
+    public void shutdownAll() {
+        keepServerRunningAfterTest = false;
+        stop();
     }
 
     private static boolean waitForPort(String host, int port, long timeoutMs) {

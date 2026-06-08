@@ -1,5 +1,7 @@
 package com.blazemeter.jmeter.mcp.client;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -9,6 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
+import com.blazemeter.jmeter.mcp.McpRuntimeCleanup;
 import io.modelcontextprotocol.client.McpSyncClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +45,10 @@ public final class McpClientRegistry {
     });
 
     private static final McpClientRegistry INSTANCE = new McpClientRegistry();
+
+    static {
+        McpRuntimeCleanup.ensureRegistered();
+    }
 
     /** STDIO spawns are heavy; serializing avoids parallel process startup timeouts. */
     private static final Object STDIO_CONNECT_LOCK = new Object();
@@ -296,6 +303,18 @@ public final class McpClientRegistry {
 
     public boolean shouldStopPreviewManagedServer(String name) {
         return previewStartedManagedServer.remove(name);
+    }
+
+    /** Close every registered client and clear deferred settings. */
+    public void shutdownAll() {
+        List<String> names = new ArrayList<>();
+        names.addAll(clients.keySet());
+        names.addAll(deferredSettings.keySet());
+        names.addAll(pendingConnects.keySet());
+        for (String name : names) {
+            remove(name);
+        }
+        previewStartedManagedServer.clear();
     }
 
     private static void closeQuietly(McpSyncClient client) {

@@ -58,4 +58,14 @@ class McpServerProcessManagerTest {
         manager.notifyClientConfigTestStarted(false);
         assertFalse(manager.shouldKeepServerRunningAfterTest());
     }
+
+    @Test
+    void shutdownAllClearsKeepServerFlag() {
+        McpServerProcessManager manager = McpServerProcessManager.getInstance();
+        manager.notifyClientConfigTestStarted(true);
+        manager.notifyClientConfigTestEnded(true);
+        assertTrue(manager.shouldKeepServerRunningAfterTest());
+        manager.shutdownAll();
+        assertFalse(manager.shouldKeepServerRunningAfterTest());
+    }
 }
