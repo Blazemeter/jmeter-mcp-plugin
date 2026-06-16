@@ -30,6 +30,7 @@ import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
 import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import com.blazemeter.jmeter.mcp.config.McpClientConfig;
+import com.blazemeter.jmeter.mcp.McpRuntimeCleanup;
 import com.blazemeter.jmeter.mcp.gui.EnvVarsField;
 import com.blazemeter.jmeter.mcp.gui.GridBagForm;
 import com.blazemeter.jmeter.mcp.gui.PluginGuiConstants;
@@ -80,8 +81,8 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     private final JTextField serverStartupWaitField = new JTextField(8);
     private final JPanel serverLaunchPanel = new JPanel(new GridBagLayout());
 
-    private final JButton startNowButton = new JButton("Start Now");
-    private final JButton stopNowButton = new JButton("Stop");
+    private final JButton connectButton = new JButton("Start Now");
+    private final JButton disconnectButton = new JButton("Stop");
     private final JLabel connectionStatusLabel = new JLabel("Not connected");
 
     private final CardLayout transportCards = new CardLayout();
@@ -104,6 +105,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     }
 
     private void init() {
+        McpRuntimeCleanup.ensureRegistered();
         setLayout(new BorderLayout(0, 5));
         setBorder(makeBorder());
         add(makeTitlePanel(), BorderLayout.NORTH);
@@ -125,8 +127,8 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
 
         transportCombo.addActionListener(e -> showSelectedTransport());
         transportCombo.setSelectedItem(TransportType.STDIO);
-        startNowButton.addActionListener(e -> startNow());
-        stopNowButton.addActionListener(e -> stopNow());
+        connectButton.addActionListener(e -> connect());
+        disconnectButton.addActionListener(e -> disconnect());
         showSelectedTransport();
         assignComponentNames();
     }
@@ -144,6 +146,8 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         clientVersionField.setName("mcpClientConfig.clientVersion");
         requestTimeoutField.setName("mcpClientConfig.requestTimeout");
         initTimeoutField.setName("mcpClientConfig.initTimeout");
+        connectButton.setName("mcpClientConfig.connect");
+        disconnectButton.setName("mcpClientConfig.disconnect");
         refreshConnectionStatus();
     }
 
@@ -218,11 +222,11 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
 
     private JPanel buildPreviewPanel() {
         JPanel p = new JPanel(new GridBagLayout());
-        p.setBorder(BorderFactory.createTitledBorder("Manually start connection"));
+        p.setBorder(BorderFactory.createTitledBorder("Manual connection"));
         GridBagConstraints c = GridBagForm.horizontalRowConstraints();
         JPanel buttons = new JPanel();
-        buttons.add(startNowButton);
-        buttons.add(stopNowButton);
+        buttons.add(connectButton);
+        buttons.add(disconnectButton);
         GridBagForm.addLabelAndField(p, c, 0, "", buttons);
         c.gridx = 0;
         c.gridy = 1;
@@ -265,42 +269,32 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         if (transportCardHost != null) {
             transportCardHost.afterCardShown();
         }
-        boolean http = t == TransportType.SSE || t == TransportType.STREAMABLE_HTTP;
-        serverLaunchPanel.setVisible(http);
-        if (http) {
-            applyDefaultServerLaunchArgs(t);
-        }
+        serverLaunchPanel.setVisible(false);
+        connectButton.setText(isHttpTransport(t) ? "Connect" : "Start Now");
         refreshConnectionStatus();
     }
 
-    private void applyDefaultServerLaunchArgs(TransportType transport) {
-        if (!serverLaunchCommandField.getText().isBlank()) {
-            return;
-        }
-        serverLaunchCommandField.setText("npx");
-        if (transport == TransportType.SSE) {
-            serverLaunchArgsField.setText("-y @modelcontextprotocol/server-everything sse");
-        } else {
-            serverLaunchArgsField.setText("-y @modelcontextprotocol/server-everything streamableHttp");
-        }
+    private static boolean isHttpTransport(TransportType transport) {
+        return transport == TransportType.SSE || transport == TransportType.STREAMABLE_HTTP;
     }
 
-    private void startNow() {
+    private void connect() {
         McpClientSettings settings = readSettingsFromGui();
-        startNowButton.setEnabled(false);
-        stopNowButton.setEnabled(false);
-        connectionStatusLabel.setText("Starting…");
+        boolean http = isHttpTransport(settings.getTransport());
+        connectButton.setEnabled(false);
+        disconnectButton.setEnabled(false);
+        connectionStatusLabel.setText(http ? "Connecting…" : "Starting…");
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
-                McpClientLauncher.startNow(settings);
+                McpClientLauncher.connect(settings);
                 return null;
             }
 
             @Override
             protected void done() {
-                startNowButton.setEnabled(true);
-                stopNowButton.setEnabled(true);
+                connectButton.setEnabled(true);
+                disconnectButton.setEnabled(true);
                 try {
                     get();
                     refreshConnectionStatus();
@@ -309,28 +303,28 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
                     connectionStatusLabel.setText("Not connected");
                     JOptionPane.showMessageDialog(McpClientConfigGui.this,
                             cause.getMessage(),
-                            "Start Now failed",
+                            http ? "Connect failed" : "Start Now failed",
                             JOptionPane.ERROR_MESSAGE);
                 }
             }
         }.execute();
     }
 
-    private void stopNow() {
+    private void disconnect() {
         McpClientSettings settings = readSettingsFromGui();
-        startNowButton.setEnabled(false);
-        stopNowButton.setEnabled(false);
+        connectButton.setEnabled(false);
+        disconnectButton.setEnabled(false);
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
-                McpClientLauncher.stopNow(settings);
+                McpClientLauncher.disconnect(settings);
                 return null;
             }
 
             @Override
             protected void done() {
-                startNowButton.setEnabled(true);
-                stopNowButton.setEnabled(true);
+                connectButton.setEnabled(true);
+                disconnectButton.setEnabled(true);
                 refreshConnectionStatus();
             }
         }.execute();
@@ -340,10 +334,10 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
         String name = Strings.trimToDefault(nameField.getText(), "mcpClient");
         if (McpClientRegistry.getInstance().isConnected(name)) {
             connectionStatusLabel.setText("Connected as '" + name + "' (reused on test run)");
-            stopNowButton.setEnabled(true);
+            disconnectButton.setEnabled(true);
         } else {
             connectionStatusLabel.setText("Not connected");
-            stopNowButton.setEnabled(false);
+            disconnectButton.setEnabled(false);
         }
     }
 

@@ -6,6 +6,7 @@ import static org.junit.Assert.assertEquals;
 import com.blazemeter.jmeter.mcp.JMeterTestUtils;
 import com.blazemeter.jmeter.mcp.SwingTestRunner;
 import com.blazemeter.jmeter.mcp.server.McpServerProcess;
+import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
 import org.assertj.swing.fixture.FrameFixture;
 import org.junit.After;
 import org.junit.Before;
@@ -32,6 +33,7 @@ public class McpServerProcessGuiIT {
 
     @After
     public void tearDown() {
+        McpServerProcessManager.getInstance().stop();
         if (frame != null) {
             frame.cleanUp();
         }
@@ -47,6 +49,8 @@ public class McpServerProcessGuiIT {
         frame.textBox("mcpServerProcess.readyHost").requireText("localhost");
         frame.textBox("mcpServerProcess.readyPort").requireText("3001");
         frame.textBox("mcpServerProcess.startupWait").requireText("60000");
+        frame.button("mcpServerProcess.start").requireText("Start");
+        frame.button("mcpServerProcess.stop").requireDisabled();
     }
 
     @Test
