@@ -1,6 +1,7 @@
 package com.blazemeter.jmeter.mcp.server.gui;
 
 import java.awt.BorderLayout;
+import java.util.Objects;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
@@ -29,10 +30,10 @@ import com.blazemeter.jmeter.mcp.gui.PluginGuiConstants;
 import com.blazemeter.jmeter.mcp.McpRuntimeCleanup;
 import com.blazemeter.jmeter.mcp.gui.responsive.ResponsiveSizing;
 import com.blazemeter.jmeter.mcp.gui.scroll.JMeterScrollableSupport;
+import com.blazemeter.jmeter.mcp.server.DefaultMcpServerControl;
+import com.blazemeter.jmeter.mcp.server.McpServerControl;
 import com.blazemeter.jmeter.mcp.server.McpServerLaunchSettings;
-import com.blazemeter.jmeter.mcp.server.McpServerLauncher;
 import com.blazemeter.jmeter.mcp.server.McpServerProcess;
-import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
 import com.blazemeter.jmeter.mcp.util.Strings;
 import org.apache.jmeter.config.gui.AbstractConfigGui;
 import org.apache.jmeter.testelement.TestElement;
@@ -57,7 +58,14 @@ public class McpServerProcessGui extends AbstractConfigGui implements Scrollable
     private final JButton stopButton = new JButton("Stop");
     private final JLabel serverStatusLabel = new JLabel("Not running");
 
+    private final McpServerControl serverControl;
+
     public McpServerProcessGui() {
+        this(DefaultMcpServerControl.getInstance());
+    }
+
+    McpServerProcessGui(McpServerControl serverControl) {
+        this.serverControl = Objects.requireNonNull(serverControl, "serverControl");
         init();
     }
 
@@ -144,6 +152,7 @@ public class McpServerProcessGui extends AbstractConfigGui implements Scrollable
         keepServerRunningAfterTestCheck.setName("mcpServerProcess.keepServerRunningAfterTest");
         startButton.setName("mcpServerProcess.start");
         stopButton.setName("mcpServerProcess.stop");
+        serverStatusLabel.setName("mcpServerProcess.status");
         refreshServerStatus();
     }
 
@@ -155,7 +164,7 @@ public class McpServerProcessGui extends AbstractConfigGui implements Scrollable
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
-                McpServerLauncher.start(settings);
+                serverControl.start(settings);
                 return null;
             }
 
@@ -184,7 +193,7 @@ public class McpServerProcessGui extends AbstractConfigGui implements Scrollable
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
-                McpServerLauncher.stop();
+                serverControl.stop();
                 return null;
             }
 
@@ -198,17 +207,16 @@ public class McpServerProcessGui extends AbstractConfigGui implements Scrollable
     }
 
     private void refreshServerStatus() {
-        McpServerProcessManager manager = McpServerProcessManager.getInstance();
         String host = Strings.trimToDefault(readyHostField.getText(), "localhost");
         int port = (int) GridBagForm.parseLong(readyPortField.getText(), 3001L);
-        Long pid = manager.getManagedProcessPid();
+        Long pid = serverControl.getManagedProcessPid();
         if (pid != null) {
             serverStatusLabel.setText("Running at " + host + ":" + port
                     + " (pid " + pid + ", reused on test run)");
             stopButton.setEnabled(true);
             return;
         }
-        if (McpServerProcessManager.isPortOpen(host, port, 500)) {
+        if (serverControl.isPortOpen(host, port, 500)) {
             serverStatusLabel.setText("Reachable at " + host + ":" + port + " (not managed here)");
             stopButton.setEnabled(false);
             return;
