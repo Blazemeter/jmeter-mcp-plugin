@@ -9,9 +9,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Stops MCP clients and managed server subprocesses when the JMeter GUI clears or
- * replaces the test plan, or when the JVM exits. Needed because
- * {@link com.blazemeter.jmeter.mcp.config.McpClientConfig} can intentionally keep
- * servers running after {@code testEnded()}.
+ * replaces the test plan, or when the JVM exits. Needed because config elements can
+ * intentionally keep clients or servers running after {@code testEnded()}.
  */
 public final class McpRuntimeCleanup implements TestPlanListener {
 
@@ -19,27 +18,19 @@ public final class McpRuntimeCleanup implements TestPlanListener {
 
     private static final McpRuntimeCleanup LISTENER = new McpRuntimeCleanup();
 
-    private static volatile boolean registered;
+    private static volatile boolean shutdownHookRegistered;
+    private static volatile boolean testPlanListenerRegistered;
 
     private McpRuntimeCleanup() {
     }
 
+    /**
+     * Registers JVM shutdown hook and, when the JMeter GUI is available, a
+     * {@link TestPlanListener}. Safe to call repeatedly (e.g. from GUI constructors).
+     */
     public static void ensureRegistered() {
-        if (registered) {
-            return;
-        }
-        synchronized (McpRuntimeCleanup.class) {
-            if (registered) {
-                return;
-            }
-            Runtime.getRuntime().addShutdownHook(new Thread(McpRuntimeCleanup::shutdownAll,
-                    "mcp-plugin-shutdown"));
-            GuiPackage gui = GuiPackage.getInstance();
-            if (gui != null) {
-                gui.addTestPlanListener(LISTENER);
-            }
-            registered = true;
-        }
+        ensureShutdownHookRegistered();
+        ensureTestPlanListenerRegistered();
     }
 
     public static void shutdownAll() {
@@ -60,6 +51,37 @@ public final class McpRuntimeCleanup implements TestPlanListener {
 
     @Override
     public void testPlanLoaded() {
-        // beforeTestPlanCleared runs when replacing a plan
+        shutdownAll();
+    }
+
+    private static void ensureShutdownHookRegistered() {
+        if (shutdownHookRegistered) {
+            return;
+        }
+        synchronized (McpRuntimeCleanup.class) {
+            if (shutdownHookRegistered) {
+                return;
+            }
+            Runtime.getRuntime().addShutdownHook(new Thread(McpRuntimeCleanup::shutdownAll,
+                    "mcp-plugin-shutdown"));
+            shutdownHookRegistered = true;
+        }
+    }
+
+    private static void ensureTestPlanListenerRegistered() {
+        if (testPlanListenerRegistered) {
+            return;
+        }
+        synchronized (McpRuntimeCleanup.class) {
+            if (testPlanListenerRegistered) {
+                return;
+            }
+            GuiPackage gui = GuiPackage.getInstance();
+            if (gui == null) {
+                return;
+            }
+            gui.addTestPlanListener(LISTENER);
+            testPlanListenerRegistered = true;
+        }
     }
 }

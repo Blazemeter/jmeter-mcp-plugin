@@ -25,6 +25,8 @@ public class McpServerProcess extends ConfigTestElement
     public static final String READY_HOST = "McpServerProcess.readyHost";
     public static final String READY_PORT = "McpServerProcess.readyPort";
     public static final String STARTUP_WAIT_MS = "McpServerProcess.startupWaitMs";
+    public static final String KEEP_SERVER_RUNNING_AFTER_TEST =
+            "McpServerProcess.keepServerRunningAfterTest";
 
     @Override
     public void addConfigElement(ConfigElement config) {
@@ -77,9 +79,14 @@ public class McpServerProcess extends ConfigTestElement
      */
     private void stopServer() {
         McpServerProcessManager manager = McpServerProcessManager.getInstance();
-        if (manager.shouldKeepServerRunningAfterTest()) {
+        if (isKeepServerRunningAfterTest()) {
+            manager.cancelDeferredStop();
             return;
         }
         manager.scheduleDeferredStop(McpServerProcessManager.DEFERRED_STOP_FALLBACK_MS);
+    }
+
+    private boolean isKeepServerRunningAfterTest() {
+        return getPropertyAsBoolean(KEEP_SERVER_RUNNING_AFTER_TEST, true);
     }
 }

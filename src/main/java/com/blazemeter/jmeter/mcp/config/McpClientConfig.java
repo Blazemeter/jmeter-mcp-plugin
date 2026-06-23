@@ -109,8 +109,6 @@ public class McpClientConfig extends ConfigTestElement
     private void startClient() {
         McpClientSettings settings = toSettings();
         String registryName = settings.getName();
-        McpServerProcessManager.getInstance().notifyClientConfigTestStarted(
-                settings.isKeepServerRunningAfterTest());
         try {
             if (settings.isConnectOnStartup()) {
                 LOG.info("Scheduling MCP client '{}' connect on test start (transport {})",
@@ -131,25 +129,18 @@ public class McpClientConfig extends ConfigTestElement
     private void stopClient() {
         McpClientSettings settings = toSettings();
         String registryName = settings.getName();
-        McpServerProcessManager manager = McpServerProcessManager.getInstance();
-        manager.notifyClientConfigTestEnded(settings.isKeepServerRunningAfterTest());
 
         if (settings.isKeepServerRunningAfterTest()) {
-            LOG.info("Keeping MCP client '{}' and managed server running after test",
-                    registryName);
+            LOG.info("Keeping MCP client '{}' running after test", registryName);
             return;
         }
 
         LOG.info("Stopping MCP client '{}'", registryName);
-        McpClientRegistry.getInstance().shouldStopPreviewManagedServer(registryName);
+        boolean stopPreviewManagedServer =
+                McpClientRegistry.getInstance().shouldStopPreviewManagedServer(registryName);
         McpClientRegistry.getInstance().remove(registryName);
-        stopManagedServerIfRunning();
-    }
-
-    private static void stopManagedServerIfRunning() {
-        McpServerProcessManager manager = McpServerProcessManager.getInstance();
-        if (manager.isManagedProcessRunning()) {
-            manager.stop();
+        if (stopPreviewManagedServer) {
+            McpServerProcessManager.getInstance().stop();
         }
     }
 }

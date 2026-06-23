@@ -126,7 +126,13 @@ public final class McpClientRegistry {
      * refresh settings for the upcoming run.
      */
     private boolean adoptExistingConnection(String name, McpClientSettings settings) {
-        if (!clients.containsKey(name)) {
+        McpSyncClient client = clients.get(name);
+        if (client == null) {
+            return false;
+        }
+        if (!isClientHealthy(client)) {
+            LOG.info("Discarding stale MCP client '{}' before test run", name);
+            remove(name);
             return false;
         }
         LOG.info("Reusing existing MCP client '{}' for test run (transport {})",
@@ -137,6 +143,16 @@ public final class McpClientRegistry {
             pending.cancel(true);
         }
         return true;
+    }
+
+    private static boolean isClientHealthy(McpSyncClient client) {
+        try {
+            client.ping();
+            return true;
+        } catch (RuntimeException ex) {
+            LOG.debug("MCP client health check failed: {}", ex.getMessage());
+            return false;
+        }
     }
 
     /**
