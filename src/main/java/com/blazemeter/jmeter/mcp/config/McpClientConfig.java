@@ -139,16 +139,72 @@ public class McpClientConfig extends ConfigTestElement implements ConfigElement,
       return;
     }
 
-    LOG.info("Stopping MCP client '{}'", registryName);
-    McpClientRegistry.getInstance().shouldStopPreviewManagedServer(registryName);
-    McpClientRegistry.getInstance().remove(registryName);
-    stopManagedServerIfRunning();
-  }
+    @Override
+    public void addConfigElement(ConfigElement config) {
+        // No element to merge; MCP config is self-contained.
+    }
 
-  private static void stopManagedServerIfRunning() {
-    McpServerProcessManager manager = McpServerProcessManager.getInstance();
-    if (manager.isManagedProcessRunning()) {
-      manager.stop();
+    @Override
+    public boolean expectsModification() {
+        return false;
+    }
+
+    @Override
+    public void testStarted() {
+        startClient();
+    }
+
+    @Override
+    public void testStarted(String host) {
+        startClient();
+    }
+
+    @Override
+    public void testEnded() {
+        stopClient();
+    }
+
+    @Override
+    public void testEnded(String host) {
+        stopClient();
+    }
+
+    private void startClient() {
+        McpClientSettings settings = toSettings();
+        String registryName = settings.getName();
+        try {
+            if (settings.isConnectOnStartup()) {
+                LOG.info("Scheduling MCP client '{}' connect on test start (transport {})",
+                        registryName, settings.getTransport());
+                McpClientRegistry.getInstance().connectOnStartup(registryName, settings);
+            } else {
+                LOG.info("Registering MCP client '{}' (transport {}; lazy connect on first sampler)",
+                        registryName, settings.getTransport());
+                McpClientRegistry.getInstance().registerDeferred(registryName, settings);
+            }
+        } catch (RuntimeException ex) {
+            LOG.error("Failed to register MCP client '{}': {}",
+                    registryName, ex.getMessage(), ex);
+            throw ex;
+        }
+    }
+
+    private void stopClient() {
+        McpClientSettings settings = toSettings();
+        String registryName = settings.getName();
+
+        if (settings.isKeepServerRunningAfterTest()) {
+            LOG.info("Keeping MCP client '{}' running after test", registryName);
+            return;
+        }
+
+        LOG.info("Stopping MCP client '{}'", registryName);
+        boolean stopPreviewManagedServer =
+                McpClientRegistry.getInstance().shouldStopPreviewManagedServer(registryName);
+        McpClientRegistry.getInstance().remove(registryName);
+        if (stopPreviewManagedServer) {
+            McpServerProcessManager.getInstance().stop();
+        }
     }
   }
 }

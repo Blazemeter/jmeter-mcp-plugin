@@ -24,7 +24,14 @@ public class McpServerProcess extends ConfigTestElement
 
   private static final long serialVersionUID = 1L;
 
-  private static final Logger LOG = LoggerFactory.getLogger(McpServerProcess.class);
+    public static final String COMMAND = "McpServerProcess.command";
+    public static final String ARGS = "McpServerProcess.args";
+    public static final String ENV = "McpServerProcess.env";
+    public static final String READY_HOST = "McpServerProcess.readyHost";
+    public static final String READY_PORT = "McpServerProcess.readyPort";
+    public static final String STARTUP_WAIT_MS = "McpServerProcess.startupWaitMs";
+    public static final String KEEP_SERVER_RUNNING_AFTER_TEST =
+            "McpServerProcess.keepServerRunningAfterTest";
 
   @Override
   public void addConfigElement(ConfigElement config) {
@@ -72,16 +79,60 @@ public class McpServerProcess extends ConfigTestElement
     }
   }
 
-  /**
-   * Does not stop the subprocess immediately. {@link
-   * com.blazemeter.jmeter.mcp.config.McpClientConfig} stops it after closing HTTP/SSE clients; a
-   * short deferred stop covers server-only plans.
-   */
-  private void stopServer() {
-    McpServerProcessManager manager = McpServerProcessManager.getInstance();
-    if (manager.shouldKeepServerRunningAfterTest()) {
-      return;
+    @Override
+    public boolean expectsModification() {
+        return false;
     }
-    manager.scheduleDeferredStop(McpServerProcessManager.DEFERRED_STOP_FALLBACK_MS);
-  }
+
+    @Override
+    public void testStarted() {
+        startServer();
+    }
+
+    @Override
+    public void testStarted(String host) {
+        startServer();
+    }
+
+    @Override
+    public void testEnded() {
+        stopServer();
+    }
+
+    @Override
+    public void testEnded(String host) {
+        stopServer();
+    }
+
+    private void startServer() {
+        try {
+            McpServerProcessManager.getInstance().start(
+                    getPropertyAsString(COMMAND, ""),
+                    getPropertyAsString(ARGS, ""),
+                    getPropertyAsString(ENV, ""),
+                    getPropertyAsString(READY_HOST, "localhost"),
+                    (int) getPropertyAsLong(READY_PORT, 3001L),
+                    getPropertyAsLong(STARTUP_WAIT_MS, 60_000L));
+        } catch (RuntimeException ex) {
+            LOG.error("Failed to start MCP server process: {}", ex.getMessage(), ex);
+            throw ex;
+        }
+    }
+
+    /**
+     * Does not stop the subprocess immediately. {@link com.blazemeter.jmeter.mcp.config.McpClientConfig}
+     * stops it after closing HTTP/SSE clients; a short deferred stop covers server-only plans.
+     */
+    private void stopServer() {
+        McpServerProcessManager manager = McpServerProcessManager.getInstance();
+        if (isKeepServerRunningAfterTest()) {
+            manager.cancelDeferredStop();
+            return;
+        }
+        manager.scheduleDeferredStop(McpServerProcessManager.DEFERRED_STOP_FALLBACK_MS);
+    }
+
+    private boolean isKeepServerRunningAfterTest() {
+        return getPropertyAsBoolean(KEEP_SERVER_RUNNING_AFTER_TEST, true);
+    }
 }

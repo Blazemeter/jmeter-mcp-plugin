@@ -1,6 +1,12 @@
 package com.blazemeter.jmeter.mcp.client;
 
-import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
+import java.net.URI;
+
+import java.util.Objects;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.blazemeter.jmeter.mcp.util.Strings;
 import java.net.URI;
 import java.util.Objects;
@@ -8,8 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Orchestrates GUI {@code Start Now} / {@code Stop Now} on MCP Client Config: optionally starts a
- * managed HTTP/SSE server, then connects or disconnects via {@link McpClientRegistry}.
+ * Orchestrates GUI Connect / Stop on MCP Client Config via {@link McpClientRegistry}.
  */
 public final class McpClientLauncher {
 
@@ -17,31 +22,14 @@ public final class McpClientLauncher {
 
   private McpClientLauncher() {
 
-  }
-
-  public static void startNow(McpClientSettings settings) {
-    Objects.requireNonNull(settings, "settings");
-    boolean startedManagedServer = false;
-    if (settings.getTransport() != TransportType.STDIO) {
-      startedManagedServer = ensureHttpServerReachable(settings);
+    public static void connect(McpClientSettings settings) {
+        Objects.requireNonNull(settings, "settings");
+        McpClientRegistry.getInstance().connectNow(settings, false);
     }
-    try {
-      McpClientRegistry.getInstance().connectNow(settings, startedManagedServer);
-    } catch (RuntimeException ex) {
-      if (startedManagedServer) {
-        McpServerProcessManager.getInstance().stop();
-      }
-      throw ex;
-    }
-  }
 
-  public static void stopNow(McpClientSettings settings) {
-    Objects.requireNonNull(settings, "settings");
-    String clientName = settings.getName();
-    McpClientRegistry registry = McpClientRegistry.getInstance();
-    boolean stopManagedServer = registry.disconnectNow(clientName);
-    if (stopManagedServer && settings.getTransport() != TransportType.STDIO) {
-      McpServerProcessManager.getInstance().stop();
+    public static void disconnect(McpClientSettings settings) {
+        Objects.requireNonNull(settings, "settings");
+        McpClientRegistry.getInstance().disconnectNow(settings.getName());
     }
   }
 
