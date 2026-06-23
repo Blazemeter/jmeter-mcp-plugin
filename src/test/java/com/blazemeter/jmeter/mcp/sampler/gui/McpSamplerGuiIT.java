@@ -78,50 +78,37 @@ public class McpSamplerGuiIT {
   }
 
   @Test
+  public void shouldShowSchemaActionsWhenCallToolSelected() {
+    gui.clearGui();
+    frame.comboBox("mcpSampler.operation").selectItem(McpOperation.CALL_TOOL.name());
+
+    frame.button("mcpSampler.loadSchema").requireVisible();
+    frame.button("mcpSampler.generateSample").requireVisible();
+    frame.button("mcpSampler.validateArguments").requireVisible();
+    frame.textBox("mcpSampler.arguments").requireVisible();
+  }
+
+  @Test
+  public void shouldHideSchemaActionsWhenPingSelected() {
+    gui.clearGui();
+    frame.comboBox("mcpSampler.operation").selectItem(McpOperation.PING.name());
+
+    try {
+      frame.button("mcpSampler.loadSchema");
+      org.junit.Assert.fail("Load schema should not be visible for PING");
+    } catch (org.assertj.swing.exception.ComponentLookupException expected) {
+      // expected
+    }
+  }
+
+  @Test
   public void shouldPersistReadResourceSettingsWhenModifyTestElement() {
     gui.clearGui();
     frame.comboBox("mcpSampler.operation").selectItem(McpOperation.READ_RESOURCE.name());
     frame.comboBox("mcpSampler.resourceUri").enterText("resource://docs");
 
-        McpSampler saved = (McpSampler) gui.createTestElement();
-        assertEquals("clientB", saved.getPropertyAsString(McpSampler.CONFIG_NAME));
-        assertEquals(McpOperation.CALL_TOOL.name(), saved.getPropertyAsString(McpSampler.OPERATION));
-        assertEquals("add", saved.getPropertyAsString(McpSampler.TOOL_NAME));
-        assertEquals("{\"a\":1}", saved.getPropertyAsString(McpSampler.ARGUMENTS_JSON));
-    }
-
-    @Test
-    public void shouldShowSchemaActionsWhenCallToolSelected() {
-        gui.clearGui();
-        frame.comboBox("mcpSampler.operation").selectItem(McpOperation.CALL_TOOL.name());
-
-        frame.button("mcpSampler.loadSchema").requireVisible();
-        frame.button("mcpSampler.generateSample").requireVisible();
-        frame.button("mcpSampler.validateArguments").requireVisible();
-        frame.textBox("mcpSampler.arguments").requireVisible();
-    }
-
-    @Test
-    public void shouldHideSchemaActionsWhenPingSelected() {
-        gui.clearGui();
-        frame.comboBox("mcpSampler.operation").selectItem(McpOperation.PING.name());
-
-        try {
-            frame.button("mcpSampler.loadSchema");
-            org.junit.Assert.fail("Load schema should not be visible for PING");
-        } catch (org.assertj.swing.exception.ComponentLookupException expected) {
-            // expected
-        }
-    }
-
-    @Test
-    public void shouldPersistReadResourceSettingsWhenModifyTestElement() {
-        gui.clearGui();
-        frame.comboBox("mcpSampler.operation").selectItem(McpOperation.READ_RESOURCE.name());
-        frame.comboBox("mcpSampler.resourceUri").enterText("resource://docs");
-
-        McpSampler saved = (McpSampler) gui.createTestElement();
-        assertEquals(McpOperation.READ_RESOURCE.name(), saved.getPropertyAsString(McpSampler.OPERATION));
-        assertEquals("resource://docs", saved.getPropertyAsString(McpSampler.RESOURCE_URI));
-    }
+    McpSampler saved = (McpSampler) gui.createTestElement();
+    assertEquals(McpOperation.READ_RESOURCE.name(), saved.getPropertyAsString(McpSampler.OPERATION));
+    assertEquals("resource://docs", saved.getPropertyAsString(McpSampler.RESOURCE_URI));
+  }
 }

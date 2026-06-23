@@ -12,16 +12,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * JMeter Configuration Element that owns the lifecycle of a shared {@link McpSyncClient} for the
- * duration of a test run.
+ * JMeter Configuration Element that owns the lifecycle of a shared
+ * {@link McpSyncClient} for the duration of a test run.
  *
- * <p>On {@link #testStarted()} this element registers connection settings in {@link
- * McpClientRegistry}. When {@link #CONNECT_ON_STARTUP} is enabled it also schedules connect on a
- * background thread during {@code testStarted()} (without blocking the engine). Otherwise the first
- * {@code MCP Sampler} that references the same {@link #NAME} performs connect and {@code
- * initialize()}. The client is closed in {@link #testEnded()}.
+ * <p>On {@link #testStarted()} this element registers connection settings in
+ * {@link McpClientRegistry}. When {@link #CONNECT_ON_STARTUP} is enabled it
+ * also schedules connect on a background thread during {@code testStarted()}
+ * (without blocking the engine). Otherwise the first {@code MCP Sampler} that
+ * references the same {@link #NAME} performs connect and {@code initialize()}.
+ * The client is closed in {@link #testEnded()}.
  */
-public class McpClientConfig extends ConfigTestElement implements ConfigElement, TestStateListener {
+public class McpClientConfig extends ConfigTestElement
+    implements ConfigElement, TestStateListener {
 
   public static final String NAME = "McpClientConfig.name";
   public static final String TRANSPORT = "McpClientConfig.transport";
@@ -51,8 +53,8 @@ public class McpClientConfig extends ConfigTestElement implements ConfigElement,
   public McpClientSettings toSettings() {
     McpClientSettings s = new McpClientSettings();
     s.setName(getPropertyAsString(NAME, "mcpClient"));
-    s.setTransport(
-        TransportType.fromString(getPropertyAsString(TRANSPORT, TransportType.STDIO.name())));
+    s.setTransport(TransportType.fromString(getPropertyAsString(TRANSPORT,
+        TransportType.STDIO.name())));
     s.setServerUrl(getPropertyAsString(SERVER_URL, ""));
     s.setEndpoint(getPropertyAsString(ENDPOINT, ""));
     s.setStdioCommand(Strings.trimToDefault(getPropertyAsString(STDIO_COMMAND, ""), ""));
@@ -63,7 +65,8 @@ public class McpClientConfig extends ConfigTestElement implements ConfigElement,
     s.setRequestTimeoutMillis(getPropertyAsLong(REQUEST_TIMEOUT_MS, 30_000L));
     s.setInitializationTimeoutMillis(getPropertyAsLong(INIT_TIMEOUT_MS, 30_000L));
     s.setConnectOnStartup(getPropertyAsBoolean(CONNECT_ON_STARTUP, false));
-    s.setKeepServerRunningAfterTest(getPropertyAsBoolean(KEEP_SERVER_RUNNING_AFTER_TEST, true));
+    s.setKeepServerRunningAfterTest(
+        getPropertyAsBoolean(KEEP_SERVER_RUNNING_AFTER_TEST, true));
     s.setServerLaunchCommand(getPropertyAsString(SERVER_LAUNCH_COMMAND, ""));
     s.setServerLaunchArgs(getPropertyAsString(SERVER_LAUNCH_ARGS, ""));
     s.setServerLaunchEnv(getPropertyAsString(SERVER_LAUNCH_ENV, ""));
@@ -106,24 +109,19 @@ public class McpClientConfig extends ConfigTestElement implements ConfigElement,
   private void startClient() {
     McpClientSettings settings = toSettings();
     String registryName = settings.getName();
-    McpServerProcessManager.getInstance()
-        .notifyClientConfigTestStarted(settings.isKeepServerRunningAfterTest());
     try {
       if (settings.isConnectOnStartup()) {
-        LOG.info(
-            "Scheduling MCP client '{}' connect on test start (transport {})",
-            registryName,
-            settings.getTransport());
+        LOG.info("Scheduling MCP client '{}' connect on test start (transport {})",
+            registryName, settings.getTransport());
         McpClientRegistry.getInstance().connectOnStartup(registryName, settings);
       } else {
-        LOG.info(
-            "Registering MCP client '{}' (transport {}; lazy connect on first sampler)",
-            registryName,
-            settings.getTransport());
+        LOG.info("Registering MCP client '{}' (transport {}; lazy connect on first sampler)",
+            registryName, settings.getTransport());
         McpClientRegistry.getInstance().registerDeferred(registryName, settings);
       }
     } catch (RuntimeException ex) {
-      LOG.error("Failed to register MCP client '{}': {}", registryName, ex.getMessage(), ex);
+      LOG.error("Failed to register MCP client '{}': {}",
+          registryName, ex.getMessage(), ex);
       throw ex;
     }
   }
@@ -131,80 +129,18 @@ public class McpClientConfig extends ConfigTestElement implements ConfigElement,
   private void stopClient() {
     McpClientSettings settings = toSettings();
     String registryName = settings.getName();
-    McpServerProcessManager manager = McpServerProcessManager.getInstance();
-    manager.notifyClientConfigTestEnded(settings.isKeepServerRunningAfterTest());
 
     if (settings.isKeepServerRunningAfterTest()) {
-      LOG.info("Keeping MCP client '{}' and managed server running after test", registryName);
+      LOG.info("Keeping MCP client '{}' running after test", registryName);
       return;
     }
 
-    @Override
-    public void addConfigElement(ConfigElement config) {
-        // No element to merge; MCP config is self-contained.
-    }
-
-    @Override
-    public boolean expectsModification() {
-        return false;
-    }
-
-    @Override
-    public void testStarted() {
-        startClient();
-    }
-
-    @Override
-    public void testStarted(String host) {
-        startClient();
-    }
-
-    @Override
-    public void testEnded() {
-        stopClient();
-    }
-
-    @Override
-    public void testEnded(String host) {
-        stopClient();
-    }
-
-    private void startClient() {
-        McpClientSettings settings = toSettings();
-        String registryName = settings.getName();
-        try {
-            if (settings.isConnectOnStartup()) {
-                LOG.info("Scheduling MCP client '{}' connect on test start (transport {})",
-                        registryName, settings.getTransport());
-                McpClientRegistry.getInstance().connectOnStartup(registryName, settings);
-            } else {
-                LOG.info("Registering MCP client '{}' (transport {}; lazy connect on first sampler)",
-                        registryName, settings.getTransport());
-                McpClientRegistry.getInstance().registerDeferred(registryName, settings);
-            }
-        } catch (RuntimeException ex) {
-            LOG.error("Failed to register MCP client '{}': {}",
-                    registryName, ex.getMessage(), ex);
-            throw ex;
-        }
-    }
-
-    private void stopClient() {
-        McpClientSettings settings = toSettings();
-        String registryName = settings.getName();
-
-        if (settings.isKeepServerRunningAfterTest()) {
-            LOG.info("Keeping MCP client '{}' running after test", registryName);
-            return;
-        }
-
-        LOG.info("Stopping MCP client '{}'", registryName);
-        boolean stopPreviewManagedServer =
-                McpClientRegistry.getInstance().shouldStopPreviewManagedServer(registryName);
-        McpClientRegistry.getInstance().remove(registryName);
-        if (stopPreviewManagedServer) {
-            McpServerProcessManager.getInstance().stop();
-        }
+    LOG.info("Stopping MCP client '{}'", registryName);
+    boolean stopPreviewManagedServer =
+        McpClientRegistry.getInstance().shouldStopPreviewManagedServer(registryName);
+    McpClientRegistry.getInstance().remove(registryName);
+    if (stopPreviewManagedServer) {
+      McpServerProcessManager.getInstance().stop();
     }
   }
 }

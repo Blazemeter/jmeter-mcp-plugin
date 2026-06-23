@@ -55,7 +55,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-streamable-http.jmx.</stringProp>
         <longProp name="McpClientConfig.serverStartupWaitMs">60000</longProp>
       </com.blazemeter.jmeter.mcp.config.McpClientConfig>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group" enabled="true">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -66,7 +66,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-streamable-http.jmx.</stringProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Ping" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Ping">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">PING</stringProp>
           <stringProp name="McpSampler.toolName"></stringProp>
@@ -96,7 +96,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-streamable-http.jmx.</stringProp>
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP List Tools" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP List Tools">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">LIST_TOOLS</stringProp>
           <stringProp name="McpSampler.toolName"></stringProp>
@@ -134,7 +134,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-streamable-http.jmx.</stringProp>
           </JSONPathAssertion>
           <hashTree/>
         </hashTree>
-        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">CALL_TOOL</stringProp>
           <stringProp name="McpSampler.toolName">echo</stringProp>

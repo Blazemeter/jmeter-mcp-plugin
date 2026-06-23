@@ -1,27 +1,23 @@
 package com.blazemeter.jmeter.mcp.client;
 
-import java.io.IOException;
-
 import io.modelcontextprotocol.json.McpJsonMapper;
 import io.modelcontextprotocol.json.McpJsonMapperSupplier;
 import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.ServiceLoader;
 
 /**
- * Lazily resolves a shared {@link McpJsonMapper} via the SDK's {@link McpJsonMapperSupplier} {@code
- * ServiceLoader} contract.
+ * Lazily resolves a shared {@link McpJsonMapper} via the SDK's
+ * {@link McpJsonMapperSupplier} {@code ServiceLoader} contract.
  *
- * <p>The shaded plugin JAR ships the {@code mcp-json-jackson3} service registration, so {@link
- * #getDefault()} returns a Jackson 3-backed mapper at runtime without any additional configuration.
+ * <p>The shaded plugin JAR ships the {@code mcp-json-jackson3} service
+ * registration, so {@link #getDefault()} returns a Jackson 3-backed mapper at
+ * runtime without any additional configuration.
  */
 public final class JsonMappers {
 
   private static volatile McpJsonMapper defaultMapper;
 
   private JsonMappers() {
-
   }
 
   public static McpJsonMapper getDefault() {
@@ -39,34 +35,27 @@ public final class JsonMappers {
   }
 
   /**
-   * Serializes {@code value} as indented JSON for human-readable JMeter response bodies. Falls back
-   * to compact JSON if the mapper is not Jackson.
-   */
+  * Serializes {@code value} as indented JSON for human-readable JMeter
+  * response bodies. Falls back to compact JSON if the mapper is not Jackson.
+  */
   public static String writeValueAsPrettyString(Object value) throws IOException {
     if (value == null) {
       return "null";
     }
     McpJsonMapper mapper = getDefault();
     if (mapper instanceof JacksonMcpJsonMapper jacksonMapper) {
-      return jacksonMapper
-          .getJsonMapper()
+      return jacksonMapper.getJsonMapper()
           .writerWithDefaultPrettyPrinter()
           .writeValueAsString(value);
     }
     return mapper.writeValueAsString(value);
   }
 
-    private static McpJsonMapper resolve() {
-        return ServiceLoaderSupport.loadFirst(
-                McpJsonMapperSupplier.class,
-                JsonMappers.class,
-                McpJsonMapperSupplier::get,
-                "No McpJsonMapper implementation found on the classpath. "
-                        + "The 'jmeter-mcp-plugin' shaded JAR is expected to "
-                        + "ship 'mcp-json-jackson3'; check that it was bundled "
-                        + "by the shade plugin's ServicesResourceTransformer.");
-    }
-    throw new IllegalStateException(
+  private static McpJsonMapper resolve() {
+    return ServiceLoaderSupport.loadFirst(
+        McpJsonMapperSupplier.class,
+        JsonMappers.class,
+        McpJsonMapperSupplier::get,
         "No McpJsonMapper implementation found on the classpath. "
             + "The 'jmeter-mcp-plugin' shaded JAR is expected to "
             + "ship 'mcp-json-jackson3'; check that it was bundled "

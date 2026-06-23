@@ -5,11 +5,11 @@ package com.blazemeter.jmeter.mcp.server;
  */
 public interface McpServerControl {
 
-    void start(McpServerLaunchSettings settings);
+  void start(McpServerLaunchSettings settings);
 
-    void stop();
+  void stop();
 
-    Long getManagedProcessPid();
+  Long getManagedProcessPid();
 
-    boolean isPortOpen(String host, int port, int timeoutMs);
+  boolean isPortOpen(String host, int port, int timeoutMs);
 }

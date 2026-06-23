@@ -9,31 +9,31 @@ import io.modelcontextprotocol.json.schema.JsonSchemaValidatorSupplier;
  */
 public final class JsonSchemaValidators {
 
-    private static volatile JsonSchemaValidator defaultValidator;
+  private static volatile JsonSchemaValidator defaultValidator;
 
-    private JsonSchemaValidators() {
-    }
+  private JsonSchemaValidators() {
+  }
 
-    public static JsonSchemaValidator getDefault() {
-        JsonSchemaValidator local = defaultValidator;
+  public static JsonSchemaValidator getDefault() {
+    JsonSchemaValidator local = defaultValidator;
+    if (local == null) {
+      synchronized (JsonSchemaValidators.class) {
+        local = defaultValidator;
         if (local == null) {
-            synchronized (JsonSchemaValidators.class) {
-                local = defaultValidator;
-                if (local == null) {
-                    local = resolve();
-                    defaultValidator = local;
-                }
-            }
+          local = resolve();
+          defaultValidator = local;
         }
-        return local;
+      }
     }
+    return local;
+  }
 
-    private static JsonSchemaValidator resolve() {
-        return ServiceLoaderSupport.loadFirst(
-                JsonSchemaValidatorSupplier.class,
-                JsonSchemaValidators.class,
-                JsonSchemaValidatorSupplier::get,
-                "No JsonSchemaValidator implementation found on the classpath. "
-                        + "The shaded plugin JAR is expected to ship 'mcp-json-jackson3'.");
-    }
+  private static JsonSchemaValidator resolve() {
+    return ServiceLoaderSupport.loadFirst(
+        JsonSchemaValidatorSupplier.class,
+        JsonSchemaValidators.class,
+        JsonSchemaValidatorSupplier::get,
+        "No JsonSchemaValidator implementation found on the classpath. "
+            + "The shaded plugin JAR is expected to ship 'mcp-json-jackson3'.");
+  }
 }
