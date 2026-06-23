@@ -11,6 +11,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import com.blazemeter.jmeter.mcp.McpRuntimeCleanup;
 import com.blazemeter.jmeter.mcp.client.McpClientFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,54 +39,40 @@ public final class McpServerProcessManager {
 
     private volatile Process process;
     private volatile ScheduledFuture<?> deferredStop;
-    private volatile boolean keepServerRunningAfterTest;
 
     private McpServerProcessManager() {
     }
 
-    /**
-     * Called from {@link com.blazemeter.jmeter.mcp.config.McpClientConfig} when a test
-     * run starts. When any client config opts in, managed servers are not stopped at
-     * {@code testEnded()}.
-     */
-    public void notifyClientConfigTestStarted(boolean keepServerRunningAfterTest) {
-        this.keepServerRunningAfterTest = keepServerRunningAfterTest;
-        if (keepServerRunningAfterTest) {
-            cancelDeferredStop();
-        }
-    }
-
-    /**
-     * Called from {@link com.blazemeter.jmeter.mcp.config.McpClientConfig} when a test
-     * run ends.
-     */
-    public void notifyClientConfigTestEnded(boolean keepServerRunningAfterTest) {
-        if (keepServerRunningAfterTest) {
-            cancelDeferredStop();
-            return;
-        }
-        this.keepServerRunningAfterTest = false;
-    }
-
-    public boolean shouldKeepServerRunningAfterTest() {
-        return keepServerRunningAfterTest;
-    }
-
     public static McpServerProcessManager getInstance() {
+        McpRuntimeCleanup.ensureRegistered();
         return INSTANCE;
     }
 
     /**
      * Start a subprocess and block until {@code host:port} accepts TCP connections or
-     * {@code startupWaitMs} elapses.
+     * {@code startupWaitMs} elapses. When the ready endpoint is already reachable, the
+     * existing listener is reused and any managed process is left running.
      */
     public void start(String command, String args, String envRaw,
                       String readyHost, int readyPort, long startupWaitMs) {
-        stop();
         String trimmedCommand = command == null ? "" : command.trim();
         if (trimmedCommand.isEmpty()) {
             throw new IllegalArgumentException("MCP server command must not be empty");
         }
+
+        String host = (readyHost == null || readyHost.isBlank()) ? "localhost" : readyHost.trim();
+        if (isPortOpen(host, readyPort, 500)) {
+            if (process != null && process.isAlive()) {
+                LOG.info("Reusing managed MCP server at {}:{} (pid {})", host, readyPort, process.pid());
+            } else {
+                LOG.info("MCP server already reachable at {}:{}; reusing existing listener",
+                        host, readyPort);
+            }
+            cancelDeferredStop();
+            return;
+        }
+
+        stop();
 
         List<String> cmd = new ArrayList<>();
         cmd.add(trimmedCommand);
@@ -106,7 +93,6 @@ public final class McpServerProcessManager {
             throw new RuntimeException("Failed to start MCP server process: " + cmd, ex);
         }
 
-        String host = (readyHost == null || readyHost.isBlank()) ? "localhost" : readyHost.trim();
         LOG.info("Waiting for MCP server at {}:{} (timeout {} ms)", host, readyPort, startupWaitMs);
         if (!waitForPort(host, readyPort, startupWaitMs)) {
             stop();
@@ -122,12 +108,24 @@ public final class McpServerProcessManager {
         return process != null;
     }
 
+    /** Whether the managed subprocess reference is still alive. */
+    public boolean isManagedServerAlive() {
+        Process p = process;
+        return p != null && p.isAlive();
+    }
+
+    /** PID of the managed subprocess, or {@code null} if none is running. */
+    public Long getManagedProcessPid() {
+        Process p = process;
+        return p != null && p.isAlive() ? p.pid() : null;
+    }
+
     /**
      * Schedule process stop after {@code delayMs}. Used from {@code testEnded()} when listener
      * order may run before HTTP clients close; cancelled when {@link #stop()} runs.
      */
     public void scheduleDeferredStop(long delayMs) {
-        if (process == null || keepServerRunningAfterTest) {
+        if (process == null) {
             cancelDeferredStop();
             return;
         }
@@ -140,7 +138,7 @@ public final class McpServerProcessManager {
         }, delayMs, TimeUnit.MILLISECONDS);
     }
 
-    private void cancelDeferredStop() {
+    public void cancelDeferredStop() {
         ScheduledFuture<?> pending = deferredStop;
         deferredStop = null;
         if (pending != null) {
@@ -166,6 +164,12 @@ public final class McpServerProcessManager {
             Thread.currentThread().interrupt();
             p.destroyForcibly();
         }
+    }
+
+    /** Force-stop the managed server and cancel any deferred stop. */
+    public void shutdownAll() {
+        LOG.info("Shutting down managed MCP server process");
+        stop();
     }
 
     private static boolean waitForPort(String host, int port, long timeoutMs) {

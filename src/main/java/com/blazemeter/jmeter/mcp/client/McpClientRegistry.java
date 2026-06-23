@@ -1,5 +1,7 @@
 package com.blazemeter.jmeter.mcp.client;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -9,6 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
+import com.blazemeter.jmeter.mcp.McpRuntimeCleanup;
 import io.modelcontextprotocol.client.McpSyncClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +60,7 @@ public final class McpClientRegistry {
     }
 
     public static McpClientRegistry getInstance() {
+        McpRuntimeCleanup.ensureRegistered();
         return INSTANCE;
     }
 
@@ -119,7 +123,13 @@ public final class McpClientRegistry {
      * refresh settings for the upcoming run.
      */
     private boolean adoptExistingConnection(String name, McpClientSettings settings) {
-        if (!clients.containsKey(name)) {
+        McpSyncClient client = clients.get(name);
+        if (client == null) {
+            return false;
+        }
+        if (!isClientHealthy(client)) {
+            LOG.info("Discarding stale MCP client '{}' before test run", name);
+            remove(name);
             return false;
         }
         LOG.info("Reusing existing MCP client '{}' for test run (transport {})",
@@ -130,6 +140,16 @@ public final class McpClientRegistry {
             pending.cancel(true);
         }
         return true;
+    }
+
+    private static boolean isClientHealthy(McpSyncClient client) {
+        try {
+            client.ping();
+            return true;
+        } catch (RuntimeException ex) {
+            LOG.debug("MCP client health check failed: {}", ex.getMessage());
+            return false;
+        }
     }
 
     /**
@@ -296,6 +316,18 @@ public final class McpClientRegistry {
 
     public boolean shouldStopPreviewManagedServer(String name) {
         return previewStartedManagedServer.remove(name);
+    }
+
+    /** Close every registered client and clear deferred settings. */
+    public void shutdownAll() {
+        List<String> names = new ArrayList<>();
+        names.addAll(clients.keySet());
+        names.addAll(deferredSettings.keySet());
+        names.addAll(pendingConnects.keySet());
+        for (String name : names) {
+            remove(name);
+        }
+        previewStartedManagedServer.clear();
     }
 
     private static void closeQuietly(McpSyncClient client) {
