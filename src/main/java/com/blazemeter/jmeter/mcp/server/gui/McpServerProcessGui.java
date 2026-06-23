@@ -27,7 +27,6 @@ import com.blazemeter.jmeter.commons.BlazemeterLabsLogo;
 import com.blazemeter.jmeter.mcp.gui.EnvVarsField;
 import com.blazemeter.jmeter.mcp.gui.GridBagForm;
 import com.blazemeter.jmeter.mcp.gui.PluginGuiConstants;
-import com.blazemeter.jmeter.mcp.McpRuntimeCleanup;
 import com.blazemeter.jmeter.mcp.gui.responsive.ResponsiveSizing;
 import com.blazemeter.jmeter.mcp.gui.scroll.JMeterScrollableSupport;
 import com.blazemeter.jmeter.mcp.server.DefaultMcpServerControl;
@@ -80,7 +79,6 @@ public class McpServerProcessGui extends AbstractConfigGui implements Scrollable
     }
 
     private void init() {
-        McpRuntimeCleanup.ensureRegistered();
         setLayout(new BorderLayout(0, 5));
         setBorder(makeBorder());
         add(makeTitlePanel(), BorderLayout.NORTH);

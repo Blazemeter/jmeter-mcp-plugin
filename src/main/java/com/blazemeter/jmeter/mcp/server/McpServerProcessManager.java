@@ -27,10 +27,6 @@ public final class McpServerProcessManager {
 
     private static final McpServerProcessManager INSTANCE = new McpServerProcessManager();
 
-    static {
-        McpRuntimeCleanup.ensureRegistered();
-    }
-
     private static final ScheduledExecutorService DEFERRED_STOP_EXECUTOR =
             Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = new Thread(r, "mcp-server-deferred-stop");
@@ -48,6 +44,7 @@ public final class McpServerProcessManager {
     }
 
     public static McpServerProcessManager getInstance() {
+        McpRuntimeCleanup.ensureRegistered();
         return INSTANCE;
     }
 

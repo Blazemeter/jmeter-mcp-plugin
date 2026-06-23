@@ -26,11 +26,29 @@ public final class McpRuntimeCleanup implements TestPlanListener {
 
     /**
      * Registers JVM shutdown hook and, when the JMeter GUI is available, a
-     * {@link TestPlanListener}. Safe to call repeatedly (e.g. from GUI constructors).
+     * {@link TestPlanListener}. Invoked when the MCP runtime first becomes active
+     * ({@link McpClientRegistry} or {@link McpServerProcessManager}). Safe to call
+     * repeatedly; retries GUI listener registration when {@link GuiPackage} was not
+     * yet available on an earlier call.
      */
     public static void ensureRegistered() {
-        ensureShutdownHookRegistered();
-        ensureTestPlanListenerRegistered();
+        if (shutdownHookRegistered && testPlanListenerRegistered) {
+            return;
+        }
+        synchronized (McpRuntimeCleanup.class) {
+            if (!shutdownHookRegistered) {
+                Runtime.getRuntime().addShutdownHook(new Thread(McpRuntimeCleanup::shutdownAll,
+                        "mcp-plugin-shutdown"));
+                shutdownHookRegistered = true;
+            }
+            if (!testPlanListenerRegistered) {
+                GuiPackage gui = GuiPackage.getInstance();
+                if (gui != null) {
+                    gui.addTestPlanListener(LISTENER);
+                    testPlanListenerRegistered = true;
+                }
+            }
+        }
     }
 
     public static void shutdownAll() {
@@ -52,36 +70,5 @@ public final class McpRuntimeCleanup implements TestPlanListener {
     @Override
     public void testPlanLoaded() {
         shutdownAll();
-    }
-
-    private static void ensureShutdownHookRegistered() {
-        if (shutdownHookRegistered) {
-            return;
-        }
-        synchronized (McpRuntimeCleanup.class) {
-            if (shutdownHookRegistered) {
-                return;
-            }
-            Runtime.getRuntime().addShutdownHook(new Thread(McpRuntimeCleanup::shutdownAll,
-                    "mcp-plugin-shutdown"));
-            shutdownHookRegistered = true;
-        }
-    }
-
-    private static void ensureTestPlanListenerRegistered() {
-        if (testPlanListenerRegistered) {
-            return;
-        }
-        synchronized (McpRuntimeCleanup.class) {
-            if (testPlanListenerRegistered) {
-                return;
-            }
-            GuiPackage gui = GuiPackage.getInstance();
-            if (gui == null) {
-                return;
-            }
-            gui.addTestPlanListener(LISTENER);
-            testPlanListenerRegistered = true;
-        }
     }
 }

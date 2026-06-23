@@ -46,10 +46,6 @@ public final class McpClientRegistry {
 
     private static final McpClientRegistry INSTANCE = new McpClientRegistry();
 
-    static {
-        McpRuntimeCleanup.ensureRegistered();
-    }
-
     /** STDIO spawns are heavy; serializing avoids parallel process startup timeouts. */
     private static final Object STDIO_CONNECT_LOCK = new Object();
 
@@ -64,6 +60,7 @@ public final class McpClientRegistry {
     }
 
     public static McpClientRegistry getInstance() {
+        McpRuntimeCleanup.ensureRegistered();
         return INSTANCE;
     }
 
