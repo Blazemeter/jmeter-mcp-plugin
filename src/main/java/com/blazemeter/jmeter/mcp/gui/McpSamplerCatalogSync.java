@@ -8,8 +8,8 @@ import javax.swing.SwingWorker;
 
 import com.blazemeter.jmeter.mcp.client.McpCatalogExtractor;
 import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
+import com.blazemeter.jmeter.mcp.client.McpPreviewClients;
 import com.blazemeter.jmeter.mcp.sampler.McpOperation;
-import io.modelcontextprotocol.client.McpSyncClient;
 
 /**
  * GUI helper that lists tools, resources, or prompts from a connected preview
@@ -27,11 +27,7 @@ public final class McpSamplerCatalogSync {
             @Override
             protected List<String> doInBackground() {
                 return McpClientRegistry.getInstance().withConnectedClient(configName, client -> {
-                    if (client == null) {
-                        throw new IllegalStateException(
-                                "No connected MCP client for '" + configName + "'. "
-                                        + "Use Start Now on bzm - MCP Client Config first.");
-                    }
+                    McpPreviewClients.requireConnected(configName, client);
                     return switch (operation) {
                         case CALL_TOOL -> McpCatalogExtractor.toolNames(client);
                         case READ_RESOURCE -> McpCatalogExtractor.resourceUris(client);
