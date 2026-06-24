@@ -1,0 +1,57 @@
+name: CI Build
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Cache npx packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: npx-${{ runner.os }}-${{ hashFiles('.github/workflows/ci-build.yaml') }}
+          restore-keys: |
+            npx-${{ runner.os }}-
+
+      - name: Warm npx cache for MCP test server
+        run: npm cache add @modelcontextprotocol/server-everything@$(npm view @modelcontextprotocol/server-everything version)
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Build and test
+        run: xvfb-run -a mvn -U --batch-mode clean verify
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ci-build-artifacts-${{ github.run_id }}
+          path: |
+            target/jmeter-mcp-plugin-*.jar
+            target/site/jacoco
+            target/failsafe-reports
+            target/surefire-reports
+          if-no-files-found: warn
+          retention-days: 30

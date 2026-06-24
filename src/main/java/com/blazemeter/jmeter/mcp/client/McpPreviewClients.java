@@ -7,15 +7,15 @@ import io.modelcontextprotocol.client.McpSyncClient;
  */
 public final class McpPreviewClients {
 
-    private McpPreviewClients() {
-    }
+  private McpPreviewClients() {
+  }
 
-    public static McpSyncClient requireConnected(String configName, McpSyncClient client) {
-        if (client == null) {
-            throw new IllegalStateException(
-                    "No connected MCP client for '" + configName + "'. "
-                            + "Use Start Now on bzm - MCP Client Config first.");
-        }
-        return client;
+  public static McpSyncClient requireConnected(String configName, McpSyncClient client) {
+    if (client == null) {
+      throw new IllegalStateException(
+          "No connected MCP client for '" + configName + "'. "
+              + "Use Start Now on bzm - MCP Client Config first.");
     }
+    return client;
+  }
 }

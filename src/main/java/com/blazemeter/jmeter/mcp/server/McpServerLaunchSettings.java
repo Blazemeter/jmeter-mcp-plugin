@@ -1,7 +1,8 @@
 package com.blazemeter.jmeter.mcp.server;
 
 /**
- * Launch parameters for {@link McpServerProcessManager#start(String, String, String, String, int, long)}.
+ * Launch parameters for
+ * {@link McpServerProcessManager#start(String, String, String, String, int, long)}.
  */
 public record McpServerLaunchSettings(
         String command,

@@ -9,19 +9,19 @@ import java.util.function.Function;
  */
 final class ServiceLoaderSupport {
 
-    private ServiceLoaderSupport() {
-    }
+  private ServiceLoaderSupport() {
+  }
 
-    static <S, T> T loadFirst(Class<S> supplierType, Class<?> anchor,
-                              Function<S, T> extract, String notFoundMessage) {
-        ServiceLoader<S> loader = ServiceLoader.load(supplierType, anchor.getClassLoader());
-        Iterator<S> it = loader.iterator();
-        if (it.hasNext()) {
-            T value = extract.apply(it.next());
-            if (value != null) {
-                return value;
-            }
-        }
-        throw new IllegalStateException(notFoundMessage);
+  static <S, T> T loadFirst(Class<S> supplierType, Class<?> anchor,
+               Function<S, T> extract, String notFoundMessage) {
+    ServiceLoader<S> loader = ServiceLoader.load(supplierType, anchor.getClassLoader());
+    Iterator<S> it = loader.iterator();
+    if (it.hasNext()) {
+      T value = extract.apply(it.next());
+      if (value != null) {
+        return value;
+      }
     }
+    throw new IllegalStateException(notFoundMessage);
+  }
 }

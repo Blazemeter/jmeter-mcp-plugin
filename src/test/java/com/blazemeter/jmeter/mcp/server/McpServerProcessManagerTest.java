@@ -9,6 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+
 class McpServerProcessManagerTest {
 
     @AfterEach
@@ -16,20 +19,22 @@ class McpServerProcessManagerTest {
         McpServerProcessManager.getInstance().stop();
     }
 
-    @Test
-    void shouldRejectBlankCommandWhenStart() {
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> McpServerProcessManager.getInstance().start(
-                        "  ", "", "", "localhost", 3001, 1000));
-        assertTrue(ex.getMessage().contains("command must not be empty"));
-    }
+  @Test
+  void shouldRejectBlankCommandWhenStart() {
+    IllegalArgumentException ex =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                McpServerProcessManager.getInstance().start("  ", "", "", "localhost", 3001, 1000));
+    assertTrue(ex.getMessage().contains("command must not be empty"));
+  }
 
-    @Test
-    void shouldRejectNullCommandWhenStart() {
-        assertThrows(IllegalArgumentException.class,
-                () -> McpServerProcessManager.getInstance().start(
-                        null, "", "", "localhost", 3001, 1000));
-    }
+  @Test
+  void shouldRejectNullCommandWhenStart() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> McpServerProcessManager.getInstance().start(null, "", "", "localhost", 3001, 1000));
+  }
 
     @Test
     void shouldFailWhenExecutableDoesNotExist() {

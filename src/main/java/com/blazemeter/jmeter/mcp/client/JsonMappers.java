@@ -1,10 +1,9 @@
 package com.blazemeter.jmeter.mcp.client;
 
-import java.io.IOException;
-
 import io.modelcontextprotocol.json.McpJsonMapper;
 import io.modelcontextprotocol.json.McpJsonMapperSupplier;
 import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
+import java.io.IOException;
 
 /**
  * Lazily resolves a shared {@link McpJsonMapper} via the SDK's
@@ -16,50 +15,50 @@ import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
  */
 public final class JsonMappers {
 
-    private static volatile McpJsonMapper defaultMapper;
+  private static volatile McpJsonMapper defaultMapper;
 
-    private JsonMappers() {
-    }
+  private JsonMappers() {
+  }
 
-    public static McpJsonMapper getDefault() {
-        McpJsonMapper local = defaultMapper;
+  public static McpJsonMapper getDefault() {
+    McpJsonMapper local = defaultMapper;
+    if (local == null) {
+      synchronized (JsonMappers.class) {
+        local = defaultMapper;
         if (local == null) {
-            synchronized (JsonMappers.class) {
-                local = defaultMapper;
-                if (local == null) {
-                    local = resolve();
-                    defaultMapper = local;
-                }
-            }
+          local = resolve();
+          defaultMapper = local;
         }
-        return local;
+      }
     }
+    return local;
+  }
 
-    /**
-     * Serializes {@code value} as indented JSON for human-readable JMeter
-     * response bodies. Falls back to compact JSON if the mapper is not Jackson.
-     */
-    public static String writeValueAsPrettyString(Object value) throws IOException {
-        if (value == null) {
-            return "null";
-        }
-        McpJsonMapper mapper = getDefault();
-        if (mapper instanceof JacksonMcpJsonMapper jacksonMapper) {
-            return jacksonMapper.getJsonMapper()
-                    .writerWithDefaultPrettyPrinter()
-                    .writeValueAsString(value);
-        }
-        return mapper.writeValueAsString(value);
+  /**
+  * Serializes {@code value} as indented JSON for human-readable JMeter
+  * response bodies. Falls back to compact JSON if the mapper is not Jackson.
+  */
+  public static String writeValueAsPrettyString(Object value) throws IOException {
+    if (value == null) {
+      return "null";
     }
+    McpJsonMapper mapper = getDefault();
+    if (mapper instanceof JacksonMcpJsonMapper jacksonMapper) {
+      return jacksonMapper.getJsonMapper()
+          .writerWithDefaultPrettyPrinter()
+          .writeValueAsString(value);
+    }
+    return mapper.writeValueAsString(value);
+  }
 
-    private static McpJsonMapper resolve() {
-        return ServiceLoaderSupport.loadFirst(
-                McpJsonMapperSupplier.class,
-                JsonMappers.class,
-                McpJsonMapperSupplier::get,
-                "No McpJsonMapper implementation found on the classpath. "
-                        + "The 'jmeter-mcp-plugin' shaded JAR is expected to "
-                        + "ship 'mcp-json-jackson3'; check that it was bundled "
-                        + "by the shade plugin's ServicesResourceTransformer.");
-    }
+  private static McpJsonMapper resolve() {
+    return ServiceLoaderSupport.loadFirst(
+        McpJsonMapperSupplier.class,
+        JsonMappers.class,
+        McpJsonMapperSupplier::get,
+        "No McpJsonMapper implementation found on the classpath. "
+            + "The 'jmeter-mcp-plugin' shaded JAR is expected to "
+            + "ship 'mcp-json-jackson3'; check that it was bundled "
+            + "by the shade plugin's ServicesResourceTransformer.");
+  }
 }

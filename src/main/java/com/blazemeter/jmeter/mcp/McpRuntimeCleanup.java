@@ -14,61 +14,71 @@ import org.slf4j.LoggerFactory;
  */
 public final class McpRuntimeCleanup implements TestPlanListener {
 
-    private static final Logger LOG = LoggerFactory.getLogger(McpRuntimeCleanup.class);
+  private static final Logger LOG = LoggerFactory.getLogger(McpRuntimeCleanup.class);
 
-    private static final McpRuntimeCleanup LISTENER = new McpRuntimeCleanup();
+  private static final McpRuntimeCleanup LISTENER = new McpRuntimeCleanup();
 
-    private static volatile boolean shutdownHookRegistered;
-    private static volatile boolean testPlanListenerRegistered;
+  private static volatile boolean shutdownHookRegistered;
+  private static volatile boolean testPlanListenerRegistered;
 
-    private McpRuntimeCleanup() {
+  private McpRuntimeCleanup() {
+  }
+
+  /**
+  * Registers JVM shutdown hook and, when the JMeter GUI is available, a
+  * {@link TestPlanListener}. Invoked when the MCP runtime first becomes active
+  * ({@link McpClientRegistry} or {@link McpServerProcessManager}). Safe to call
+  * repeatedly; retries GUI listener registration when {@link GuiPackage} was not
+  * yet available on an earlier call.
+  */
+  public static void ensureRegistered() {
+    if (shutdownHookRegistered && testPlanListenerRegistered) {
+      return;
     }
-
-    /**
-     * Registers JVM shutdown hook and, when the JMeter GUI is available, a
-     * {@link TestPlanListener}. Invoked when the MCP runtime first becomes active
-     * ({@link McpClientRegistry} or {@link McpServerProcessManager}). Safe to call
-     * repeatedly; retries GUI listener registration when {@link GuiPackage} was not
-     * yet available on an earlier call.
-     */
-    public static void ensureRegistered() {
-        if (shutdownHookRegistered && testPlanListenerRegistered) {
-            return;
+    synchronized (McpRuntimeCleanup.class) {
+      if (!shutdownHookRegistered) {
+        if (!isTestMode()) {
+          Runtime.getRuntime().addShutdownHook(new Thread(McpRuntimeCleanup::shutdownAll,
+              "mcp-plugin-shutdown"));
         }
-        synchronized (McpRuntimeCleanup.class) {
-            if (!shutdownHookRegistered) {
-                Runtime.getRuntime().addShutdownHook(new Thread(McpRuntimeCleanup::shutdownAll,
-                        "mcp-plugin-shutdown"));
-                shutdownHookRegistered = true;
-            }
-            if (!testPlanListenerRegistered) {
-                GuiPackage gui = GuiPackage.getInstance();
-                if (gui != null) {
-                    gui.addTestPlanListener(LISTENER);
-                    testPlanListenerRegistered = true;
-                }
-            }
+        shutdownHookRegistered = true;
+      }
+      if (!testPlanListenerRegistered) {
+        GuiPackage gui = GuiPackage.getInstance();
+        if (gui != null) {
+          gui.addTestPlanListener(LISTENER);
+          testPlanListenerRegistered = true;
         }
+      }
     }
+  }
 
-    public static void shutdownAll() {
-        LOG.info("Shutting down MCP plugin runtime (clients and managed server)");
-        McpClientRegistry.getInstance().shutdownAll();
-        McpServerProcessManager.getInstance().shutdownAll();
-    }
+  public static void shutdownAll() {
+    LOG.info("Shutting down MCP plugin runtime (clients and managed server)");
+    McpClientRegistry.getInstance().shutdownAll();
+    McpServerProcessManager.getInstance().shutdownAll();
+  }
 
-    @Override
-    public void beforeTestPlanCleared() {
-        shutdownAll();
-    }
+  /**
+   * When {@code true} (Maven Surefire/Failsafe), skip the JVM shutdown hook so the
+   * test fork can exit promptly; session teardown handles cleanup instead.
+   */
+  private static boolean isTestMode() {
+    return Boolean.getBoolean("jmeter.mcp.testMode");
+  }
 
-    @Override
-    public void afterTestPlanCleared() {
-        // no-op
-    }
+  @Override
+  public void beforeTestPlanCleared() {
+    shutdownAll();
+  }
 
-    @Override
-    public void testPlanLoaded() {
-        shutdownAll();
-    }
+  @Override
+  public void afterTestPlanCleared() {
+    // no-op
+  }
+
+  @Override
+  public void testPlanLoaded() {
+    shutdownAll();
+  }
 }
