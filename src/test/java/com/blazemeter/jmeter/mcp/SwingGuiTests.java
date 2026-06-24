@@ -2,7 +2,9 @@ package com.blazemeter.jmeter.mcp;
 
 import java.awt.Component;
 import java.util.function.BooleanSupplier;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
 import org.assertj.swing.core.ComponentFinder;
 import org.assertj.swing.exception.ComponentLookupException;
@@ -54,6 +56,25 @@ public final class SwingGuiTests {
       throw new IllegalStateException("Not a text component: " + name);
     }
     field.setText(text);
+    waitForEdt(frame);
+  }
+
+  /** Programmatic click on EDT; reliable under cacio/xvfb where robot clicks may not fire listeners. */
+  public static void clickButton(FrameFixture frame, String buttonName) {
+    waitForEdt(frame);
+    JButton button = findComponent(frame, buttonName, JButton.class);
+    try {
+      SwingUtilities.invokeAndWait(() -> {
+        if (!button.isEnabled()) {
+          throw new IllegalStateException("Button not enabled: " + buttonName);
+        }
+        button.doClick();
+      });
+    } catch (RuntimeException ex) {
+      throw ex;
+    } catch (Exception ex) {
+      throw new IllegalStateException("Failed to click button: " + buttonName, ex);
+    }
     waitForEdt(frame);
   }
 

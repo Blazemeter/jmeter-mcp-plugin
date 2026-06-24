@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.blazemeter.jmeter.mcp.JMeterTestUtils;
+import com.blazemeter.jmeter.mcp.SwingGuiTests;
 import com.blazemeter.jmeter.mcp.SwingTestRunner;
 import com.blazemeter.jmeter.mcp.server.McpServerProcess;
 import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
@@ -110,15 +111,15 @@ public class McpServerProcessGuiIT {
     StubMcpServerControl control = new StubMcpServerControl();
     showGuiWithControl(control);
     gui.clearGui();
-    frame.textBox("mcpServerProcess.command").setText("node");
-    frame.textBox("mcpServerProcess.args").setText("server.js");
-    frame.textBox("mcpServerProcess.env").setText("PORT=3001");
-    frame.textBox("mcpServerProcess.readyHost").setText("127.0.0.1");
-    frame.textBox("mcpServerProcess.readyPort").setText("4000");
-    frame.textBox("mcpServerProcess.startupWait").setText("15000");
+    SwingGuiTests.setTextByName(frame, "mcpServerProcess.command", "node");
+    SwingGuiTests.setTextByName(frame, "mcpServerProcess.args", "server.js");
+    SwingGuiTests.setTextByName(frame, "mcpServerProcess.env", "PORT=3001");
+    SwingGuiTests.setTextByName(frame, "mcpServerProcess.readyHost", "127.0.0.1");
+    SwingGuiTests.setTextByName(frame, "mcpServerProcess.readyPort", "4000");
+    SwingGuiTests.setTextByName(frame, "mcpServerProcess.startupWait", "15000");
 
-    frame.button("mcpServerProcess.start").click();
-    frame.robot().waitForIdle();
+    SwingGuiTests.clickButton(frame, "mcpServerProcess.start");
+    SwingGuiTests.waitUntil(frame, "server start invoked", () -> control.lastStart != null);
 
     assertNotNull(control.lastStart);
     assertEquals("node", control.lastStart.command());
@@ -139,8 +140,8 @@ public class McpServerProcessGuiIT {
     showGuiWithControl(control);
 
     frame.button("mcpServerProcess.stop").requireEnabled();
-    frame.button("mcpServerProcess.stop").click();
-    frame.robot().waitForIdle();
+    SwingGuiTests.clickButton(frame, "mcpServerProcess.stop");
+    SwingGuiTests.waitUntil(frame, "server stop invoked", () -> control.stopCalled);
 
     assertTrue(control.stopCalled);
     frame.label("mcpServerProcess.status").requireText("Not running");
@@ -164,8 +165,8 @@ public class McpServerProcessGuiIT {
     control.startFailure = new RuntimeException("boom");
     showGuiWithControl(control);
 
-    frame.button("mcpServerProcess.start").click();
-    frame.robot().waitForIdle();
+    SwingGuiTests.clickButton(frame, "mcpServerProcess.start");
+    SwingGuiTests.waitUntil(frame, "start failure recorded", () -> control.startFailed);
     frame.label("mcpServerProcess.status").requireText("Not running");
     assertTrue(control.startFailed);
   }
