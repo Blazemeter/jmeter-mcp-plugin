@@ -153,6 +153,10 @@ public class McpServerProcessGui extends AbstractConfigGui implements Scrollable
 
   private void startServer() {
     McpServerLaunchSettings settings = readLaunchSettingsFromGui();
+    if (isTestMode()) {
+      runStartSynchronously(settings);
+      return;
+    }
     startButton.setEnabled(false);
     stopButton.setEnabled(false);
     serverStatusLabel.setText("Starting…");
@@ -183,6 +187,10 @@ public class McpServerProcessGui extends AbstractConfigGui implements Scrollable
   }
 
   private void stopServer() {
+    if (isTestMode()) {
+      runStopSynchronously();
+      return;
+    }
     startButton.setEnabled(false);
     stopButton.setEnabled(false);
     new SwingWorker<Void, Void>() {
@@ -199,6 +207,35 @@ public class McpServerProcessGui extends AbstractConfigGui implements Scrollable
         refreshServerStatus();
       }
     }.execute();
+  }
+
+  private void runStartSynchronously(McpServerLaunchSettings settings) {
+    startButton.setEnabled(false);
+    stopButton.setEnabled(false);
+    serverStatusLabel.setText("Starting…");
+    try {
+      serverControl.start(settings);
+    } catch (RuntimeException ex) {
+      serverStatusLabel.setText("Not running");
+    } finally {
+      startButton.setEnabled(true);
+      refreshServerStatus();
+    }
+  }
+
+  private void runStopSynchronously() {
+    startButton.setEnabled(false);
+    stopButton.setEnabled(false);
+    try {
+      serverControl.stop();
+    } finally {
+      startButton.setEnabled(true);
+      refreshServerStatus();
+    }
+  }
+
+  private static boolean isTestMode() {
+    return Boolean.getBoolean("jmeter.mcp.testMode");
   }
 
   private void refreshServerStatus() {

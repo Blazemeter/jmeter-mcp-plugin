@@ -7,6 +7,7 @@ final class StubMcpServerControl implements McpServerControl {
 
   McpServerLaunchSettings lastStart;
   boolean stopCalled;
+  boolean startFailed;
   Long managedPid;
   boolean portOpen;
   RuntimeException startFailure;
@@ -14,6 +15,7 @@ final class StubMcpServerControl implements McpServerControl {
   @Override
   public void start(McpServerLaunchSettings settings) {
     if (startFailure != null) {
+      startFailed = true;
       throw startFailure;
     }
     lastStart = settings;

@@ -7,7 +7,6 @@ import javax.swing.text.JTextComponent;
 import org.assertj.swing.core.ComponentFinder;
 import org.assertj.swing.exception.ComponentLookupException;
 import org.assertj.swing.fixture.FrameFixture;
-import org.assertj.swing.fixture.JOptionPaneFixture;
 import org.assertj.swing.timing.Condition;
 import org.assertj.swing.timing.Pause;
 import org.assertj.swing.timing.Timeout;
@@ -58,13 +57,6 @@ public final class SwingGuiTests {
     waitForEdt(frame);
   }
 
-  public static JOptionPaneFixture waitForOptionPane(FrameFixture frame) {
-    waitUntil(frame, "option pane present", () -> isOptionPaneShowing(frame));
-    return new JOptionPaneFixture(
-        frame.robot(),
-        frame.robot().finder().findByType(javax.swing.JOptionPane.class, false));
-  }
-
   public static void waitUntil(FrameFixture frame, String description, BooleanSupplier condition) {
     waitForEdt(frame);
     Pause.pause(
@@ -75,15 +67,6 @@ public final class SwingGuiTests {
           }
         },
         DEFAULT_TIMEOUT);
-  }
-
-  public static boolean isOptionPaneShowing(FrameFixture frame) {
-    try {
-      frame.robot().finder().findByType(javax.swing.JOptionPane.class, false);
-      return true;
-    } catch (ComponentLookupException ignored) {
-      return false;
-    }
   }
 
   private static JComboBox<?> findCombo(FrameFixture frame, String comboName) {

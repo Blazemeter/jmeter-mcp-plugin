@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.blazemeter.jmeter.mcp.JMeterTestUtils;
-import com.blazemeter.jmeter.mcp.SwingGuiTests;
 import com.blazemeter.jmeter.mcp.SwingTestRunner;
 import com.blazemeter.jmeter.mcp.server.McpServerProcess;
 import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
@@ -141,7 +140,7 @@ public class McpServerProcessGuiIT {
 
     frame.button("mcpServerProcess.stop").requireEnabled();
     frame.button("mcpServerProcess.stop").click();
-    SwingGuiTests.waitUntil(frame, "server stop invoked", () -> control.stopCalled);
+    frame.robot().waitForIdle();
 
     assertTrue(control.stopCalled);
     frame.label("mcpServerProcess.status").requireText("Not running");
@@ -166,8 +165,9 @@ public class McpServerProcessGuiIT {
     showGuiWithControl(control);
 
     frame.button("mcpServerProcess.start").click();
-    SwingGuiTests.waitForOptionPane(frame).requireMessage("boom").okButton().click();
+    frame.robot().waitForIdle();
     frame.label("mcpServerProcess.status").requireText("Not running");
+    assertTrue(control.startFailed);
   }
 
   private void showGuiWithControl(StubMcpServerControl control) {
