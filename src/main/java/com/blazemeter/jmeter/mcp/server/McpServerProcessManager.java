@@ -153,15 +153,26 @@ public final class McpServerProcessManager {
       return;
     }
     LOG.info("Stopping MCP server process (pid {})", p.pid());
-    p.destroy();
+    destroyProcessTree(p);
+  }
+
+  private static void destroyProcessTree(Process process) {
     try {
-      if (!p.waitFor(5, TimeUnit.SECONDS)) {
-        p.destroyForcibly();
-        p.waitFor(5, TimeUnit.SECONDS);
+      ProcessHandle.of(process.pid()).ifPresent(root -> {
+        root.descendants().forEach(ProcessHandle::destroyForcibly);
+        root.destroyForcibly();
+      });
+    } catch (RuntimeException ex) {
+      process.destroyForcibly();
+    }
+    try {
+      if (!process.waitFor(5, TimeUnit.SECONDS)) {
+        process.destroyForcibly();
+        process.waitFor(5, TimeUnit.SECONDS);
       }
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      p.destroyForcibly();
+      process.destroyForcibly();
     }
   }
 

@@ -13,8 +13,6 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.Statement;
 
-import com.blazemeter.jmeter.mcp.McpRuntimeCleanup;
-
 /**
  * JUnit 4 runner for AssertJ Swing GUI integration tests. Captures screenshots on failure under
  * {@code target/failsafe-reports/failed-gui-tests}.
@@ -33,20 +31,6 @@ public class SwingTestRunner extends BlockJUnit4ClassRunner {
 
   public SwingTestRunner(Class<?> klass) throws InitializationError {
     super(klass);
-  }
-
-  @Override
-  protected Statement withAfterClasses(Statement statement) {
-    return new Statement() {
-      @Override
-      public void evaluate() throws Throwable {
-        try {
-          statement.evaluate();
-        } finally {
-          McpRuntimeCleanup.shutdownAll();
-        }
-      }
-    };
   }
 
   @Override

@@ -18,6 +18,6 @@ public final class McpTestCleanupExtension implements BeforeAllCallback {
         .getOrComputeIfAbsent(
             McpTestCleanupExtension.class,
             type ->
-                (ExtensionContext.Store.CloseableResource) () -> McpRuntimeCleanup.shutdownAll());
+                (ExtensionContext.Store.CloseableResource) McpTestProcessCleanup::run);
   }
 }
