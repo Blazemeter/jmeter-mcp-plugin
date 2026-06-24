@@ -11,6 +11,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +45,14 @@ public final class McpClientRegistry {
     t.setDaemon(true);
     return t;
   });
+
+  private static final ExecutorService CLOSE_EXECUTOR = Executors.newSingleThreadExecutor(r -> {
+    Thread t = new Thread(r, "mcp-client-close");
+    t.setDaemon(true);
+    return t;
+  });
+
+  private static final long GRACEFUL_CLOSE_TIMEOUT_SECONDS = 5;
 
   private static final McpClientRegistry INSTANCE = new McpClientRegistry();
 
@@ -304,7 +315,7 @@ public final class McpClientRegistry {
     }
     Object lock = connectLocks.computeIfAbsent(name, k -> new Object());
     synchronized (lock) {
-      pendingConnects.remove(name);
+      cancelPendingConnect(pendingConnects.remove(name));
       deferredSettings.remove(name);
       McpSyncClient client = clients.remove(name);
       if (client != null) {
@@ -330,21 +341,40 @@ public final class McpClientRegistry {
     previewStartedManagedServer.clear();
   }
 
+  private static void cancelPendingConnect(CompletableFuture<McpSyncClient> pending) {
+    if (pending != null && !pending.isDone()) {
+      pending.cancel(true);
+    }
+  }
+
   private static void closeQuietly(McpSyncClient client) {
     try {
-      client.closeGracefully();
-    } catch (RuntimeException ex) {
-      if (isExpectedShutdownFailure(ex)) {
+      Future<?> graceful = CLOSE_EXECUTOR.submit(client::closeGracefully);
+      graceful.get(GRACEFUL_CLOSE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    } catch (TimeoutException ex) {
+      LOG.warn("MCP client graceful close timed out after {}s; forcing close",
+          GRACEFUL_CLOSE_TIMEOUT_SECONDS);
+      forceClose(client);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      forceClose(client);
+    } catch (ExecutionException ex) {
+      Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+      if (cause instanceof RuntimeException runtime && isExpectedShutdownFailure(runtime)) {
         LOG.debug("MCP client graceful close failed during shutdown (server may be gone): {}",
-            ex.getMessage());
+            runtime.getMessage());
       } else {
-        LOG.warn("Error while closing MCP client gracefully", ex);
+        LOG.warn("Error while closing MCP client gracefully", cause);
       }
-      try {
-        client.close();
-      } catch (RuntimeException ignored) {
-        // best effort
-      }
+      forceClose(client);
+    }
+  }
+
+  private static void forceClose(McpSyncClient client) {
+    try {
+      client.close();
+    } catch (RuntimeException ignored) {
+      // best effort
     }
   }
 

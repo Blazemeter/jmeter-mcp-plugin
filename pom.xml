@@ -256,6 +256,9 @@
                         <exclude>**/*IT.java</exclude>
                     </excludes>
                     <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>
+                    <systemPropertyVariables>
+                        <jmeter.mcp.testMode>true</jmeter.mcp.testMode>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
 
@@ -279,6 +282,7 @@
                         <include>**/*IT.java</include>
                     </includes>
                     <systemPropertyVariables>
+                        <jmeter.mcp.testMode>true</jmeter.mcp.testMode>
                         <java.awt.headless>false</java.awt.headless>
                         <awt.toolkit>net.java.openjdk.cacio.ctc.CTCToolkit</awt.toolkit>
                         <java.awt.graphicsenv>net.java.openjdk.cacio.ctc.CTCGraphicsEnvironment</java.awt.graphicsenv>
