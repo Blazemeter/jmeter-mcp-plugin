@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.blazemeter.jmeter.mcp.JMeterTestUtils;
+import com.blazemeter.jmeter.mcp.SwingGuiTests;
 import com.blazemeter.jmeter.mcp.SwingTestRunner;
 import com.blazemeter.jmeter.mcp.sampler.McpOperation;
 import com.blazemeter.jmeter.mcp.sampler.McpSampler;
@@ -66,9 +67,9 @@ public class McpSamplerGuiIT {
   public void shouldPersistCallToolSettingsWhenModifyTestElement() {
     gui.clearGui();
     frame.textBox("mcpSampler.configName").setText("clientB");
-    frame.comboBox("mcpSampler.operation").selectItem(McpOperation.CALL_TOOL.name());
-    frame.comboBox("mcpSampler.toolName").enterText("add");
-    frame.textBox("mcpSampler.arguments").setText("{\"a\":1}");
+    SwingGuiTests.selectComboItem(frame, "mcpSampler.operation", McpOperation.CALL_TOOL);
+    SwingGuiTests.setEditableComboText(frame, "mcpSampler.toolName", "add");
+    SwingGuiTests.setTextByName(frame, "mcpSampler.arguments", "{\"a\":1}");
 
     McpSampler saved = (McpSampler) gui.createTestElement();
     assertEquals("clientB", saved.getPropertyAsString(McpSampler.CONFIG_NAME));
@@ -80,7 +81,7 @@ public class McpSamplerGuiIT {
   @Test
   public void shouldShowSchemaActionsWhenCallToolSelected() {
     gui.clearGui();
-    frame.comboBox("mcpSampler.operation").selectItem(McpOperation.CALL_TOOL.name());
+    SwingGuiTests.selectComboItem(frame, "mcpSampler.operation", McpOperation.CALL_TOOL);
 
     frame.button("mcpSampler.loadSchema").requireVisible();
     frame.button("mcpSampler.generateSample").requireVisible();
@@ -104,8 +105,8 @@ public class McpSamplerGuiIT {
   @Test
   public void shouldPersistReadResourceSettingsWhenModifyTestElement() {
     gui.clearGui();
-    frame.comboBox("mcpSampler.operation").selectItem(McpOperation.READ_RESOURCE.name());
-    frame.comboBox("mcpSampler.resourceUri").enterText("resource://docs");
+    SwingGuiTests.selectComboItem(frame, "mcpSampler.operation", McpOperation.READ_RESOURCE);
+    SwingGuiTests.setEditableComboText(frame, "mcpSampler.resourceUri", "resource://docs");
 
     McpSampler saved = (McpSampler) gui.createTestElement();
     assertEquals(McpOperation.READ_RESOURCE.name(), saved.getPropertyAsString(McpSampler.OPERATION));
