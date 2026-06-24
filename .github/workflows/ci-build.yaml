@@ -41,7 +41,9 @@ jobs:
           cache: maven
 
       - name: Build and test
-        run: xvfb-run -a mvn -U --batch-mode clean verify
+        run: |
+          mvn -U --batch-mode clean test
+          xvfb-run -a mvn --batch-mode verify -DskipTests
 
       - name: Upload build artifacts
         if: always()

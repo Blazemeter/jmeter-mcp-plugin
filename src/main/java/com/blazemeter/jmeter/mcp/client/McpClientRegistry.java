@@ -11,9 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,14 +42,6 @@ public final class McpClientRegistry {
     t.setDaemon(true);
     return t;
   });
-
-  private static final ExecutorService CLOSE_EXECUTOR = Executors.newSingleThreadExecutor(r -> {
-    Thread t = new Thread(r, "mcp-client-close");
-    t.setDaemon(true);
-    return t;
-  });
-
-  private static final long GRACEFUL_CLOSE_TIMEOUT_SECONDS = 5;
 
   private static final McpClientRegistry INSTANCE = new McpClientRegistry();
 
@@ -315,7 +304,10 @@ public final class McpClientRegistry {
     }
     Object lock = connectLocks.computeIfAbsent(name, k -> new Object());
     synchronized (lock) {
-      cancelPendingConnect(pendingConnects.remove(name));
+      CompletableFuture<McpSyncClient> pending = pendingConnects.remove(name);
+      if (pending != null && !pending.isDone()) {
+        pending.cancel(true);
+      }
       deferredSettings.remove(name);
       McpSyncClient client = clients.remove(name);
       if (client != null) {
@@ -336,45 +328,57 @@ public final class McpClientRegistry {
     names.addAll(deferredSettings.keySet());
     names.addAll(pendingConnects.keySet());
     for (String name : names) {
-      remove(name);
+      removeForShutdown(name);
     }
     previewStartedManagedServer.clear();
   }
 
-  private static void cancelPendingConnect(CompletableFuture<McpSyncClient> pending) {
-    if (pending != null && !pending.isDone()) {
-      pending.cancel(true);
+  /**
+   * Like {@link #remove(String)} but uses {@link McpSyncClient#close()} so bulk shutdown
+   * (test teardown, JVM exit) does not block on {@code closeGracefully()}.
+   */
+  private void removeForShutdown(String name) {
+    if (name == null || name.isBlank()) {
+      return;
+    }
+    Object lock = connectLocks.computeIfAbsent(name, k -> new Object());
+    synchronized (lock) {
+      CompletableFuture<McpSyncClient> pending = pendingConnects.remove(name);
+      if (pending != null && !pending.isDone()) {
+        pending.cancel(true);
+      }
+      deferredSettings.remove(name);
+      McpSyncClient client = clients.remove(name);
+      if (client != null) {
+        closeAbruptly(client);
+      }
+    }
+    connectLocks.remove(name, lock);
+  }
+
+  private static void closeAbruptly(McpSyncClient client) {
+    try {
+      client.close();
+    } catch (RuntimeException ignored) {
+      // best effort
     }
   }
 
   private static void closeQuietly(McpSyncClient client) {
     try {
-      Future<?> graceful = CLOSE_EXECUTOR.submit(client::closeGracefully);
-      graceful.get(GRACEFUL_CLOSE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-    } catch (TimeoutException ex) {
-      LOG.warn("MCP client graceful close timed out after {}s; forcing close",
-          GRACEFUL_CLOSE_TIMEOUT_SECONDS);
-      forceClose(client);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      forceClose(client);
-    } catch (ExecutionException ex) {
-      Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
-      if (cause instanceof RuntimeException runtime && isExpectedShutdownFailure(runtime)) {
+      client.closeGracefully();
+    } catch (RuntimeException ex) {
+      if (isExpectedShutdownFailure(ex)) {
         LOG.debug("MCP client graceful close failed during shutdown (server may be gone): {}",
-            runtime.getMessage());
+            ex.getMessage());
       } else {
-        LOG.warn("Error while closing MCP client gracefully", cause);
+        LOG.warn("Error while closing MCP client gracefully", ex);
       }
-      forceClose(client);
-    }
-  }
-
-  private static void forceClose(McpSyncClient client) {
-    try {
-      client.close();
-    } catch (RuntimeException ignored) {
-      // best effort
+      try {
+        client.close();
+      } catch (RuntimeException ignored) {
+        // best effort
+      }
     }
   }
 

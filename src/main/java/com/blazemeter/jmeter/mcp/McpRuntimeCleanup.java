@@ -37,10 +37,8 @@ public final class McpRuntimeCleanup implements TestPlanListener {
     }
     synchronized (McpRuntimeCleanup.class) {
       if (!shutdownHookRegistered) {
-        if (!isTestMode()) {
-          Runtime.getRuntime().addShutdownHook(new Thread(McpRuntimeCleanup::shutdownAll,
-              "mcp-plugin-shutdown"));
-        }
+        Runtime.getRuntime().addShutdownHook(new Thread(McpRuntimeCleanup::shutdownAll,
+            "mcp-plugin-shutdown"));
         shutdownHookRegistered = true;
       }
       if (!testPlanListenerRegistered) {
@@ -57,14 +55,6 @@ public final class McpRuntimeCleanup implements TestPlanListener {
     LOG.info("Shutting down MCP plugin runtime (clients and managed server)");
     McpClientRegistry.getInstance().shutdownAll();
     McpServerProcessManager.getInstance().shutdownAll();
-  }
-
-  /**
-   * When {@code true} (Maven Surefire/Failsafe), skip the JVM shutdown hook so the
-   * test fork can exit promptly; individual tests clean up via {@code @AfterEach}.
-   */
-  private static boolean isTestMode() {
-    return Boolean.getBoolean("jmeter.mcp.testMode");
   }
 
   @Override
