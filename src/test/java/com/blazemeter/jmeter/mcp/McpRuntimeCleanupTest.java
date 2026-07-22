@@ -15,7 +15,7 @@ class McpRuntimeCleanupTest {
 
     @Test
     void shutdownAllStopsManagedServerProcess() throws Exception {
-        Process sleeper = new ProcessBuilder("/bin/sleep", "60").start();
+        Process sleeper = TestProcesses.startSleeper();
         try {
             McpServerProcessManager manager = McpServerProcessManager.getInstance();
             java.lang.reflect.Field processField =
