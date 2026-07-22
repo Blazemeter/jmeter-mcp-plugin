@@ -4,10 +4,16 @@ import java.util.concurrent.TimeUnit;
 
 import javax.swing.SwingUtilities;
 
+import com.blazemeter.jmeter.mcp.CacioTestSupport;
+
 /**
  * Runs assertions on the Swing EDT and waits for async GUI work to finish.
  */
 final class GuiEdtTestSupport {
+
+  static {
+    CacioTestSupport.installVirtualToolkit();
+  }
 
   private GuiEdtTestSupport() {
   }

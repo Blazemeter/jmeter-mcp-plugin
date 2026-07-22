@@ -2,7 +2,7 @@ package com.blazemeter.jmeter.mcp.config;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.blazemeter.jmeter.mcp.client.McpClientSettings;
+import com.blazemeter.jmeter.mcp.TestProcesses;
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
 import org.junit.jupiter.api.AfterEach;
@@ -17,7 +17,7 @@ class McpClientConfigLifecycleTest {
 
     @Test
     void shouldNotStopManagedServerWhenClientTestEndsWithoutPreviewServer() throws Exception {
-        Process sleeper = new ProcessBuilder("/bin/sleep", "60").start();
+        Process sleeper = TestProcesses.startSleeper();
         try {
             McpServerProcessManager manager = McpServerProcessManager.getInstance();
             java.lang.reflect.Field processField =

@@ -1,0 +1,17 @@
+# Enforce LF line endings so Checkstyle (NewlineAtEndOfFile/lf) passes on Windows
+* text=auto eol=lf
+
+*.java text eol=lf
+*.xml text eol=lf
+*.properties text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.sh text eol=lf
+
+*.jar binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
