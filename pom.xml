@@ -37,6 +37,8 @@
         <!-- Match assertj-swing 3.9.x; newer assertj-core breaks swing drivers. -->
         <assertj.version>3.11.1</assertj.version>
         <assertj-swing.version>3.9.2</assertj-swing.version>
+        <!-- Cacio virtual AWT for Swing tests (no real windows / mouse grab). -->
+        <cacio.version>1.18</cacio.version>
         <junit4.version>4.13.2</junit4.version>
         <surefire.version>3.2.5</surefire.version>
         <jacoco.version>0.8.12</jacoco.version>
@@ -45,6 +47,8 @@
         <checkstyle.plugin.version>3.6.0</checkstyle.plugin.version>
         <!-- Checkstyle 13.x requires JRE 21+; 12.x is latest for this project's Java 17 build. -->
         <checkstyle.version>12.3.1</checkstyle.version>
+        <!-- Required so Cacio/ByteBuddy can access JDK-internal AWT packages on Java 17+. -->
+        <cacio.jvm.args>--add-exports=java.desktop/java.awt=ALL-UNNAMED --add-exports=java.desktop/java.awt.peer=ALL-UNNAMED --add-exports=java.desktop/sun.awt.image=ALL-UNNAMED --add-exports=java.desktop/sun.java2d=ALL-UNNAMED --add-exports=java.desktop/java.awt.dnd.peer=ALL-UNNAMED --add-exports=java.desktop/sun.awt=ALL-UNNAMED --add-exports=java.desktop/sun.awt.event=ALL-UNNAMED --add-exports=java.desktop/sun.awt.datatransfer=ALL-UNNAMED --add-exports=java.base/sun.security.action=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.desktop/java.awt=ALL-UNNAMED --add-opens=java.desktop/sun.java2d=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED</cacio.jvm.args>
     </properties>
 
     <dependencyManagement>
@@ -145,9 +149,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>net.java.openjdk.cacio</groupId>
+            <groupId>com.github.caciocavallosilano</groupId>
             <artifactId>cacio-tta</artifactId>
-            <version>1.9</version>
+            <version>${cacio.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -247,6 +251,7 @@
                 </executions>
             </plugin>
 
+            <!-- Cacio virtual screen for Swing unit tests (avoids real windows/mouse). -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -255,16 +260,23 @@
                     <excludes>
                         <exclude>**/*IT.java</exclude>
                     </excludes>
+                    <argLine>@{argLine} ${cacio.jvm.args}</argLine>
                     <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>
                     <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>
                     <systemPropertyVariables>
                         <jmeter.mcp.testMode>true</jmeter.mcp.testMode>
+                        <java.awt.headless>false</java.awt.headless>
+                        <awt.toolkit>com.github.caciocavallosilano.cacio.ctc.CTCToolkit</awt.toolkit>
+                        <java.awt.graphicsenv>com.github.caciocavallosilano.cacio.ctc.CTCGraphicsEnvironment</java.awt.graphicsenv>
+                        <cacio.managed.screensize>1280x800</cacio.managed.screensize>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
 
             <!-- GUI IT tests are JUnit 4 (@RunWith(SwingTestRunner)); force the
-                 junit4 provider so Failsafe does not pick JUnit Platform only. -->
+                 junit4 provider so Failsafe does not pick JUnit Platform only.
+                 Cacio renders to an in-memory screen so AssertJ Swing does not
+                 steal focus from the developer desktop (xvfb on Linux CI is optional). -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -277,7 +289,7 @@
                     </dependency>
                 </dependencies>
                 <configuration>
-                    <argLine>@{argLine} --add-opens java.base/java.util=ALL-UNNAMED</argLine>
+                    <argLine>@{argLine} ${cacio.jvm.args}</argLine>
                     <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>
                     <includes>
                         <include>**/*IT.java</include>
@@ -285,8 +297,8 @@
                     <systemPropertyVariables>
                         <jmeter.mcp.testMode>true</jmeter.mcp.testMode>
                         <java.awt.headless>false</java.awt.headless>
-                        <awt.toolkit>net.java.openjdk.cacio.ctc.CTCToolkit</awt.toolkit>
-                        <java.awt.graphicsenv>net.java.openjdk.cacio.ctc.CTCGraphicsEnvironment</java.awt.graphicsenv>
+                        <awt.toolkit>com.github.caciocavallosilano.cacio.ctc.CTCToolkit</awt.toolkit>
+                        <java.awt.graphicsenv>com.github.caciocavallosilano.cacio.ctc.CTCGraphicsEnvironment</java.awt.graphicsenv>
                         <cacio.managed.screensize>1280x800</cacio.managed.screensize>
                     </systemPropertyVariables>
                 </configuration>
