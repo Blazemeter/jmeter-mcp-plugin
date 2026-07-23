@@ -1,5 +1,6 @@
 package com.blazemeter.jmeter.mcp.client;
 
+import com.blazemeter.jmeter.mcp.util.CommandResolver;
 import com.blazemeter.jmeter.mcp.util.Strings;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
@@ -75,6 +76,8 @@ public final class McpClientFactory {
       throw new IllegalArgumentException(
           "MCP STDIO transport requires a command (e.g. 'npx' or '/usr/local/bin/node')");
     }
+    // Windows: resolve bare names via PATHEXT (cmd-like) so ProcessBuilder can spawn npx.cmd.
+    command = CommandResolver.resolve(command);
     ServerParameters.Builder builder = ServerParameters.builder(command);
 
     List<String> args = splitArgs(s.getStdioArgs());
