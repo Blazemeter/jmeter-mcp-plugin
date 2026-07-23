@@ -2,6 +2,7 @@ package com.blazemeter.jmeter.mcp.server;
 
 import com.blazemeter.jmeter.mcp.McpRuntimeCleanup;
 import com.blazemeter.jmeter.mcp.client.McpClientFactory;
+import com.blazemeter.jmeter.mcp.util.CommandResolver;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -73,8 +74,14 @@ public final class McpServerProcessManager {
 
     stop();
 
+    // Windows: resolve bare names via PATHEXT (cmd-like) so ProcessBuilder can spawn npx.cmd.
+    String resolvedCommand = CommandResolver.resolve(trimmedCommand);
+    if (!resolvedCommand.equals(trimmedCommand)) {
+      LOG.info("Resolved MCP server command '{}' -> '{}'", trimmedCommand, resolvedCommand);
+    }
+
     List<String> cmd = new ArrayList<>();
-    cmd.add(trimmedCommand);
+    cmd.add(resolvedCommand);
     cmd.addAll(McpClientFactory.splitArgs(args));
 
     ProcessBuilder builder = new ProcessBuilder(cmd);
