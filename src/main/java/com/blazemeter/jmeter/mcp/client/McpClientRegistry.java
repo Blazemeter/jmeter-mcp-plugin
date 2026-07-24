@@ -321,6 +321,31 @@ public final class McpClientRegistry {
     return previewStartedManagedServer.remove(name);
   }
 
+  /**
+   * Close SSE / Streamable HTTP clients before a managed HTTP MCP server process is
+   * destroyed. The MCP Java SDK keeps a long-lived stream open; killing the server
+   * first surfaces as {@code IOException: chunked transfer encoding} / EOF from
+   * {@code LifecycleInitializer} (WARN). Closing the client first sets the transport
+   * {@code isClosing} flag so that teardown is quiet. STDIO clients are left alone.
+   */
+  public void closeHttpClientsBeforeServerStop() {
+    List<String> httpNames = new ArrayList<>();
+    for (Map.Entry<String, McpClientSettings> entry : deferredSettings.entrySet()) {
+      TransportType transport = entry.getValue().getTransport();
+      if (transport == TransportType.SSE || transport == TransportType.STREAMABLE_HTTP) {
+        httpNames.add(entry.getKey());
+      }
+    }
+    if (httpNames.isEmpty()) {
+      return;
+    }
+    LOG.info("Closing {} HTTP MCP client(s) before stopping managed server", httpNames.size());
+    for (String name : httpNames) {
+      previewStartedManagedServer.remove(name);
+      remove(name);
+    }
+  }
+
   /** Close every registered client and clear deferred settings. */
   public void shutdownAll() {
     List<String> names = new ArrayList<>();
