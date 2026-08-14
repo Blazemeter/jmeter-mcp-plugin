@@ -53,8 +53,21 @@ public final class McpClientFactory {
             .capabilities(McpSchema.ClientCapabilities.builder().build())
             .build();
 
-    client.initialize();
-    return client;
+    try {
+      client.initialize();
+      return client;
+    } catch (RuntimeException ex) {
+      closeQuietly(client);
+      throw McpClientErrors.explainInitialize(ex);
+    }
+  }
+
+  private static void closeQuietly(McpSyncClient client) {
+    try {
+      client.close();
+    } catch (RuntimeException ignored) {
+      // initialize already failed; best-effort cleanup
+    }
   }
 
   private static McpClientTransport buildTransport(McpClientSettings settings) {
