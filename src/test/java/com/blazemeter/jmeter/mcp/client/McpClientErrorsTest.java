@@ -29,6 +29,13 @@ class McpClientErrorsTest {
   }
 
   @Test
+  void shouldUseConnectOrStartNowTitleWhenFailureIsNotMcpV2() {
+    RuntimeException other = new RuntimeException("connect failed");
+    assertEquals("Connect failed", McpClientErrors.dialogTitle(other, true));
+    assertEquals("Start Now failed", McpClientErrors.dialogTitle(other, false));
+  }
+
+  @Test
   void shouldDetectStdioStrictV2WhenMessageOmitsSupportedVersion() {
     RuntimeException stdio =
         wrapInitialize("Unsupported protocol version: 2024-11-05");
