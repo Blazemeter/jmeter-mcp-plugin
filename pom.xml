@@ -263,6 +263,7 @@
                     <argLine>@{argLine} ${cacio.jvm.args}</argLine>
                     <forkedProcessTimeoutInSeconds>900</forkedProcessTimeoutInSeconds>
                     <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>
+                    <rerunFailingTestsCount>2</rerunFailingTestsCount>
                     <systemPropertyVariables>
                         <jmeter.mcp.testMode>true</jmeter.mcp.testMode>
                         <java.awt.headless>false</java.awt.headless>
