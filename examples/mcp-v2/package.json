@@ -1,0 +1,13 @@
+{
+  "name": "jmeter-mcp-v2",
+  "private": true,
+  "type": "module",
+  "description": "TypeScript MCP SDK v2 servers used by mcp-v2-compat.jmx (HTTP dual/strict and STDIO).",
+  "dependencies": {
+    "@modelcontextprotocol/express": "2.0.0",
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "express": "^5.1.0",
+    "zod": "^4.0.0"
+  }
+}

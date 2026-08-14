@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="MCP v2 probe">
+      <stringProp name="TestPlan.comments">Java SDK 1.1.1 client vs TypeScript MCP SDK v2.
+
+Once: cd examples/mcp-v2 &amp;&amp; npm install
+Open this .jmx from examples/mcp-v2/. One Ping per transport. Inspect View Results Tree.
+
+  HTTP dual   http://127.0.0.1:18080/mcp
+  HTTP strict http://127.0.0.1:18081/mcp
+  STDIO dual  node stdio.mjs
+  STDIO strict node stdio.mjs --strict
+  SSE /sse and SSE /mcp against the HTTP dual listener (8s timeout)</stringProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments"/>
+      </elementProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
+    </TestPlan>
+    <hashTree>
+      <com.blazemeter.jmeter.mcp.server.McpServerProcess guiclass="com.blazemeter.jmeter.mcp.server.gui.McpServerProcessGui" testclass="com.blazemeter.jmeter.mcp.server.McpServerProcess" testname="MCP Server (HTTP v2 probe)">
+        <stringProp name="McpServerProcess.command">node</stringProp>
+        <stringProp name="McpServerProcess.args">&quot;${__groovy(org.apache.jmeter.services.FileServer.getFileServer().getBaseDir())}/server.mjs&quot;</stringProp>
+        <stringProp name="McpServerProcess.env">DUAL_PORT=18080
+STRICT_PORT=18081</stringProp>
+        <stringProp name="McpServerProcess.readyHost">127.0.0.1</stringProp>
+        <longProp name="McpServerProcess.readyPort">18080</longProp>
+        <longProp name="McpServerProcess.startupWaitMs">60000</longProp>
+        <boolProp name="McpServerProcess.keepServerRunningAfterTest">true</boolProp>
+      </com.blazemeter.jmeter.mcp.server.McpServerProcess>
+      <hashTree/>
+      <com.blazemeter.jmeter.mcp.config.McpClientConfig guiclass="com.blazemeter.jmeter.mcp.config.gui.McpClientConfigGui" testclass="com.blazemeter.jmeter.mcp.config.McpClientConfig" testname="HTTP dual">
+        <stringProp name="McpClientConfig.name">httpDual</stringProp>
+        <stringProp name="McpClientConfig.transport">STREAMABLE_HTTP</stringProp>
+        <stringProp name="McpClientConfig.serverUrl">http://127.0.0.1:18080</stringProp>
+        <stringProp name="McpClientConfig.endpoint">/mcp</stringProp>
+        <stringProp name="McpClientConfig.stdioCommand"></stringProp>
+        <stringProp name="McpClientConfig.stdioArgs"></stringProp>
+        <stringProp name="McpClientConfig.stdioEnv"></stringProp>
+        <stringProp name="McpClientConfig.clientName">jmeter-mcp-plugin</stringProp>
+        <stringProp name="McpClientConfig.clientVersion">0.1.0</stringProp>
+        <longProp name="McpClientConfig.requestTimeoutMs">30000</longProp>
+        <longProp name="McpClientConfig.initTimeoutMs">30000</longProp>
+        <boolProp name="McpClientConfig.connectOnStartup">false</boolProp>
+        <boolProp name="McpClientConfig.keepServerRunningAfterTest">true</boolProp>
+        <stringProp name="McpClientConfig.serverLaunchCommand"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchArgs"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchEnv"></stringProp>
+        <stringProp name="McpClientConfig.serverReadyHost">127.0.0.1</stringProp>
+        <longProp name="McpClientConfig.serverReadyPort">18080</longProp>
+        <longProp name="McpClientConfig.serverStartupWaitMs">60000</longProp>
+      </com.blazemeter.jmeter.mcp.config.McpClientConfig>
+      <hashTree/>
+      <com.blazemeter.jmeter.mcp.config.McpClientConfig guiclass="com.blazemeter.jmeter.mcp.config.gui.McpClientConfigGui" testclass="com.blazemeter.jmeter.mcp.config.McpClientConfig" testname="HTTP strict">
+        <stringProp name="McpClientConfig.name">httpStrict</stringProp>
+        <stringProp name="McpClientConfig.transport">STREAMABLE_HTTP</stringProp>
+        <stringProp name="McpClientConfig.serverUrl">http://127.0.0.1:18081</stringProp>
+        <stringProp name="McpClientConfig.endpoint">/mcp</stringProp>
+        <stringProp name="McpClientConfig.stdioCommand"></stringProp>
+        <stringProp name="McpClientConfig.stdioArgs"></stringProp>
+        <stringProp name="McpClientConfig.stdioEnv"></stringProp>
+        <stringProp name="McpClientConfig.clientName">jmeter-mcp-plugin</stringProp>
+        <stringProp name="McpClientConfig.clientVersion">0.1.0</stringProp>
+        <longProp name="McpClientConfig.requestTimeoutMs">20000</longProp>
+        <longProp name="McpClientConfig.initTimeoutMs">20000</longProp>
+        <boolProp name="McpClientConfig.connectOnStartup">false</boolProp>
+        <boolProp name="McpClientConfig.keepServerRunningAfterTest">true</boolProp>
+        <stringProp name="McpClientConfig.serverLaunchCommand"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchArgs"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchEnv"></stringProp>
+        <stringProp name="McpClientConfig.serverReadyHost">127.0.0.1</stringProp>
+        <longProp name="McpClientConfig.serverReadyPort">18081</longProp>
+        <longProp name="McpClientConfig.serverStartupWaitMs">60000</longProp>
+      </com.blazemeter.jmeter.mcp.config.McpClientConfig>
+      <hashTree/>
+      <com.blazemeter.jmeter.mcp.config.McpClientConfig guiclass="com.blazemeter.jmeter.mcp.config.gui.McpClientConfigGui" testclass="com.blazemeter.jmeter.mcp.config.McpClientConfig" testname="STDIO dual">
+        <stringProp name="McpClientConfig.name">stdioDual</stringProp>
+        <stringProp name="McpClientConfig.transport">STDIO</stringProp>
+        <stringProp name="McpClientConfig.serverUrl"></stringProp>
+        <stringProp name="McpClientConfig.endpoint"></stringProp>
+        <stringProp name="McpClientConfig.stdioCommand">node</stringProp>
+        <stringProp name="McpClientConfig.stdioArgs">&quot;${__groovy(org.apache.jmeter.services.FileServer.getFileServer().getBaseDir())}/stdio.mjs&quot;</stringProp>
+        <stringProp name="McpClientConfig.stdioEnv"></stringProp>
+        <stringProp name="McpClientConfig.clientName">jmeter-mcp-plugin</stringProp>
+        <stringProp name="McpClientConfig.clientVersion">0.1.0</stringProp>
+        <longProp name="McpClientConfig.requestTimeoutMs">30000</longProp>
+        <longProp name="McpClientConfig.initTimeoutMs">30000</longProp>
+        <boolProp name="McpClientConfig.connectOnStartup">false</boolProp>
+        <boolProp name="McpClientConfig.keepServerRunningAfterTest">false</boolProp>
+        <stringProp name="McpClientConfig.serverLaunchCommand"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchArgs"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchEnv"></stringProp>
+        <stringProp name="McpClientConfig.serverReadyHost">localhost</stringProp>
+        <longProp name="McpClientConfig.serverReadyPort">3001</longProp>
+        <longProp name="McpClientConfig.serverStartupWaitMs">60000</longProp>
+      </com.blazemeter.jmeter.mcp.config.McpClientConfig>
+      <hashTree/>
+      <com.blazemeter.jmeter.mcp.config.McpClientConfig guiclass="com.blazemeter.jmeter.mcp.config.gui.McpClientConfigGui" testclass="com.blazemeter.jmeter.mcp.config.McpClientConfig" testname="STDIO strict">
+        <stringProp name="McpClientConfig.name">stdioStrict</stringProp>
+        <stringProp name="McpClientConfig.transport">STDIO</stringProp>
+        <stringProp name="McpClientConfig.serverUrl"></stringProp>
+        <stringProp name="McpClientConfig.endpoint"></stringProp>
+        <stringProp name="McpClientConfig.stdioCommand">node</stringProp>
+        <stringProp name="McpClientConfig.stdioArgs">&quot;${__groovy(org.apache.jmeter.services.FileServer.getFileServer().getBaseDir())}/stdio.mjs&quot; --strict</stringProp>
+        <stringProp name="McpClientConfig.stdioEnv"></stringProp>
+        <stringProp name="McpClientConfig.clientName">jmeter-mcp-plugin</stringProp>
+        <stringProp name="McpClientConfig.clientVersion">0.1.0</stringProp>
+        <longProp name="McpClientConfig.requestTimeoutMs">20000</longProp>
+        <longProp name="McpClientConfig.initTimeoutMs">20000</longProp>
+        <boolProp name="McpClientConfig.connectOnStartup">false</boolProp>
+        <boolProp name="McpClientConfig.keepServerRunningAfterTest">false</boolProp>
+        <stringProp name="McpClientConfig.serverLaunchCommand"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchArgs"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchEnv"></stringProp>
+        <stringProp name="McpClientConfig.serverReadyHost">localhost</stringProp>
+        <longProp name="McpClientConfig.serverReadyPort">3001</longProp>
+        <longProp name="McpClientConfig.serverStartupWaitMs">60000</longProp>
+      </com.blazemeter.jmeter.mcp.config.McpClientConfig>
+      <hashTree/>
+      <com.blazemeter.jmeter.mcp.config.McpClientConfig guiclass="com.blazemeter.jmeter.mcp.config.gui.McpClientConfigGui" testclass="com.blazemeter.jmeter.mcp.config.McpClientConfig" testname="SSE /sse">
+        <stringProp name="McpClientConfig.name">ssePath</stringProp>
+        <stringProp name="McpClientConfig.transport">SSE</stringProp>
+        <stringProp name="McpClientConfig.serverUrl">http://127.0.0.1:18080</stringProp>
+        <stringProp name="McpClientConfig.endpoint">/sse</stringProp>
+        <stringProp name="McpClientConfig.stdioCommand"></stringProp>
+        <stringProp name="McpClientConfig.stdioArgs"></stringProp>
+        <stringProp name="McpClientConfig.stdioEnv"></stringProp>
+        <stringProp name="McpClientConfig.clientName">jmeter-mcp-plugin</stringProp>
+        <stringProp name="McpClientConfig.clientVersion">0.1.0</stringProp>
+        <longProp name="McpClientConfig.requestTimeoutMs">8000</longProp>
+        <longProp name="McpClientConfig.initTimeoutMs">8000</longProp>
+        <boolProp name="McpClientConfig.connectOnStartup">false</boolProp>
+        <boolProp name="McpClientConfig.keepServerRunningAfterTest">true</boolProp>
+        <stringProp name="McpClientConfig.serverLaunchCommand"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchArgs"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchEnv"></stringProp>
+        <stringProp name="McpClientConfig.serverReadyHost">127.0.0.1</stringProp>
+        <longProp name="McpClientConfig.serverReadyPort">18080</longProp>
+        <longProp name="McpClientConfig.serverStartupWaitMs">60000</longProp>
+      </com.blazemeter.jmeter.mcp.config.McpClientConfig>
+      <hashTree/>
+      <com.blazemeter.jmeter.mcp.config.McpClientConfig guiclass="com.blazemeter.jmeter.mcp.config.gui.McpClientConfigGui" testclass="com.blazemeter.jmeter.mcp.config.McpClientConfig" testname="SSE /mcp">
+        <stringProp name="McpClientConfig.name">sseMcp</stringProp>
+        <stringProp name="McpClientConfig.transport">SSE</stringProp>
+        <stringProp name="McpClientConfig.serverUrl">http://127.0.0.1:18080</stringProp>
+        <stringProp name="McpClientConfig.endpoint">/mcp</stringProp>
+        <stringProp name="McpClientConfig.stdioCommand"></stringProp>
+        <stringProp name="McpClientConfig.stdioArgs"></stringProp>
+        <stringProp name="McpClientConfig.stdioEnv"></stringProp>
+        <stringProp name="McpClientConfig.clientName">jmeter-mcp-plugin</stringProp>
+        <stringProp name="McpClientConfig.clientVersion">0.1.0</stringProp>
+        <longProp name="McpClientConfig.requestTimeoutMs">8000</longProp>
+        <longProp name="McpClientConfig.initTimeoutMs">8000</longProp>
+        <boolProp name="McpClientConfig.connectOnStartup">false</boolProp>
+        <boolProp name="McpClientConfig.keepServerRunningAfterTest">true</boolProp>
+        <stringProp name="McpClientConfig.serverLaunchCommand"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchArgs"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchEnv"></stringProp>
+        <stringProp name="McpClientConfig.serverReadyHost">127.0.0.1</stringProp>
+        <longProp name="McpClientConfig.serverReadyPort">18080</longProp>
+        <longProp name="McpClientConfig.serverStartupWaitMs">60000</longProp>
+      </com.blazemeter.jmeter.mcp.config.McpClientConfig>
+      <hashTree/>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="HTTP dual">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="Ping HTTP dual">
+          <stringProp name="McpSampler.configName">httpDual</stringProp>
+          <stringProp name="McpSampler.operation">PING</stringProp>
+          <stringProp name="McpSampler.toolName"></stringProp>
+          <stringProp name="McpSampler.argumentsJson">{}</stringProp>
+          <stringProp name="McpSampler.resourceUri"></stringProp>
+          <stringProp name="McpSampler.promptName"></stringProp>
+        </com.blazemeter.jmeter.mcp.sampler.McpSampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="HTTP strict">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="Ping HTTP strict">
+          <stringProp name="McpSampler.configName">httpStrict</stringProp>
+          <stringProp name="McpSampler.operation">PING</stringProp>
+          <stringProp name="McpSampler.toolName"></stringProp>
+          <stringProp name="McpSampler.argumentsJson">{}</stringProp>
+          <stringProp name="McpSampler.resourceUri"></stringProp>
+          <stringProp name="McpSampler.promptName"></stringProp>
+        </com.blazemeter.jmeter.mcp.sampler.McpSampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="STDIO dual">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="Ping STDIO dual">
+          <stringProp name="McpSampler.configName">stdioDual</stringProp>
+          <stringProp name="McpSampler.operation">PING</stringProp>
+          <stringProp name="McpSampler.toolName"></stringProp>
+          <stringProp name="McpSampler.argumentsJson">{}</stringProp>
+          <stringProp name="McpSampler.resourceUri"></stringProp>
+          <stringProp name="McpSampler.promptName"></stringProp>
+        </com.blazemeter.jmeter.mcp.sampler.McpSampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="STDIO strict">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="Ping STDIO strict">
+          <stringProp name="McpSampler.configName">stdioStrict</stringProp>
+          <stringProp name="McpSampler.operation">PING</stringProp>
+          <stringProp name="McpSampler.toolName"></stringProp>
+          <stringProp name="McpSampler.argumentsJson">{}</stringProp>
+          <stringProp name="McpSampler.resourceUri"></stringProp>
+          <stringProp name="McpSampler.promptName"></stringProp>
+        </com.blazemeter.jmeter.mcp.sampler.McpSampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="SSE /sse">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="Ping SSE /sse">
+          <stringProp name="McpSampler.configName">ssePath</stringProp>
+          <stringProp name="McpSampler.operation">PING</stringProp>
+          <stringProp name="McpSampler.toolName"></stringProp>
+          <stringProp name="McpSampler.argumentsJson">{}</stringProp>
+          <stringProp name="McpSampler.resourceUri"></stringProp>
+          <stringProp name="McpSampler.promptName"></stringProp>
+        </com.blazemeter.jmeter.mcp.sampler.McpSampler>
+        <hashTree/>
+      </hashTree>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="SSE /mcp">
+        <intProp name="ThreadGroup.num_threads">1</intProp>
+        <intProp name="ThreadGroup.ramp_time">1</intProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+          <stringProp name="LoopController.loops">1</stringProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="Ping SSE /mcp">
+          <stringProp name="McpSampler.configName">sseMcp</stringProp>
+          <stringProp name="McpSampler.operation">PING</stringProp>
+          <stringProp name="McpSampler.toolName"></stringProp>
+          <stringProp name="McpSampler.argumentsJson">{}</stringProp>
+          <stringProp name="McpSampler.resourceUri"></stringProp>
+          <stringProp name="McpSampler.promptName"></stringProp>
+        </com.blazemeter.jmeter.mcp.sampler.McpSampler>
+        <hashTree/>
+      </hashTree>
+      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
+        <objProp>
+          <name>saveConfig</name>
+          <value class="SampleSaveConfiguration">
+            <time>true</time>
+            <latency>true</latency>
+            <timestamp>true</timestamp>
+            <success>true</success>
+            <label>true</label>
+            <code>true</code>
+            <message>true</message>
+            <threadName>true</threadName>
+            <dataType>true</dataType>
+            <encoding>false</encoding>
+            <assertions>true</assertions>
+            <subresults>true</subresults>
+            <responseData>true</responseData>
+            <samplerData>true</samplerData>
+            <xml>false</xml>
+            <fieldNames>true</fieldNames>
+            <responseHeaders>true</responseHeaders>
+            <requestHeaders>false</requestHeaders>
+            <responseDataOnError>false</responseDataOnError>
+            <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+            <assertionsResultsToSave>0</assertionsResultsToSave>
+            <bytes>true</bytes>
+            <sentBytes>true</sentBytes>
+            <url>true</url>
+            <threadCounts>true</threadCounts>
+            <idleTime>true</idleTime>
+            <connectTime>true</connectTime>
+          </value>
+        </objProp>
+        <stringProp name="filename"></stringProp>
+      </ResultCollector>
+      <hashTree/>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
