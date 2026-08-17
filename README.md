@@ -26,26 +26,26 @@ The plugin ships three JMeter components:
 ## Index
 
 * **Install**
-  * Prerequisites
-  * Installation using Plugins Manager
-  * Updating
-  * Manual installation
-  * Verifying the installation
-* **How the plugin works**
-  * Concept
-  * Client lifecycle
-* **Creating the test plan**
-  * Option A: STDIO (local subprocess)
-  * Option B: SSE or Streamable HTTP (in-plan server)
-  * Option C: SSE or Streamable HTTP (external server)
-* **MCP Client Config**
-* **MCP Server Process**
-* **MCP Sampler**
-  * Operations
-* **Results**
-* **Examples**
-* **Building from source**
-* **License**
+  * [Prerequisites](#prerequisites)
+  * [Installation using Plugins Manager](#installation-using-plugins-manager)
+  * [Updating](#updating)
+  * [Manual installation](#manual-installation)
+  * [Verifying the installation](#verifying-the-installation)
+* **[How the plugin works](#how-the-plugin-works)**
+  * [Concept](#concept)
+  * [Client lifecycle](#client-lifecycle)
+* **[Creating the test plan](#creating-the-test-plan)**
+  * [Option A: STDIO (local subprocess)](#option-a-stdio-local-subprocess)
+  * [Option B: SSE or Streamable HTTP (in-plan server)](#option-b-sse-or-streamable-http-in-plan-server)
+  * [Option C: SSE or Streamable HTTP (external server)](#option-c-sse-or-streamable-http-external-server)
+* **[MCP Client Config](#mcp-client-config)**
+* **[MCP Server Process](#mcp-server-process)**
+* **[MCP Sampler](#mcp-sampler)**
+  * [Operations](#operations)
+* **[Results](#results)**
+* **[Examples](#examples)**
+* **[Building from source](#building-from-source)**
+* **[License](#license)**
 
 ## Prerequisites
 
