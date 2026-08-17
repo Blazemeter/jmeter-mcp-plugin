@@ -74,9 +74,9 @@ public class McpServerProcess extends ConfigTestElement
   }
 
   /**
-   * Does not stop the subprocess immediately.
-   * {@link com.blazemeter.jmeter.mcp.config.McpClientConfig} stops it after closing
-   * HTTP/SSE clients; a short deferred stop covers server-only plans.
+   * Does not stop the subprocess immediately. A short deferred stop covers server-only
+   * plans and lets HTTP/SSE clients close first; {@link McpServerProcessManager#stop()}
+   * also closes any remaining HTTP MCP clients before destroying the process.
    */
   private void stopServer() {
     McpServerProcessManager manager = McpServerProcessManager.getInstance();

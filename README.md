@@ -112,7 +112,7 @@ For HTTP-based demos, **bzm - MCP Server Process** can start a reference MCP ser
 - **Connect on test start** (off by default): when enabled, the registry schedules connect + `initialize()` on a background thread during `testStarted()` so the engine thread is not blocked. Samplers wait for that connect to finish if it is still in progress. When disabled, the **first** **bzm - MCP Sampler** that references the same **Variable Name** performs connect + init. Later samples reuse the same client. The client is thread-safe across JMeter threads.
 - **Sample elapsed time** measures only the MCP operation (for example `PING`, `CALL_TOOL`). Client connect and `initialize()` are excluded from elapsed time; any wait to obtain the client is recorded separately as **Connect Time** on the sample (visible in listeners such as View Results Tree).
 - Both modes keep the JMeter GUI responsive: the run timer and Stop button activate immediately instead of waiting for a slow STDIO `initialize()` on the engine thread.
-- On `testEnded()` the Config Element triggers `closeGracefully()` via the registry and clears deferred settings for that name. When **bzm - MCP Server Process** started the HTTP/SSE server, the client config stops that subprocess *after* the client closes (JMeter listener order is not guaranteed).
+- On `testEnded()` the Config Element triggers `closeGracefully()` via the registry and clears deferred settings for that name (unless **Keep server running after test ends** is enabled). When the managed HTTP/SSE server process is stopped, any remaining HTTP MCP clients are closed first so the long-lived SSE/stream is torn down cleanly before the subprocess is killed.
 
 ## Creating the test plan
 
@@ -201,7 +201,7 @@ You can set listeners to evaluate the results of your tests. The **View Results 
 
 Each successful sample splits metadata and payload:
 
-- **Response headers** — `X-MCP-Operation` (for example `PING`, `CALL_TOOL`) and `X-MCP-Session`, a JSON object with the MCP handshake from `initialize`: `protocolVersion`, `capabilities`, `serverInfo`, and full `instructions` text (the same content the SDK used to print at INFO under `LifecycleInitializer`; the plugin silences that logger to WARN so it does not flood JMeter logs).
+- **Response headers** — `X-MCP-Operation` (for example `PING`, `CALL_TOOL`) and `X-MCP-Session`, a JSON object with the MCP handshake from `initialize`: `protocolVersion`, `capabilities`, `serverInfo`, and full `instructions` text (the same content the SDK used to print at INFO under `LifecycleInitializer`; the plugin silences that logger to ERROR so it does not flood JMeter logs).
 - **Response body** — pretty-printed JSON for the operation result only (for example ping payload, `listTools` result, or `callTool` content).
 
 **Connect Time** on the sample reflects any wait to obtain or initialize the shared client; **Elapsed** reflects only the MCP operation itself.

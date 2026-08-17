@@ -2,6 +2,7 @@ package com.blazemeter.jmeter.mcp.server;
 
 import com.blazemeter.jmeter.mcp.McpRuntimeCleanup;
 import com.blazemeter.jmeter.mcp.client.McpClientFactory;
+import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
 import com.blazemeter.jmeter.mcp.util.CommandResolver;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -159,6 +160,8 @@ public final class McpServerProcessManager {
     if (p == null) {
       return;
     }
+    // Tear down HTTP/SSE clients first so the SDK does not log EOF on the open stream.
+    McpClientRegistry.getInstance().closeHttpClientsBeforeServerStop();
     LOG.info("Stopping MCP server process (pid {})", p.pid());
     destroyProcessTree(p);
   }

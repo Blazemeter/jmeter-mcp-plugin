@@ -96,6 +96,31 @@ class McpClientRegistryTest {
   }
 
   @Test
+  void shouldClearHttpDeferredClientsWhenCloseBeforeServerStop() {
+    McpClientSettings sse = new McpClientSettings();
+    sse.setName(CLIENT);
+    sse.setTransport(TransportType.SSE);
+    sse.setServerUrl("http://127.0.0.1:1");
+
+    McpClientSettings stdio = new McpClientSettings();
+    stdio.setName("registry-stdio-client");
+    stdio.setTransport(TransportType.STDIO);
+    stdio.setStdioCommand("");
+
+    McpClientRegistry registry = McpClientRegistry.getInstance();
+    registry.registerDeferred(CLIENT, sse);
+    registry.registerDeferred("registry-stdio-client", stdio);
+
+    registry.closeHttpClientsBeforeServerStop();
+
+    assertNull(registry.getOrConnect(CLIENT));
+    // STDIO registration must survive — only HTTP transports are closed for server stop.
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        () -> registry.getOrConnect("registry-stdio-client"));
+    assertTrue(ex.getMessage().contains("command"));
+  }
+
+  @Test
   @EnabledIf("com.blazemeter.jmeter.mcp.client.McpClientTestFixtures#isNpxAvailable")
   void shouldConnectStdioClientWhenRegisterDeferredAndNpxAvailable() {
     String name = "registry-stdio-client";
