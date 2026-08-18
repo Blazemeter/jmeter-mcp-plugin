@@ -1,6 +1,7 @@
 package com.blazemeter.jmeter.mcp.config.gui;
 
 import com.blazemeter.jmeter.commons.BlazemeterLabsLogo;
+import com.blazemeter.jmeter.mcp.client.McpClientErrors;
 import com.blazemeter.jmeter.mcp.client.McpClientLauncher;
 import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
 import com.blazemeter.jmeter.mcp.client.McpClientSettings;
@@ -296,10 +297,11 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
           refreshConnectionStatus();
         } catch (Exception ex) {
           Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+          RuntimeException explained = McpClientErrors.explainInitialize(cause);
           connectionStatusLabel.setText("Not connected");
           JOptionPane.showMessageDialog(McpClientConfigGui.this,
-              cause.getMessage(),
-              http ? "Connect failed" : "Start Now failed",
+              explained.getMessage(),
+              McpClientErrors.dialogTitle(explained, http),
               JOptionPane.ERROR_MESSAGE);
         }
       }

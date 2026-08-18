@@ -1,6 +1,7 @@
 package com.blazemeter.jmeter.mcp.sampler;
 
 import com.blazemeter.jmeter.mcp.client.JsonMappers;
+import com.blazemeter.jmeter.mcp.client.McpClientErrors;
 import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
 import com.helger.commons.annotation.VisibleForTesting;
 import io.modelcontextprotocol.client.McpSyncClient;
@@ -92,10 +93,12 @@ public class McpSampler extends AbstractSampler {
       }
       return sample;
     } catch (Exception ex) {
-      LOG.warn("MCP sampler '{}' failed: {}", getName(), ex.getMessage(), ex);
+      RuntimeException explained = McpClientErrors.explainInitialize(ex);
+      LOG.warn("MCP sampler '{}' failed: {}", getName(), explained.getMessage(), ex);
       result.setSuccessful(false);
-      result.setResponseCode(ex.getClass().getSimpleName());
-      result.setResponseMessage(ex.getMessage() == null ? ex.toString() : ex.getMessage());
+      result.setResponseCode(explained.getClass().getSimpleName());
+      result.setResponseMessage(
+          explained.getMessage() == null ? explained.toString() : explained.getMessage());
       result.setResponseData(stackTrace(ex), "UTF-8");
       return result;
     } finally {
