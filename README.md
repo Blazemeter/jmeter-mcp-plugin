@@ -232,6 +232,16 @@ target/jmeter-mcp-plugin-${project.version}.jar
 
 Artifacts land under **`target/`**. Compilation uses the **`jmeter.version`** declared in **`pom.xml`**; at runtime install the packaged JAR against the JMeter build you intend to run and validate with a short smoke plan.
 
+Releases are also published to Maven Central:
+
+```xml
+<dependency>
+    <groupId>com.blazemeter.jmeter</groupId>
+    <artifactId>jmeter-mcp-plugin</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
+
 ## License
 
 Distributed under the **Apache License 2.0**. See **`LICENSE`** in this repository.
