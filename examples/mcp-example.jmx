@@ -38,9 +38,17 @@ printed JSON response body.</stringProp>
         <longProp name="McpClientConfig.requestTimeoutMs">30000</longProp>
         <longProp name="McpClientConfig.initTimeoutMs">30000</longProp>
         <boolProp name="McpClientConfig.connectOnStartup">true</boolProp>
+        <stringProp name="McpClientConfig.requestHeaders"></stringProp>
+        <boolProp name="McpClientConfig.keepServerRunningAfterTest">false</boolProp>
+        <stringProp name="McpClientConfig.serverLaunchCommand"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchArgs"></stringProp>
+        <stringProp name="McpClientConfig.serverLaunchEnv"></stringProp>
+        <stringProp name="McpClientConfig.serverReadyHost">localhost</stringProp>
+        <longProp name="McpClientConfig.serverReadyPort">3001</longProp>
+        <longProp name="McpClientConfig.serverStartupWaitMs">60000</longProp>
       </com.blazemeter.jmeter.mcp.config.McpClientConfig>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group" enabled="true">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -51,7 +59,7 @@ printed JSON response body.</stringProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Ping" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Ping">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">PING</stringProp>
           <stringProp name="McpSampler.toolName"></stringProp>
@@ -81,7 +89,7 @@ printed JSON response body.</stringProp>
           </ResponseAssertion>
           <hashTree/>
         </hashTree>
-        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP List Tools" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP List Tools">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">LIST_TOOLS</stringProp>
           <stringProp name="McpSampler.toolName"></stringProp>
@@ -119,7 +127,7 @@ printed JSON response body.</stringProp>
           </JSONPathAssertion>
           <hashTree/>
         </hashTree>
-        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">CALL_TOOL</stringProp>
           <stringProp name="McpSampler.toolName">echo</stringProp>
@@ -148,7 +156,7 @@ printed JSON response body.</stringProp>
           </JSONPathAssertion>
           <hashTree/>
         </hashTree>
-        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>

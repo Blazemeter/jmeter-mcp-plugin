@@ -1,8 +1,10 @@
 package com.blazemeter.jmeter.mcp.sampler;
 
 import com.blazemeter.jmeter.mcp.client.JsonMappers;
+import com.blazemeter.jmeter.mcp.client.McpAuthorizationException;
 import com.blazemeter.jmeter.mcp.client.McpClientErrors;
 import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
+import com.blazemeter.jmeter.mcp.client.McpProtocolNotSupportedException;
 import com.helger.commons.annotation.VisibleForTesting;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -94,12 +96,19 @@ public class McpSampler extends AbstractSampler {
       return sample;
     } catch (Exception ex) {
       RuntimeException explained = McpClientErrors.explainInitialize(ex);
-      LOG.warn("MCP sampler '{}' failed: {}", getName(), explained.getMessage(), ex);
+      boolean concise =
+          explained instanceof McpAuthorizationException
+              || explained instanceof McpProtocolNotSupportedException;
+      if (concise) {
+        LOG.warn("MCP sampler '{}' failed: {}", getName(), explained.getMessage());
+      } else {
+        LOG.warn("MCP sampler '{}' failed: {}", getName(), explained.getMessage(), ex);
+      }
       result.setSuccessful(false);
       result.setResponseCode(explained.getClass().getSimpleName());
       result.setResponseMessage(
           explained.getMessage() == null ? explained.toString() : explained.getMessage());
-      result.setResponseData(stackTrace(ex), "UTF-8");
+      result.setResponseData(concise ? explained.getMessage() : stackTrace(ex), "UTF-8");
       return result;
     } finally {
       if (sampleStarted[0]) {

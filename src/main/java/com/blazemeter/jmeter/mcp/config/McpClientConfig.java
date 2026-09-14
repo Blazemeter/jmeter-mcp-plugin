@@ -7,6 +7,7 @@ import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
 import com.blazemeter.jmeter.mcp.util.Strings;
 import org.apache.jmeter.config.ConfigElement;
 import org.apache.jmeter.config.ConfigTestElement;
+import org.apache.jmeter.engine.util.CompoundVariable;
 import org.apache.jmeter.testelement.TestStateListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ public class McpClientConfig extends ConfigTestElement
   public static final String TRANSPORT = "McpClientConfig.transport";
   public static final String SERVER_URL = "McpClientConfig.serverUrl";
   public static final String ENDPOINT = "McpClientConfig.endpoint";
+  public static final String REQUEST_HEADERS = "McpClientConfig.requestHeaders";
   public static final String STDIO_COMMAND = "McpClientConfig.stdioCommand";
   public static final String STDIO_ARGS = "McpClientConfig.stdioArgs";
   public static final String STDIO_ENV = "McpClientConfig.stdioEnv";
@@ -55,11 +57,14 @@ public class McpClientConfig extends ConfigTestElement
     s.setName(getPropertyAsString(NAME, "mcpClient"));
     s.setTransport(TransportType.fromString(getPropertyAsString(TRANSPORT,
         TransportType.STDIO.name())));
-    s.setServerUrl(getPropertyAsString(SERVER_URL, ""));
-    s.setEndpoint(getPropertyAsString(ENDPOINT, ""));
-    s.setStdioCommand(Strings.trimToDefault(getPropertyAsString(STDIO_COMMAND, ""), ""));
-    s.setStdioArgs(Strings.trimToDefault(getPropertyAsString(STDIO_ARGS, ""), ""));
-    s.setStdioEnv(getPropertyAsString(STDIO_ENV, ""));
+    // testStarted() has no thread variables, so mixed strings like
+    // "Authorization=Bearer ${MCP_BEARER}" stay literal unless we evaluate them.
+    s.setServerUrl(resolve(getPropertyAsString(SERVER_URL, "")));
+    s.setEndpoint(resolve(getPropertyAsString(ENDPOINT, "")));
+    s.setRequestHeaders(resolve(getPropertyAsString(REQUEST_HEADERS, "")));
+    s.setStdioCommand(Strings.trimToDefault(resolve(getPropertyAsString(STDIO_COMMAND, "")), ""));
+    s.setStdioArgs(Strings.trimToDefault(resolve(getPropertyAsString(STDIO_ARGS, "")), ""));
+    s.setStdioEnv(resolve(getPropertyAsString(STDIO_ENV, "")));
     s.setClientName(getPropertyAsString(CLIENT_NAME, "jmeter-mcp-plugin"));
     s.setClientVersion(getPropertyAsString(CLIENT_VERSION, "0.1.0"));
     s.setRequestTimeoutMillis(getPropertyAsLong(REQUEST_TIMEOUT_MS, 30_000L));
@@ -74,6 +79,27 @@ public class McpClientConfig extends ConfigTestElement
     s.setServerReadyPort((int) getPropertyAsLong(SERVER_READY_PORT, 3001L));
     s.setServerStartupWaitMs(getPropertyAsLong(SERVER_STARTUP_WAIT_MS, 60_000L));
     return s;
+  }
+
+  /**
+   * Evaluate {@code ${...}} / {@code ${__P(...)}} in config strings.
+   *
+   * <p>{@link #testStarted()} runs before thread-level {@code ValueReplacer}, so
+   * {@code getPropertyAsString} leaves mixed strings (e.g. {@code Authorization=Bearer
+   * ${MCP_BEARER}}) unresolved. {@link CompoundVariable} still resolves {@code __P}
+   * and JMeter properties, which is what CLI {@code -Jmcp.bearer=} needs.
+   */
+  static String resolve(String raw) {
+    if (raw == null || raw.isEmpty() || !raw.contains("${")) {
+      return raw == null ? "" : raw;
+    }
+    try {
+      String resolved = new CompoundVariable(raw).execute();
+      return resolved != null ? resolved : raw;
+    } catch (Exception ex) {
+      LOG.debug("Could not resolve JMeter functions in config value: {}", ex.getMessage());
+      return raw;
+    }
   }
 
   @Override

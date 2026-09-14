@@ -61,6 +61,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
   private final JTextField serverUrlField = new JTextField(30);
   private final JLabel httpEndpointLabel = new JLabel("Endpoint (default /mcp):");
   private final JTextField endpointField = new JTextField(20);
+  private final JTextArea requestHeadersArea = EnvVarsField.newTextArea();
   private final JTextField stdioCommandField = new JTextField(20);
   private final JTextField stdioArgsField = new JTextField(30);
   private final JTextArea stdioEnvArea = EnvVarsField.newTextArea();
@@ -135,6 +136,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     connectOnStartupCheck.setName("mcpClientConfig.connectOnStartup");
     serverUrlField.setName("mcpClientConfig.serverUrl");
     endpointField.setName("mcpClientConfig.endpoint");
+    requestHeadersArea.setName("mcpClientConfig.requestHeaders");
     stdioCommandField.setName("mcpClientConfig.stdioCommand");
     stdioArgsField.setName("mcpClientConfig.stdioArgs");
     stdioEnvArea.setName("mcpClientConfig.stdioEnv");
@@ -187,6 +189,10 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     c.gridx = 1;
     c.weightx = 1;
     p.add(endpointField, c);
+    JScrollPane headersScroll = makeScrollPane(requestHeadersArea);
+    EnvVarsField.applyScrollPaneSize(headersScroll, requestHeadersArea);
+    GridBagForm.addLabelAndMultilineField(
+        p, c, 2, "Headers (KEY=value per line):", headersScroll);
     return p;
   }
 
@@ -346,6 +352,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     s.setTransport(selected != null ? selected : TransportType.STDIO);
     s.setServerUrl(serverUrlField.getText());
     s.setEndpoint(endpointField.getText());
+    s.setRequestHeaders(requestHeadersArea.getText());
     s.setStdioCommand(stdioCommandField.getText());
     s.setStdioArgs(stdioArgsField.getText());
     s.setStdioEnv(stdioEnvArea.getText());
@@ -411,6 +418,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
 
     cfg.setProperty(McpClientConfig.SERVER_URL, serverUrlField.getText());
     cfg.setProperty(McpClientConfig.ENDPOINT, endpointField.getText());
+    cfg.setProperty(McpClientConfig.REQUEST_HEADERS, requestHeadersArea.getText());
     cfg.setProperty(McpClientConfig.STDIO_COMMAND, stdioCommandField.getText());
     cfg.setProperty(McpClientConfig.STDIO_ARGS, stdioArgsField.getText());
     cfg.setProperty(McpClientConfig.STDIO_ENV, stdioEnvArea.getText());
@@ -449,6 +457,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
             TransportType.STDIO.name())));
     serverUrlField.setText(cfg.getPropertyAsString(McpClientConfig.SERVER_URL, ""));
     endpointField.setText(cfg.getPropertyAsString(McpClientConfig.ENDPOINT, ""));
+    requestHeadersArea.setText(cfg.getPropertyAsString(McpClientConfig.REQUEST_HEADERS, ""));
     stdioCommandField.setText(cfg.getPropertyAsString(McpClientConfig.STDIO_COMMAND, ""));
     stdioArgsField.setText(cfg.getPropertyAsString(McpClientConfig.STDIO_ARGS, ""));
     stdioEnvArea.setText(cfg.getPropertyAsString(McpClientConfig.STDIO_ENV, ""));
@@ -485,6 +494,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     transportCombo.setSelectedItem(TransportType.STDIO);
     serverUrlField.setText("http://localhost:8080");
     endpointField.setText("");
+    requestHeadersArea.setText("");
     stdioCommandField.setText("");
     stdioArgsField.setText("");
     stdioEnvArea.setText("");

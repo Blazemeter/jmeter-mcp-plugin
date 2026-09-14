@@ -138,6 +138,15 @@ For HTTP-based demos, **bzm - MCP Server Process** can start a reference MCP ser
 
 Same as Option B, but run the MCP HTTP/SSE server yourself (outside JMeter or in another process) and point **Server URL** at it. Skip **bzm - MCP Server Process** if the server is already running.
 
+Hosted BlazeMeter MCP requires `Authorization: Bearer <apiKeyId>:<apiKeySecret>` on every request. Put that in **Headers** (one `KEY=value` per line), for example:
+
+```
+Authorization=Bearer id:secret
+confirmation-mode=DISABLE
+```
+
+JMeter GUI does not inherit `-J` properties from a previous CLI run. If Headers uses `${__P(mcp.bearer,)}`, set `mcp.bearer` in `user.properties` or paste the token; otherwise the plugin sends an empty `Authorization` header and the server returns 401.
+
 After any option, add assertions to validate MCP responses, timers to pace calls, and listeners or result files as needed — whether the plan is a one-off check or an automated suite.
 
 ## MCP Client Config
@@ -154,6 +163,7 @@ Add with **Add → Config Element → bzm - MCP Client Config**.
 | **Env** | Extra environment variables, one `KEY=value` per line. Lines starting with `#` are ignored. | *(empty)* |
 | **Server URL** | Base URL of the MCP HTTP server (for example `http://localhost:3001`). Required for SSE and Streamable HTTP. | *(empty)* |
 | **Endpoint** | Optional path override. For Streamable HTTP, leave blank to use the SDK default (`/mcp`). For SSE, set the server’s SSE path when it differs from the SDK default. | *(empty)* |
+| **Headers** | Extra HTTP request headers for SSE and Streamable HTTP, one `KEY=value` per line (same syntax as STDIO Env). Use this for hosted MCP `Authorization: Bearer id:secret` and optional `confirmation-mode`. Lines starting with `#` are ignored. | *(empty)* |
 | **Client Name** | MCP client identity sent during `initialize`. | `jmeter-mcp-plugin` |
 | **Client Version** | Version string paired with Client Name in `initialize`. | `0.1.0` |
 | **Request Timeout (ms)** | Per-request timeout for MCP RPCs and HTTP connect timeout. | `30000` |

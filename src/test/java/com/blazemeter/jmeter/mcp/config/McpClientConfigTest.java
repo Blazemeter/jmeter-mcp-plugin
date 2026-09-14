@@ -4,11 +4,29 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.blazemeter.jmeter.mcp.JMeterTestUtils;
 import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class McpClientConfigTest {
+
+  @BeforeAll
+  static void jmeterEnv() {
+    JMeterTestUtils.setupJmeterEnv();
+  }
+
+  @Test
+  void shouldLeaveLiteralHeadersUnchangedWhenToSettings() {
+    McpClientConfig config = new McpClientConfig();
+    config.setProperty(
+        McpClientConfig.REQUEST_HEADERS,
+        "Authorization=Bearer token\nconfirmation-mode=DISABLE");
+    assertEquals(
+        "Authorization=Bearer token\nconfirmation-mode=DISABLE",
+        config.toSettings().getRequestHeaders());
+  }
 
   @Test
   void shouldMapAllPropertiesWhenToSettings() {
@@ -17,6 +35,7 @@ class McpClientConfigTest {
     config.setProperty(McpClientConfig.TRANSPORT, TransportType.SSE.name());
     config.setProperty(McpClientConfig.SERVER_URL, "http://localhost:9090");
     config.setProperty(McpClientConfig.ENDPOINT, "/events");
+    config.setProperty(McpClientConfig.REQUEST_HEADERS, "Authorization=Bearer token\nconfirmation-mode=DISABLE");
     config.setProperty(McpClientConfig.STDIO_COMMAND, "npx");
     config.setProperty(McpClientConfig.STDIO_ARGS, "-y pkg");
     config.setProperty(McpClientConfig.STDIO_ENV, "FOO=bar");
@@ -31,6 +50,8 @@ class McpClientConfigTest {
     assertEquals(TransportType.SSE, settings.getTransport());
     assertEquals("http://localhost:9090", settings.getServerUrl());
     assertEquals("/events", settings.getEndpoint());
+    assertEquals(
+        "Authorization=Bearer token\nconfirmation-mode=DISABLE", settings.getRequestHeaders());
     assertEquals("npx", settings.getStdioCommand());
     assertEquals("-y pkg", settings.getStdioArgs());
     assertEquals("FOO=bar", settings.getStdioEnv());
@@ -47,6 +68,7 @@ class McpClientConfigTest {
     McpClientSettings settings = config.toSettings();
     assertEquals("mcpClient", settings.getName());
     assertEquals(TransportType.STDIO, settings.getTransport());
+    assertEquals("", settings.getRequestHeaders());
     assertEquals("jmeter-mcp-plugin", settings.getClientName());
     assertEquals("0.1.0", settings.getClientVersion());
     assertEquals(30_000L, settings.getRequestTimeoutMillis());

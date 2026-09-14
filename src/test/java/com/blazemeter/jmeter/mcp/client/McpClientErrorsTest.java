@@ -104,6 +104,23 @@ class McpClientErrorsTest {
   }
 
   @Test
+  void shouldRewriteHttp401AsAuthorizationException() {
+    RuntimeException http = wrapInitialize("Authorization error when sending message");
+
+    assertTrue(McpClientErrors.isAuthorizationFailure(http));
+    RuntimeException explained = McpClientErrors.explainInitialize(http);
+    assertInstanceOf(McpAuthorizationException.class, explained);
+    assertEquals(McpAuthorizationException.USER_MESSAGE, explained.getMessage());
+    assertEquals("Authorization failed", McpClientErrors.dialogTitle(explained, true));
+  }
+
+  @Test
+  void shouldReturnSameInstanceWhenAlreadyAuthorizationException() {
+    McpAuthorizationException already = new McpAuthorizationException("empty token");
+    assertSame(already, McpClientErrors.explainInitialize(already));
+  }
+
+  @Test
   void shouldWrapCheckedExceptionWhenNotMcpV2() {
     Exception checked = new Exception("connect failed");
     RuntimeException explained = McpClientErrors.explainInitialize(checked);
