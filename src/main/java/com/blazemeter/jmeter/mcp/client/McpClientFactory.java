@@ -166,7 +166,8 @@ public final class McpClientFactory {
       if (token.isEmpty()) {
         throw new McpAuthorizationException(
             "Authorization header is empty. Hosted BlazeMeter MCP requires "
-                + "Authorization=Bearer <apiKeyId>:<apiKeySecret> in MCP Client Config Headers.");
+                + "Authorization=Bearer <apiKeyId>:<apiKeySecret> on the HTTP Header Manager "
+                + "referenced by MCP Client Config.");
       }
     }
   }

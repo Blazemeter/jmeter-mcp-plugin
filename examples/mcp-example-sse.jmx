@@ -11,6 +11,9 @@ Prerequisites:
 
 This plan starts @modelcontextprotocol/server-everything in SSE mode via
 &quot;MCP Server Process&quot;, then connects with &quot;MCP Client Config (SSE)&quot;.
+That client config is associated with &quot;HTTP Header Manager - mcpClient&quot;
+(only this config; other client configs are not). Put hosted-MCP credentials
+there, for example Authorization = Bearer id:secret.
 Do not use MCP Client Config with STDIO to launch an HTTP/SSE server — STDIO
 is only for servers that speak MCP over stdin/stdout.
 
@@ -54,7 +57,21 @@ See also: mcp-example.jmx (STDIO), mcp-example-streamable-http.jmx.</stringProp>
         <longProp name="McpClientConfig.serverReadyPort">3001</longProp>
         <longProp name="McpClientConfig.serverStartupWaitMs">60000</longProp>
         <stringProp name="McpClientConfig.requestHeaders"></stringProp>
+        <collectionProp name="McpClientConfig.headerManagerPath">
+          <stringProp name="764597751">Test Plan</stringProp>
+          <stringProp name="-1504015616">MCP SSE Example Test Plan</stringProp>
+          <stringProp name="1676994148">HTTP Header Manager - mcpClient</stringProp>
+        </collectionProp>
       </com.blazemeter.jmeter.mcp.config.McpClientConfig>
+      <hashTree/>
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager - mcpClient" enabled="true">
+        <collectionProp name="HeaderManager.headers">
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">X-MCP-Client</stringProp>
+            <stringProp name="Header.value">jmeter-mcp-plugin</stringProp>
+          </elementProp>
+        </collectionProp>
+      </HeaderManager>
       <hashTree/>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group" enabled="true">
         <intProp name="ThreadGroup.num_threads">1</intProp>

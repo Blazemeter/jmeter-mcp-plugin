@@ -46,6 +46,7 @@ printed JSON response body.</stringProp>
         <stringProp name="McpClientConfig.serverReadyHost">localhost</stringProp>
         <longProp name="McpClientConfig.serverReadyPort">3001</longProp>
         <longProp name="McpClientConfig.serverStartupWaitMs">60000</longProp>
+        <collectionProp name="McpClientConfig.headerManagerPath"/>
       </com.blazemeter.jmeter.mcp.config.McpClientConfig>
       <hashTree/>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group" enabled="true">

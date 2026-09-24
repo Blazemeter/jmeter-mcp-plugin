@@ -5,10 +5,15 @@ import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
 import com.blazemeter.jmeter.mcp.util.Strings;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import org.apache.jmeter.config.ConfigElement;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.engine.util.CompoundVariable;
 import org.apache.jmeter.testelement.TestStateListener;
+import org.apache.jmeter.testelement.property.CollectionProperty;
+import org.apache.jmeter.testelement.property.JMeterProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +36,11 @@ public class McpClientConfig extends ConfigTestElement
   public static final String SERVER_URL = "McpClientConfig.serverUrl";
   public static final String ENDPOINT = "McpClientConfig.endpoint";
   public static final String REQUEST_HEADERS = "McpClientConfig.requestHeaders";
+  /**
+   * Node path of the HTTP Header Manager to reuse, stored like
+   * {@code ModuleController.node_path}. When this is set it replaces {@link #REQUEST_HEADERS}.
+   */
+  public static final String HEADER_MANAGER_PATH = "McpClientConfig.headerManagerPath";
   public static final String STDIO_COMMAND = "McpClientConfig.stdioCommand";
   public static final String STDIO_ARGS = "McpClientConfig.stdioArgs";
   public static final String STDIO_ENV = "McpClientConfig.stdioEnv";
@@ -61,7 +71,7 @@ public class McpClientConfig extends ConfigTestElement
     // "Authorization=Bearer ${MCP_BEARER}" stay literal unless we evaluate them.
     s.setServerUrl(resolve(getPropertyAsString(SERVER_URL, "")));
     s.setEndpoint(resolve(getPropertyAsString(ENDPOINT, "")));
-    s.setRequestHeaders(resolve(getPropertyAsString(REQUEST_HEADERS, "")));
+    s.setRequestHeaders(resolve(requestHeaders()));
     s.setStdioCommand(Strings.trimToDefault(resolve(getPropertyAsString(STDIO_COMMAND, "")), ""));
     s.setStdioArgs(Strings.trimToDefault(resolve(getPropertyAsString(STDIO_ARGS, "")), ""));
     s.setStdioEnv(resolve(getPropertyAsString(STDIO_ENV, "")));
@@ -79,6 +89,44 @@ public class McpClientConfig extends ConfigTestElement
     s.setServerReadyPort((int) getPropertyAsLong(SERVER_READY_PORT, 3001L));
     s.setServerStartupWaitMs(getPropertyAsLong(SERVER_STARTUP_WAIT_MS, 60_000L));
     return s;
+  }
+
+  /**
+   * Names of the referenced HTTP Header Manager, from the tree root. Empty when headers are still
+   * the legacy {@link #REQUEST_HEADERS} text.
+   */
+  public List<String> getHeaderManagerPath() {
+    JMeterProperty prop = getProperty(HEADER_MANAGER_PATH);
+    if (!(prop instanceof CollectionProperty collection)) {
+      return List.of();
+    }
+    List<String> path = new ArrayList<>();
+    for (JMeterProperty item : collection) {
+      String value = item.getStringValue();
+      path.add(value == null ? "" : value);
+    }
+    return path;
+  }
+
+  public void setHeaderManagerPath(List<String> path) {
+    List<String> names = path == null ? List.of() : path;
+    setProperty(new CollectionProperty(HEADER_MANAGER_PATH, new ArrayList<>(names)));
+  }
+
+  private String requestHeaders() {
+    List<String> path = getHeaderManagerPath();
+    if (path.isEmpty()) {
+      return getPropertyAsString(REQUEST_HEADERS, "");
+    }
+    Optional<String> fromManager = HeaderManagerLookup.findHeaderLines(path);
+    if (fromManager.isPresent()) {
+      return fromManager.get();
+    }
+    LOG.warn(
+        "MCP client '{}': header manager [{}] was not found; request headers were not applied",
+        getPropertyAsString(NAME, "mcpClient"),
+        String.join(" > ", path));
+    return "";
   }
 
   /**

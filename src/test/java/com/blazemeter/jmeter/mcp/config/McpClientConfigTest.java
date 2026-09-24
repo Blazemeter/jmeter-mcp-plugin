@@ -7,6 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.blazemeter.jmeter.mcp.JMeterTestUtils;
 import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
+import java.lang.reflect.Field;
+import java.util.List;
+import org.apache.jmeter.config.ConfigTestElement;
+import org.apache.jmeter.engine.StandardJMeterEngine;
+import org.apache.jmeter.protocol.http.control.Header;
+import org.apache.jmeter.protocol.http.control.HeaderManager;
+import org.apache.jmeter.testelement.TestElement;
+import org.apache.jmeter.threads.JMeterContextService;
+import org.apache.jorphan.collections.HashTree;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -60,6 +69,69 @@ class McpClientConfigTest {
     assertEquals(12_000L, settings.getRequestTimeoutMillis());
     assertEquals(8_000L, settings.getInitializationTimeoutMillis());
     assertTrue(settings.isConnectOnStartup());
+  }
+
+  @Test
+  void shouldRoundTripHeaderManagerPath() {
+    McpClientConfig config = new McpClientConfig();
+    config.setHeaderManagerPath(List.of("Test Plan", "Thread Group", "HTTP Header Manager"));
+    assertEquals(
+        List.of("Test Plan", "Thread Group", "HTTP Header Manager"),
+        config.getHeaderManagerPath());
+  }
+
+  @Test
+  void shouldUseHeaderManagerInsteadOfInlineHeadersWhenPathResolves() throws Exception {
+    HeaderManager manager = new HeaderManager();
+    manager.setName("HTTP Header Manager");
+    manager.add(new Header("Authorization", "Bearer from-manager"));
+    manager.add(new Header("confirmation-mode", "DISABLE"));
+    HashTree tree = planContaining(manager);
+
+    McpClientConfig config = new McpClientConfig();
+    config.setProperty(McpClientConfig.NAME, "clientA");
+    config.setProperty(
+        McpClientConfig.REQUEST_HEADERS, "Authorization=Bearer stale");
+    config.setHeaderManagerPath(List.of("Root", "Test Plan", "HTTP Header Manager"));
+
+    Field testField = StandardJMeterEngine.class.getDeclaredField("test");
+    testField.setAccessible(true);
+    StandardJMeterEngine engine = JMeterContextService.getContext().getEngine();
+    Object previous = testField.get(engine);
+    testField.set(engine, tree);
+    try {
+      assertEquals(
+          "Authorization=Bearer from-manager\nconfirmation-mode=DISABLE",
+          config.toSettings().getRequestHeaders());
+    } finally {
+      testField.set(engine, previous);
+    }
+  }
+
+  @Test
+  void shouldSendNoHeadersWhenReferencedManagerIsMissing() throws Exception {
+    McpClientConfig config = new McpClientConfig();
+    config.setProperty(McpClientConfig.REQUEST_HEADERS, "Authorization=Bearer stale");
+    config.setHeaderManagerPath(List.of("Root", "Test Plan", "Missing Manager"));
+
+    Field testField = StandardJMeterEngine.class.getDeclaredField("test");
+    testField.setAccessible(true);
+    StandardJMeterEngine engine = JMeterContextService.getContext().getEngine();
+    Object previous = testField.get(engine);
+    testField.set(engine, new HashTree());
+    try {
+      assertEquals("", config.toSettings().getRequestHeaders());
+    } finally {
+      testField.set(engine, previous);
+    }
+  }
+
+  private static HashTree planContaining(HeaderManager manager) {
+    TestElement plan = new ConfigTestElement();
+    plan.setName("Test Plan");
+    HashTree root = new HashTree();
+    root.add(plan).add(manager);
+    return root;
   }
 
   @Test

@@ -93,6 +93,17 @@ public final class McpClientRegistry {
   }
 
   /**
+   * Settings registered for {@code name}, including the HTTP headers sent on SSE and Streamable
+   * HTTP. {@code null} when no config has registered that name.
+   */
+  public McpClientSettings getSettings(String name) {
+    if (name == null || name.isBlank()) {
+      return null;
+    }
+    return deferredSettings.get(name);
+  }
+
+  /**
   * Connect immediately from the GUI (Start Now). Replaces any existing client
   * registered under the same name.
   */

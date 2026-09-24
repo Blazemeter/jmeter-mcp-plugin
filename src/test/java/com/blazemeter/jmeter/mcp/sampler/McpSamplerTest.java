@@ -84,6 +84,27 @@ class McpSamplerTest {
   }
 
   @Test
+  void shouldShowConfiguredHeadersAsRequestHeaders() {
+    McpClientSettings settings = new McpClientSettings();
+    settings.setName(CLIENT);
+    settings.setTransport(TransportType.STDIO);
+    settings.setStdioCommand("   ");
+    settings.setRequestHeaders(
+        "Authorization=Bearer token\n# ignored\nX-MCP-Client=jmeter-mcp-plugin");
+    McpClientRegistry.getInstance().registerDeferred(CLIENT, settings);
+
+    McpSampler sampler = new McpSampler();
+    sampler.setProperty(McpSampler.CONFIG_NAME, CLIENT);
+    sampler.setProperty(McpSampler.OPERATION, McpOperation.PING.name());
+
+    SampleResult result = sampler.sample(null);
+
+    assertEquals(
+        "Authorization: Bearer token\nX-MCP-Client: jmeter-mcp-plugin",
+        result.getRequestHeaders());
+  }
+
+  @Test
   void shouldMarkSampleFailureWhenClientSettingsAreInvalid() {
     McpClientSettings settings = new McpClientSettings();
     settings.setName(CLIENT);

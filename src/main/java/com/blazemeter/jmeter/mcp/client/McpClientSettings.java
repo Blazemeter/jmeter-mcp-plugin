@@ -18,7 +18,10 @@ public final class McpClientSettings implements Serializable {
   // HTTP-based transports
   private String serverUrl = "";
   private String endpoint = "";
-  /** Extra HTTP headers, one KEY=value per line (same syntax as stdio env). */
+  /**
+   * Extra HTTP headers, one KEY=value per line. Filled from the referenced HTTP Header Manager,
+   * or from legacy inline text when no manager is selected.
+   */
   private String requestHeaders = "";
 
   // STDIO transport
