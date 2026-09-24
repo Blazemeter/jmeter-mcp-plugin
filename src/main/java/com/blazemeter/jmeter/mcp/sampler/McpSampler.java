@@ -1,8 +1,11 @@
 package com.blazemeter.jmeter.mcp.sampler;
 
 import com.blazemeter.jmeter.mcp.client.JsonMappers;
+import com.blazemeter.jmeter.mcp.client.McpAuthorizationException;
 import com.blazemeter.jmeter.mcp.client.McpClientErrors;
 import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
+import com.blazemeter.jmeter.mcp.client.McpClientSettings;
+import com.blazemeter.jmeter.mcp.client.McpProtocolNotSupportedException;
 import com.helger.commons.annotation.VisibleForTesting;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -49,6 +52,7 @@ public class McpSampler extends AbstractSampler {
     SampleResult result = new SampleResult();
     result.setSampleLabel(getName());
     result.setSamplerData(samplerData(configName, operation));
+    result.setRequestHeaders(requestHeadersFor(configName));
     result.setDataType(SampleResult.TEXT);
     result.setContentType(CONTENT_TYPE_JSON);
 
@@ -94,18 +98,61 @@ public class McpSampler extends AbstractSampler {
       return sample;
     } catch (Exception ex) {
       RuntimeException explained = McpClientErrors.explainInitialize(ex);
-      LOG.warn("MCP sampler '{}' failed: {}", getName(), explained.getMessage(), ex);
+      boolean concise =
+          explained instanceof McpAuthorizationException
+              || explained instanceof McpProtocolNotSupportedException;
+      if (concise) {
+        LOG.warn("MCP sampler '{}' failed: {}", getName(), explained.getMessage());
+      } else {
+        LOG.warn("MCP sampler '{}' failed: {}", getName(), explained.getMessage(), ex);
+      }
       result.setSuccessful(false);
       result.setResponseCode(explained.getClass().getSimpleName());
       result.setResponseMessage(
           explained.getMessage() == null ? explained.toString() : explained.getMessage());
-      result.setResponseData(stackTrace(ex), "UTF-8");
+      result.setResponseData(concise ? explained.getMessage() : stackTrace(ex), "UTF-8");
       return result;
     } finally {
       if (sampleStarted[0]) {
         result.sampleEnd();
       }
     }
+  }
+
+  /**
+   * HTTP headers configured on the client (Header Manager), in the {@code Name: value} form View
+   * Results Tree shows under Request headers.
+   */
+  private static String requestHeadersFor(String configName) {
+    McpClientSettings settings = McpClientRegistry.getInstance().getSettings(configName);
+    if (settings == null) {
+      return "";
+    }
+    return toRequestHeaderBlock(settings.getRequestHeaders());
+  }
+
+  @VisibleForTesting
+  static String toRequestHeaderBlock(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return "";
+    }
+    StringBuilder headers = new StringBuilder();
+    for (String line : raw.split("\\r?\\n")) {
+      String trimmed = line.trim();
+      if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+        continue;
+      }
+      int eq = trimmed.indexOf('=');
+      if (eq <= 0) {
+        continue;
+      }
+      String name = trimmed.substring(0, eq).trim();
+      String value = trimmed.substring(eq + 1).trim();
+      if (!name.isEmpty()) {
+        appendHeader(headers, name, value);
+      }
+    }
+    return headers.toString();
   }
 
   /**

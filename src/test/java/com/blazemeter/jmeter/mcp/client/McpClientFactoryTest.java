@@ -124,6 +124,7 @@ class McpClientFactoryTest {
     settings.setTransport(TransportType.STREAMABLE_HTTP);
     settings.setServerUrl("http://127.0.0.1:8080");
     settings.setEndpoint("/mcp");
+    settings.setRequestHeaders("Authorization=Bearer test-token");
 
     assertInstanceOf(
         HttpClientStreamableHttpTransport.class,
@@ -224,5 +225,44 @@ class McpClientFactoryTest {
         assertThrows(IllegalArgumentException.class, () -> McpClientFactory.buildAndInitialize(s));
     assertTrue(ex.getMessage().contains("Streamable HTTP"));
     assertTrue(ex.getMessage().contains("server URL"));
+  }
+
+  @Test
+  void shouldRejectEmptyBearerWhenAuthorizationHeaderHasNoToken() {
+    McpClientSettings s = streamableHttpWithHeaders("Authorization=Bearer ");
+    McpAuthorizationException ex =
+        assertThrows(
+            McpAuthorizationException.class,
+            () -> McpClientFactoryTestSupport.buildTransport(s));
+    assertTrue(ex.getMessage().contains("empty"));
+  }
+
+  @Test
+  void shouldRejectUnresolvedVariableWhenAuthorizationHeaderContainsJmeterFunction() {
+    McpClientSettings s =
+        streamableHttpWithHeaders("Authorization=Bearer ${MCP_BEARER}");
+    McpAuthorizationException ex =
+        assertThrows(
+            McpAuthorizationException.class,
+            () -> McpClientFactoryTestSupport.buildTransport(s));
+    assertTrue(ex.getMessage().contains("${MCP_BEARER}"));
+  }
+
+  @Test
+  void shouldBuildStreamableHttpWhenAuthorizationHeaderHasToken() {
+    McpClientSettings s =
+        streamableHttpWithHeaders(
+            "Authorization=Bearer id:secret\nconfirmation-mode=DISABLE");
+    assertInstanceOf(
+        HttpClientStreamableHttpTransport.class,
+        McpClientFactoryTestSupport.buildTransport(s));
+  }
+
+  private static McpClientSettings streamableHttpWithHeaders(String headers) {
+    McpClientSettings s = new McpClientSettings();
+    s.setTransport(TransportType.STREAMABLE_HTTP);
+    s.setServerUrl("http://127.0.0.1:8080");
+    s.setRequestHeaders(headers);
+    return s;
   }
 }

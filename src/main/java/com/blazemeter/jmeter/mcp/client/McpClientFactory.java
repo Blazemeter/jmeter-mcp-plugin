@@ -8,6 +8,7 @@ import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
 import io.modelcontextprotocol.client.transport.ServerParameters;
 import io.modelcontextprotocol.client.transport.StdioClientTransport;
+import io.modelcontextprotocol.client.transport.customizer.McpSyncHttpClientRequestCustomizer;
 import io.modelcontextprotocol.json.McpJsonMapper;
 import io.modelcontextprotocol.spec.McpClientTransport;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -17,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Builds {@link McpSyncClient} instances from a declarative {@link McpClientSettings} value. The
@@ -116,6 +118,7 @@ public final class McpClientFactory {
     if (s.getEndpoint() != null && !s.getEndpoint().isBlank()) {
       builder.sseEndpoint(s.getEndpoint());
     }
+    applyRequestHeaders(builder::httpRequestCustomizer, s);
     return builder.build();
   }
 
@@ -128,7 +131,45 @@ public final class McpClientFactory {
     if (s.getEndpoint() != null && !s.getEndpoint().isBlank()) {
       builder.endpoint(s.getEndpoint());
     }
+    applyRequestHeaders(builder::httpRequestCustomizer, s);
     return builder.build();
+  }
+
+  private static void applyRequestHeaders(
+      Consumer<McpSyncHttpClientRequestCustomizer> setCustomizer, McpClientSettings s) {
+    Map<String, String> headers = parseEnv(s.getRequestHeaders());
+    if (headers.isEmpty()) {
+      return;
+    }
+    validateAuthorizationHeader(headers);
+    setCustomizer.accept(
+        (request, method, endpoint, body, context) -> headers.forEach(request::header));
+  }
+
+  static void validateAuthorizationHeader(Map<String, String> headers) {
+    for (Map.Entry<String, String> entry : headers.entrySet()) {
+      if (!"Authorization".equalsIgnoreCase(entry.getKey())) {
+        continue;
+      }
+      String value = entry.getValue() == null ? "" : entry.getValue().trim();
+      if (value.contains("${")) {
+        throw new McpAuthorizationException(
+            "Authorization header still contains an unresolved JMeter variable ("
+                + value
+                + "). Replace ${...} with a real token, or set the JMeter property that variable "
+                + "reads (GUI runs do not inherit -J flags from a previous CLI invocation).");
+      }
+      String token = value;
+      if (value.regionMatches(true, 0, "Bearer", 0, 6)) {
+        token = value.substring(6).trim();
+      }
+      if (token.isEmpty()) {
+        throw new McpAuthorizationException(
+            "Authorization header is empty. Hosted BlazeMeter MCP requires "
+                + "Authorization=Bearer <apiKeyId>:<apiKeySecret> on the HTTP Header Manager "
+                + "referenced by MCP Client Config.");
+      }
+    }
   }
 
   private static String requireUrl(McpClientSettings s, String label) {
