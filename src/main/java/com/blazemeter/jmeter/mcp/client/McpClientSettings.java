@@ -18,6 +18,11 @@ public final class McpClientSettings implements Serializable {
   // HTTP-based transports
   private String serverUrl = "";
   private String endpoint = "";
+  /**
+   * Extra HTTP headers, one KEY=value per line. Filled from the referenced HTTP Header Manager,
+   * or from legacy inline text when no manager is selected.
+   */
+  private String requestHeaders = "";
 
   // STDIO transport
   private String stdioCommand = "";
@@ -77,6 +82,14 @@ public final class McpClientSettings implements Serializable {
 
   public void setEndpoint(String endpoint) {
     this.endpoint = endpoint;
+  }
+
+  public String getRequestHeaders() {
+    return requestHeaders;
+  }
+
+  public void setRequestHeaders(String requestHeaders) {
+    this.requestHeaders = requestHeaders;
   }
 
   public String getStdioCommand() {

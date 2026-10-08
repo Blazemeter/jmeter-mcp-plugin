@@ -11,6 +11,9 @@ Prerequisites:
 
 This plan starts @modelcontextprotocol/server-everything in Streamable HTTP mode via
 &quot;MCP Server Process&quot;, then connects with &quot;MCP Client Config (Streamable HTTP)&quot;.
+That client config is associated with &quot;HTTP Header Manager - mcpClient&quot;
+(only this config; other client configs are not). Put hosted-MCP credentials
+there, for example Authorization = Bearer id:secret.
 Do not use MCP Client Config with STDIO to launch an HTTP server — STDIO is only
 for servers that speak MCP over stdin/stdout.
 
@@ -19,8 +22,6 @@ See also: mcp-example.jmx (STDIO), mcp-example-sse.jmx.</stringProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
-      <boolProp name="TestPlan.functional_mode">false</boolProp>
-      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
     </TestPlan>
     <hashTree>
       <com.blazemeter.jmeter.mcp.server.McpServerProcess guiclass="com.blazemeter.jmeter.mcp.server.gui.McpServerProcessGui" testclass="com.blazemeter.jmeter.mcp.server.McpServerProcess" testname="MCP Server (Streamable HTTP)">
@@ -30,7 +31,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-sse.jmx.</stringProp>
         <stringProp name="McpServerProcess.readyHost">localhost</stringProp>
         <longProp name="McpServerProcess.readyPort">3001</longProp>
         <longProp name="McpServerProcess.startupWaitMs">60000</longProp>
-        <boolProp name="McpServerProcess.keepServerRunningAfterTest">true</boolProp>
+        <boolProp name="McpServerProcess.keepServerRunningAfterTest">false</boolProp>
       </com.blazemeter.jmeter.mcp.server.McpServerProcess>
       <hashTree/>
       <com.blazemeter.jmeter.mcp.config.McpClientConfig guiclass="com.blazemeter.jmeter.mcp.config.gui.McpClientConfigGui" testclass="com.blazemeter.jmeter.mcp.config.McpClientConfig" testname="MCP Client Config (Streamable HTTP)">
@@ -45,17 +46,32 @@ See also: mcp-example.jmx (STDIO), mcp-example-sse.jmx.</stringProp>
         <stringProp name="McpClientConfig.clientVersion">0.1.0</stringProp>
         <longProp name="McpClientConfig.requestTimeoutMs">30000</longProp>
         <longProp name="McpClientConfig.initTimeoutMs">30000</longProp>
-        <boolProp name="McpClientConfig.connectOnStartup">true</boolProp>
-        <boolProp name="McpClientConfig.keepServerRunningAfterTest">true</boolProp>
+        <boolProp name="McpClientConfig.connectOnStartup">false</boolProp>
+        <boolProp name="McpClientConfig.keepServerRunningAfterTest">false</boolProp>
         <stringProp name="McpClientConfig.serverLaunchCommand"></stringProp>
         <stringProp name="McpClientConfig.serverLaunchArgs"></stringProp>
         <stringProp name="McpClientConfig.serverLaunchEnv"></stringProp>
         <stringProp name="McpClientConfig.serverReadyHost">localhost</stringProp>
         <longProp name="McpClientConfig.serverReadyPort">3001</longProp>
         <longProp name="McpClientConfig.serverStartupWaitMs">60000</longProp>
+        <stringProp name="McpClientConfig.requestHeaders"></stringProp>
+        <collectionProp name="McpClientConfig.headerManagerPath">
+          <stringProp name="764597751">Test Plan</stringProp>
+          <stringProp name="-670057015">MCP Streamable HTTP Example Test Plan</stringProp>
+          <stringProp name="447211086">HTTP Header Manager - mcpClient2</stringProp>
+        </collectionProp>
       </com.blazemeter.jmeter.mcp.config.McpClientConfig>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group">
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager - mcpClient">
+        <collectionProp name="HeaderManager.headers">
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">X-MCP-Client</stringProp>
+            <stringProp name="Header.value">jmeter-mcp-plugin</stringProp>
+          </elementProp>
+        </collectionProp>
+      </HeaderManager>
+      <hashTree/>
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="MCP Thread Group" enabled="true">
         <intProp name="ThreadGroup.num_threads">1</intProp>
         <intProp name="ThreadGroup.ramp_time">1</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -66,7 +82,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-sse.jmx.</stringProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Ping" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Ping">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">PING</stringProp>
           <stringProp name="McpSampler.toolName"></stringProp>
@@ -134,7 +150,7 @@ See also: mcp-example.jmx (STDIO), mcp-example-sse.jmx.</stringProp>
           </JSONPathAssertion>
           <hashTree/>
         </hashTree>
-        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)" enabled="true">
+        <com.blazemeter.jmeter.mcp.sampler.McpSampler guiclass="com.blazemeter.jmeter.mcp.sampler.gui.McpSamplerGui" testclass="com.blazemeter.jmeter.mcp.sampler.McpSampler" testname="MCP Call Tool (echo)">
           <stringProp name="McpSampler.configName">mcpClient</stringProp>
           <stringProp name="McpSampler.operation">CALL_TOOL</stringProp>
           <stringProp name="McpSampler.toolName">echo</stringProp>

@@ -51,6 +51,8 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
   private static final String CARD_STDIO = "STDIO";
 
   private final JTextField nameField = new JTextField(20);
+  private final HeaderManagerField headerManagerField =
+      new HeaderManagerField(this::clientConfigName);
   private final JComboBox<TransportType> transportCombo =
       new JComboBox<>(TransportType.values());
   private final JCheckBox connectOnStartupCheck =
@@ -163,6 +165,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     GridBagForm.addLabelAndField(p, c, 1, "Transport:", transportCombo);
     GridBagForm.addLabelAndField(p, c, 2, "", connectOnStartupCheck);
     GridBagForm.addLabelAndField(p, c, 3, "", keepServerRunningAfterTestCheck);
+    GridBagForm.addLabelAndMultilineField(p, c, 4, "Header Manager:", headerManagerField);
     return p;
   }
 
@@ -346,6 +349,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     s.setTransport(selected != null ? selected : TransportType.STDIO);
     s.setServerUrl(serverUrlField.getText());
     s.setEndpoint(endpointField.getText());
+    s.setRequestHeaders(headersFromSelection());
     s.setStdioCommand(stdioCommandField.getText());
     s.setStdioArgs(stdioArgsField.getText());
     s.setStdioEnv(stdioEnvArea.getText());
@@ -362,6 +366,17 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     s.setServerReadyPort((int) GridBagForm.parseLong(serverReadyPortField.getText(), 3001L));
     s.setServerStartupWaitMs(GridBagForm.parseLong(serverStartupWaitField.getText(), 60_000L));
     return s;
+  }
+
+  private String clientConfigName() {
+    return nameField.getText();
+  }
+
+  private String headersFromSelection() {
+    McpClientConfig probe = new McpClientConfig();
+    probe.setProperty(McpClientConfig.NAME, nameField.getText());
+    headerManagerField.applyTo(probe);
+    return probe.toSettings().getRequestHeaders();
   }
 
   @Override
@@ -411,6 +426,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
 
     cfg.setProperty(McpClientConfig.SERVER_URL, serverUrlField.getText());
     cfg.setProperty(McpClientConfig.ENDPOINT, endpointField.getText());
+    headerManagerField.applyTo(cfg);
     cfg.setProperty(McpClientConfig.STDIO_COMMAND, stdioCommandField.getText());
     cfg.setProperty(McpClientConfig.STDIO_ARGS, stdioArgsField.getText());
     cfg.setProperty(McpClientConfig.STDIO_ENV, stdioEnvArea.getText());
@@ -449,6 +465,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
             TransportType.STDIO.name())));
     serverUrlField.setText(cfg.getPropertyAsString(McpClientConfig.SERVER_URL, ""));
     endpointField.setText(cfg.getPropertyAsString(McpClientConfig.ENDPOINT, ""));
+    headerManagerField.loadFrom(cfg);
     stdioCommandField.setText(cfg.getPropertyAsString(McpClientConfig.STDIO_COMMAND, ""));
     stdioArgsField.setText(cfg.getPropertyAsString(McpClientConfig.STDIO_ARGS, ""));
     stdioEnvArea.setText(cfg.getPropertyAsString(McpClientConfig.STDIO_ENV, ""));
@@ -485,6 +502,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     transportCombo.setSelectedItem(TransportType.STDIO);
     serverUrlField.setText("http://localhost:8080");
     endpointField.setText("");
+    headerManagerField.clear();
     stdioCommandField.setText("");
     stdioArgsField.setText("");
     stdioEnvArea.setText("");

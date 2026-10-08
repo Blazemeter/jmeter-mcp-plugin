@@ -8,6 +8,7 @@ import com.blazemeter.jmeter.mcp.JMeterTestUtils;
 import com.blazemeter.jmeter.mcp.SwingTestRunner;
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import com.blazemeter.jmeter.mcp.config.McpClientConfig;
+import java.util.List;
 import org.apache.jmeter.testelement.TestElement;
 import org.assertj.swing.fixture.FrameFixture;
 import org.junit.After;
@@ -130,6 +131,31 @@ public class McpClientConfigGuiIT {
     assertEquals(45_000L, saved.getPropertyAsLong(McpClientConfig.REQUEST_TIMEOUT_MS));
     assertEquals(5_000L, saved.getPropertyAsLong(McpClientConfig.INIT_TIMEOUT_MS));
     assertTrue(saved.getPropertyAsBoolean(McpClientConfig.CONNECT_ON_STARTUP));
+  }
+
+  @Test
+  public void shouldOfferSelectAndCreateHeaderManagerOnEachConfig() {
+    gui.clearGui();
+    frame.comboBox("mcpClientConfig.headerManager").requireSelection("(none)");
+    frame.button("mcpClientConfig.createHeaderManager").requireVisible();
+  }
+
+  @Test
+  public void shouldKeepLegacyHeadersWhenNoHeaderManagerIsSelected() {
+    McpClientConfig config = new McpClientConfig();
+    config.setProperty(McpClientConfig.TRANSPORT, TransportType.SSE.name());
+    config.setProperty(McpClientConfig.REQUEST_HEADERS, "Authorization=Bearer token");
+    gui.configure(config);
+
+    frame.comboBox("mcpClientConfig.transport").requireSelection(TransportType.SSE.name());
+    frame.button("mcpClientConfig.createHeaderManager").requireVisible();
+
+    McpClientConfig saved = new McpClientConfig();
+    gui.modifyTestElement(saved);
+    assertEquals(
+        "Authorization=Bearer token",
+        saved.getPropertyAsString(McpClientConfig.REQUEST_HEADERS));
+    assertEquals(List.of(), saved.getHeaderManagerPath());
   }
 
   @Test

@@ -126,6 +126,13 @@
             <version>${jmeter.version}</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Header Manager lives in the HTTP module, which JMeter already ships in lib/. -->
+        <dependency>
+            <groupId>org.apache.jmeter</groupId>
+            <artifactId>ApacheJMeter_http</artifactId>
+            <version>${jmeter.version}</version>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
