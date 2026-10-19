@@ -102,7 +102,7 @@ public class McpClientConfigGuiIT {
     initial.setProperty(McpClientConfig.SERVER_URL, "http://localhost:8080");
     initial.setProperty(McpClientConfig.ENDPOINT, "");
     initial.setProperty(McpClientConfig.CLIENT_NAME, "jmeter-mcp-plugin");
-    initial.setProperty(McpClientConfig.CLIENT_VERSION, "0.1.0");
+    initial.setProperty(McpClientConfig.CLIENT_VERSION, "1.0.0");
     initial.setProperty(McpClientConfig.REQUEST_TIMEOUT_MS, 30_000L);
     initial.setProperty(McpClientConfig.INIT_TIMEOUT_MS, 30_000L);
     initial.setProperty(McpClientConfig.CONNECT_ON_STARTUP, true);

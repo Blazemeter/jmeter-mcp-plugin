@@ -31,7 +31,7 @@ public final class McpClientSettings implements Serializable {
 
   // Client identity
   private String clientName = "jmeter-mcp-plugin";
-  private String clientVersion = "0.1.0";
+  private String clientVersion = "1.0.0";
 
   // Timeouts (milliseconds)
   private long requestTimeoutMillis = 30_000L;

@@ -160,7 +160,7 @@ Add with **Add → Config Element → bzm - MCP Client Config**.
 | **Endpoint** | Optional path override. For Streamable HTTP, leave blank to use the SDK default (`/mcp`). For SSE, set the server’s SSE path when it differs from the SDK default. | *(empty)* |
 | **Header Manager** | Header manager associated with this MCP Client Config only. Choose one from the list, or use **Create Header Manager** to add a new manager next to this config and select it here. Other client configs keep their own association. Applies to SSE and Streamable HTTP. Header values may use JMeter variables. Plans saved with the previous `KEY=value` text keep sending those headers until a manager is selected on that config. | *(none)* |
 | **Client Name** | MCP client identity sent during `initialize`. | `jmeter-mcp-plugin` |
-| **Client Version** | Version string paired with Client Name in `initialize`. | `0.1.0` |
+| **Client Version** | Version string paired with Client Name in `initialize`. | `1.0.0` |
 | **Request Timeout (ms)** | Per-request timeout for MCP RPCs and HTTP connect timeout. | `30000` |
 | **Init Timeout (ms)** | Maximum time allowed for the `initialize` handshake. | `30000` |
 
@@ -245,7 +245,7 @@ Releases are also published to Maven Central:
 <dependency>
     <groupId>com.blazemeter.jmeter</groupId>
     <artifactId>jmeter-mcp-plugin</artifactId>
-    <version>0.1.0</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 

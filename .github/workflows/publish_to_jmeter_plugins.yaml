@@ -17,7 +17,7 @@ jobs:
         with:
           forked-repository: https://github.com/Abstracta/jmeter-plugins.git
           plugin-artifact-name: jmeter-mcp-plugin
-          plugin-id: bzm-mcp
+          plugin-id: bzm-mcp-v1
           changes: ${{ inputs.changes }}
           token: ${{ secrets.GH_TOKEN }}
 

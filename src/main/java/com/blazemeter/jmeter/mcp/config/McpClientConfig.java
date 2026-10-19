@@ -76,7 +76,7 @@ public class McpClientConfig extends ConfigTestElement
     s.setStdioArgs(Strings.trimToDefault(resolve(getPropertyAsString(STDIO_ARGS, "")), ""));
     s.setStdioEnv(resolve(getPropertyAsString(STDIO_ENV, "")));
     s.setClientName(getPropertyAsString(CLIENT_NAME, "jmeter-mcp-plugin"));
-    s.setClientVersion(getPropertyAsString(CLIENT_VERSION, "0.1.0"));
+    s.setClientVersion(getPropertyAsString(CLIENT_VERSION, "1.0.0"));
     s.setRequestTimeoutMillis(getPropertyAsLong(REQUEST_TIMEOUT_MS, 30_000L));
     s.setInitializationTimeoutMillis(getPropertyAsLong(INIT_TIMEOUT_MS, 30_000L));
     s.setConnectOnStartup(getPropertyAsBoolean(CONNECT_ON_STARTUP, false));

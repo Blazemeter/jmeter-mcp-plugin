@@ -45,7 +45,7 @@ public final class McpClientFactory {
     McpSchema.Implementation clientInfo =
         new McpSchema.Implementation(
             Strings.blankToDefault(settings.getClientName(), "jmeter-mcp-plugin"),
-            Strings.blankToDefault(settings.getClientVersion(), "0.1.0"));
+            Strings.blankToDefault(settings.getClientVersion(), "1.0.0"));
 
     McpSyncClient client =
         McpClient.sync(transport)

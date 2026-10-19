@@ -7,7 +7,7 @@
 
     <groupId>com.blazemeter.jmeter</groupId>
     <artifactId>jmeter-mcp-plugin</artifactId>
-    <version>0.1.0</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>JMeter MCP Plugin</name>

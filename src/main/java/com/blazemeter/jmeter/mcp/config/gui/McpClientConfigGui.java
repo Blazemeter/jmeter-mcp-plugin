@@ -354,7 +354,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     s.setStdioArgs(stdioArgsField.getText());
     s.setStdioEnv(stdioEnvArea.getText());
     s.setClientName(Strings.trimToDefault(clientNameField.getText(), "jmeter-mcp-plugin"));
-    s.setClientVersion(Strings.trimToDefault(clientVersionField.getText(), "0.1.0"));
+    s.setClientVersion(Strings.trimToDefault(clientVersionField.getText(), "1.0.0"));
     s.setRequestTimeoutMillis(GridBagForm.parseLong(requestTimeoutField.getText(), 30_000L));
     s.setInitializationTimeoutMillis(GridBagForm.parseLong(initTimeoutField.getText(), 30_000L));
     s.setConnectOnStartup(connectOnStartupCheck.isSelected());
@@ -434,7 +434,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     cfg.setProperty(McpClientConfig.CLIENT_NAME,
         Strings.trimToDefault(clientNameField.getText(), "jmeter-mcp-plugin"));
     cfg.setProperty(McpClientConfig.CLIENT_VERSION,
-        Strings.trimToDefault(clientVersionField.getText(), "0.1.0"));
+        Strings.trimToDefault(clientVersionField.getText(), "1.0.0"));
     cfg.setProperty(McpClientConfig.REQUEST_TIMEOUT_MS,
         GridBagForm.parseLong(requestTimeoutField.getText(), 30_000L));
     cfg.setProperty(McpClientConfig.INIT_TIMEOUT_MS,
@@ -472,7 +472,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     clientNameField.setText(cfg.getPropertyAsString(McpClientConfig.CLIENT_NAME,
         "jmeter-mcp-plugin"));
     clientVersionField.setText(cfg.getPropertyAsString(McpClientConfig.CLIENT_VERSION,
-        "0.1.0"));
+        "1.0.0"));
     requestTimeoutField.setText(String.valueOf(
         cfg.getPropertyAsLong(McpClientConfig.REQUEST_TIMEOUT_MS, 30_000L)));
     initTimeoutField.setText(String.valueOf(
@@ -507,7 +507,7 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     stdioArgsField.setText("");
     stdioEnvArea.setText("");
     clientNameField.setText("jmeter-mcp-plugin");
-    clientVersionField.setText("0.1.0");
+    clientVersionField.setText("1.0.0");
     requestTimeoutField.setText("30000");
     initTimeoutField.setText("30000");
     connectOnStartupCheck.setSelected(false);

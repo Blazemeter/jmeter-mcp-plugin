@@ -142,7 +142,7 @@ class McpClientConfigTest {
     assertEquals(TransportType.STDIO, settings.getTransport());
     assertEquals("", settings.getRequestHeaders());
     assertEquals("jmeter-mcp-plugin", settings.getClientName());
-    assertEquals("0.1.0", settings.getClientVersion());
+    assertEquals("1.0.0", settings.getClientVersion());
     assertEquals(30_000L, settings.getRequestTimeoutMillis());
     assertEquals(30_000L, settings.getInitializationTimeoutMillis());
     assertFalse(settings.isConnectOnStartup());
