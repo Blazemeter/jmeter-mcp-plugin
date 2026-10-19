@@ -5,13 +5,15 @@ set -eo pipefail
 
 git fetch --tags --quiet
 VERSION="$1"
-PREV_TAG_COMMIT=$(git rev-list --tags --skip=1 --max-count=1 || true)
-if [ -z "$PREV_TAG_COMMIT" ]; then
+# Other version tags, excluding the one being published. `git rev-list --tags --skip=1`
+# walks every ancestor of a tag, so on the first release it returns the parent commit
+# and `git describe` fails before the JAR is uploaded.
+PREV_TAG=$(git tag --list 'v*' --sort=-v:refname | grep -vx "v${VERSION}" | head -n 1 || true)
+if [ -z "$PREV_TAG" ]; then
   echo "No previous release tag; accepting first release $VERSION"
   exit 0
 fi
-PREV_VERSION=$(git describe --abbrev=0 --tags "$PREV_TAG_COMMIT")
-PREV_VERSION=${PREV_VERSION#v}
+PREV_VERSION=${PREV_TAG#v}
 PREV_MAJOR="${PREV_VERSION%%.*}"
 PREV_VERSION="${PREV_VERSION#*.}"
 PREV_MINOR="${PREV_VERSION%%.*}"
