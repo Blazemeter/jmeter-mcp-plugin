@@ -8,13 +8,21 @@ import com.blazemeter.jmeter.mcp.JMeterTestUtils;
 import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.engine.StandardJMeterEngine;
+import org.apache.jmeter.engine.util.CompoundVariable;
+import org.apache.jmeter.functions.AbstractFunction;
+import org.apache.jmeter.functions.Function;
 import org.apache.jmeter.protocol.http.control.Header;
 import org.apache.jmeter.protocol.http.control.HeaderManager;
+import org.apache.jmeter.samplers.SampleResult;
+import org.apache.jmeter.samplers.Sampler;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.threads.JMeterContextService;
+import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.collections.HashTree;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -126,12 +134,82 @@ class McpClientConfigTest {
     }
   }
 
+  /**
+   * Unit tests do not ship {@code ApacheJMeter_functions}, so {@code __P} is registered here.
+   * A full JMeter install loads the real function the same way.
+   */
+  @SuppressWarnings("unchecked")
+  private static void registerPropertyFunction() throws Exception {
+    Field field = CompoundVariable.class.getDeclaredField("functions");
+    field.setAccessible(true);
+    Map<String, Class<? extends Function>> functions =
+        (Map<String, Class<? extends Function>>) field.get(null);
+    functions.putIfAbsent("__P", TestPropertyFunction.class);
+  }
+
+  /** Stand-in for JMeter {@code ${__P(name,default)}}. */
+  public static final class TestPropertyFunction extends AbstractFunction {
+
+    private CompoundVariable name;
+    private CompoundVariable fallback;
+
+    @Override
+    public String execute(SampleResult previousResult, Sampler currentSampler) {
+      String propertyName = name.execute();
+      String defaultValue = fallback == null ? propertyName : fallback.execute();
+      return JMeterUtils.getPropDefault(propertyName, defaultValue);
+    }
+
+    @Override
+    public void setParameters(Collection<CompoundVariable> parameters) {
+      CompoundVariable[] values = parameters.toArray(new CompoundVariable[0]);
+      name = values[0];
+      fallback = values.length > 1 ? values[1] : null;
+    }
+
+    @Override
+    public String getReferenceKey() {
+      return "__P";
+    }
+
+    @Override
+    public List<String> getArgumentDesc() {
+      return List.of();
+    }
+  }
+
   private static HashTree planContaining(HeaderManager manager) {
     TestElement plan = new ConfigTestElement();
     plan.setName("Test Plan");
     HashTree root = new HashTree();
     root.add(plan).add(manager);
     return root;
+  }
+
+  @Test
+  void shouldResolvePropertyFunctionInServerUrlWhenToSettings() throws Exception {
+    registerPropertyFunction();
+    String urlKey = "mcp.url.unit";
+    String endpointKey = "mcp.endpoint.unit";
+    JMeterUtils.getJMeterProperties().remove(urlKey);
+    JMeterUtils.getJMeterProperties().remove(endpointKey);
+    try {
+      McpClientConfig config = new McpClientConfig();
+      config.setProperty(
+          McpClientConfig.SERVER_URL,
+          "${__P(" + urlKey + ",https://mcp.perfectomobile.com)}");
+      config.setProperty(McpClientConfig.ENDPOINT, "${__P(" + endpointKey + ",/mcp)}");
+
+      McpClientSettings defaults = config.toSettings();
+      assertEquals("https://mcp.perfectomobile.com", defaults.getServerUrl());
+      assertEquals("/mcp", defaults.getEndpoint());
+
+      JMeterUtils.setProperty(urlKey, "https://mcp.example.test");
+      assertEquals("https://mcp.example.test", config.toSettings().getServerUrl());
+    } finally {
+      JMeterUtils.getJMeterProperties().remove(urlKey);
+      JMeterUtils.getJMeterProperties().remove(endpointKey);
+    }
   }
 
   @Test

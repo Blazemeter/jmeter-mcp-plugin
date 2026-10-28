@@ -134,10 +134,11 @@ public class McpClientConfig extends ConfigTestElement
    *
    * <p>{@link #testStarted()} runs before thread-level {@code ValueReplacer}, so
    * {@code getPropertyAsString} leaves mixed strings (e.g. {@code Authorization=Bearer
-   * ${MCP_BEARER}}) unresolved. {@link CompoundVariable} still resolves {@code __P}
-   * and JMeter properties, which is what CLI {@code -Jmcp.bearer=} needs.
+   * ${MCP_BEARER}}) unresolved. GUI Connect reads the same raw field text. {@link
+   * CompoundVariable} still resolves {@code __P} and JMeter properties, including the
+   * function default when the property is unset.
    */
-  static String resolve(String raw) {
+  public static String resolve(String raw) {
     if (raw == null || raw.isEmpty() || !raw.contains("${")) {
       return raw == null ? "" : raw;
     }
