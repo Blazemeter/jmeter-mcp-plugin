@@ -49,6 +49,8 @@ public final class McpClientRegistry {
   private static final Object STDIO_CONNECT_LOCK = new Object();
 
   private final Map<String, McpClientSettings> deferredSettings = new ConcurrentHashMap<>();
+  /** Placeholders expanded for the latest connect attempt. Not the registered templates. */
+  private final Map<String, McpClientSettings> resolvedSettings = new ConcurrentHashMap<>();
   private final Map<String, McpSyncClient> clients = new ConcurrentHashMap<>();
   private final Map<String, Object> connectLocks = new ConcurrentHashMap<>();
   private final Map<String, CompletableFuture<McpSyncClient>> pendingConnects =
@@ -101,6 +103,18 @@ public final class McpClientRegistry {
       return null;
     }
     return deferredSettings.get(name);
+  }
+
+  /**
+   * Settings from the latest connection attempt, with placeholders already expanded.
+   * {@code null} until the first attempt. Registered templates stay on
+   * {@link #getSettings(String)}.
+   */
+  public McpClientSettings getResolvedSettings(String name) {
+    if (name == null || name.isBlank()) {
+      return null;
+    }
+    return resolvedSettings.get(name);
   }
 
   /**
@@ -281,6 +295,10 @@ public final class McpClientRegistry {
     if (settings == null) {
       return null;
     }
+    // Snapshot the expanded values before initialize, including when it fails, so the sampler
+    // can report the headers from this attempt while deferredSettings keeps the templates.
+    McpClientSettings resolved = settings.withPlaceholdersResolved();
+    resolvedSettings.put(name, resolved);
     LOG.info("Connecting MCP client '{}' ({}, transport {})",
         name, reason, settings.getTransport());
     McpSdkLogSilencer.ensureApplied();
@@ -288,10 +306,10 @@ public final class McpClientRegistry {
     try {
       if (settings.getTransport() == TransportType.STDIO) {
         synchronized (STDIO_CONNECT_LOCK) {
-          client = McpClientFactory.buildAndInitialize(settings);
+          client = McpClientFactory.buildAndInitialize(resolved);
         }
       } else {
-        client = McpClientFactory.buildAndInitialize(settings);
+        client = McpClientFactory.buildAndInitialize(resolved);
       }
     } catch (RuntimeException ex) {
       if (client != null) {
@@ -320,6 +338,7 @@ public final class McpClientRegistry {
         pending.cancel(true);
       }
       deferredSettings.remove(name);
+      resolvedSettings.remove(name);
       McpSyncClient client = clients.remove(name);
       if (client != null) {
         closeQuietly(client);
@@ -384,6 +403,7 @@ public final class McpClientRegistry {
         pending.cancel(true);
       }
       deferredSettings.remove(name);
+      resolvedSettings.remove(name);
       McpSyncClient client = clients.remove(name);
       if (client != null) {
         closeAbruptly(client);

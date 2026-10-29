@@ -146,9 +146,11 @@ class McpClientConfigTest {
       McpClientSettings settings = new McpClientSettings();
       settings.setServerUrl("${mcp_url}");
       settings.setRequestHeaders("Authorization=Bearer ${mcp_bearer}");
-      settings.resolvePlaceholders();
-      assertEquals("https://mcp.perfectomobile.com", settings.getServerUrl());
-      assertEquals("Authorization=Bearer token-from-csv", settings.getRequestHeaders());
+      McpClientSettings resolved = settings.withPlaceholdersResolved();
+      assertEquals("${mcp_url}", settings.getServerUrl());
+      assertEquals("Authorization=Bearer ${mcp_bearer}", settings.getRequestHeaders());
+      assertEquals("https://mcp.perfectomobile.com", resolved.getServerUrl());
+      assertEquals("Authorization=Bearer token-from-csv", resolved.getRequestHeaders());
     } finally {
       JMeterContextService.getContext().setVariables(previous);
     }

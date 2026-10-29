@@ -214,10 +214,42 @@ public final class McpClientSettings implements Serializable {
   }
 
   /**
-   * Expand {@code ${mcp_bearer}} and {@code ${__P(...)}} using the current thread.
-   * CSV Data Set variables exist only after the thread starts, so this runs at connect time.
+   * Copy with {@code ${mcp_bearer}} and {@code ${__P(...)}} expanded on the current thread.
+   * CSV variables exist only after the thread starts, so callers do this at connect time.
+   * This object stays unchanged so a failed attempt can retry with the next CSV row.
    */
-  public void resolvePlaceholders() {
+  public McpClientSettings withPlaceholdersResolved() {
+    McpClientSettings copy = copy();
+    copy.resolvePlaceholders();
+    return copy;
+  }
+
+  private McpClientSettings copy() {
+    McpClientSettings copy = new McpClientSettings();
+    copy.name = name;
+    copy.transport = transport;
+    copy.serverUrl = serverUrl;
+    copy.endpoint = endpoint;
+    copy.requestHeaders = requestHeaders;
+    copy.stdioCommand = stdioCommand;
+    copy.stdioArgs = stdioArgs;
+    copy.stdioEnv = stdioEnv;
+    copy.clientName = clientName;
+    copy.clientVersion = clientVersion;
+    copy.requestTimeoutMillis = requestTimeoutMillis;
+    copy.initializationTimeoutMillis = initializationTimeoutMillis;
+    copy.connectOnStartup = connectOnStartup;
+    copy.keepServerRunningAfterTest = keepServerRunningAfterTest;
+    copy.serverLaunchCommand = serverLaunchCommand;
+    copy.serverLaunchArgs = serverLaunchArgs;
+    copy.serverLaunchEnv = serverLaunchEnv;
+    copy.serverReadyHost = serverReadyHost;
+    copy.serverReadyPort = serverReadyPort;
+    copy.serverStartupWaitMs = serverStartupWaitMs;
+    return copy;
+  }
+
+  private void resolvePlaceholders() {
     serverUrl = resolve(serverUrl);
     endpoint = resolve(endpoint);
     requestHeaders = resolve(requestHeaders);

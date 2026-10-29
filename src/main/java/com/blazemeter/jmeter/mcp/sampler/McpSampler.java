@@ -52,7 +52,6 @@ public class McpSampler extends AbstractSampler {
     SampleResult result = new SampleResult();
     result.setSampleLabel(getName());
     result.setSamplerData(samplerData(configName, operation));
-    result.setRequestHeaders(requestHeadersFor(configName));
     result.setDataType(SampleResult.TEXT);
     result.setContentType(CONTENT_TYPE_JSON);
 
@@ -116,6 +115,9 @@ public class McpSampler extends AbstractSampler {
       if (sampleStarted[0]) {
         result.sampleEnd();
       }
+      // Lazy connect expands ${...} inside withClient. Read headers after that so the first
+      // sample reports the values that were sent, not the CSV placeholder.
+      result.setRequestHeaders(requestHeadersFor(configName));
     }
   }
 
@@ -124,7 +126,11 @@ public class McpSampler extends AbstractSampler {
    * Results Tree shows under Request headers.
    */
   private static String requestHeadersFor(String configName) {
-    McpClientSettings settings = McpClientRegistry.getInstance().getSettings(configName);
+    McpClientRegistry registry = McpClientRegistry.getInstance();
+    McpClientSettings settings = registry.getResolvedSettings(configName);
+    if (settings == null) {
+      settings = registry.getSettings(configName);
+    }
     if (settings == null) {
       return "";
     }

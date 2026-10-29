@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.blazemeter.jmeter.mcp.JMeterTestUtils;
 import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
 import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.McpProtocolNotSupportedException;
@@ -13,6 +14,8 @@ import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import org.apache.jmeter.samplers.SampleResult;
+import org.apache.jmeter.threads.JMeterContextService;
+import org.apache.jmeter.threads.JMeterVariables;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -80,6 +83,41 @@ class McpSamplerTest {
       assertEquals(McpProtocolNotSupportedException.USER_MESSAGE, result.getResponseMessage());
     } finally {
       server.stop(0);
+    }
+  }
+
+  @Test
+  void shouldShowResolvedHeadersWhenLazyConnectFails() {
+    JMeterTestUtils.setupJmeterEnv();
+    JMeterVariables previous = JMeterContextService.getContext().getVariables();
+    JMeterVariables vars = new JMeterVariables();
+    vars.put("mcp_bearer", "token-row-1");
+    JMeterContextService.getContext().setVariables(vars);
+    try {
+      McpClientSettings settings = new McpClientSettings();
+      settings.setName(CLIENT);
+      settings.setTransport(TransportType.STDIO);
+      settings.setStdioCommand("   ");
+      settings.setRequestHeaders("Authorization=Bearer ${mcp_bearer}");
+      McpClientRegistry registry = McpClientRegistry.getInstance();
+      registry.registerDeferred(CLIENT, settings);
+
+      McpSampler sampler = new McpSampler();
+      sampler.setProperty(McpSampler.CONFIG_NAME, CLIENT);
+      sampler.setProperty(McpSampler.OPERATION, McpOperation.PING.name());
+
+      SampleResult first = sampler.sample(null);
+      assertEquals("Authorization: Bearer token-row-1", first.getRequestHeaders());
+      assertEquals("Authorization=Bearer ${mcp_bearer}", settings.getRequestHeaders());
+
+      vars.put("mcp_bearer", "token-row-2");
+      SampleResult second = sampler.sample(null);
+      assertEquals("Authorization: Bearer token-row-2", second.getRequestHeaders());
+      assertEquals(
+          "Authorization=Bearer ${mcp_bearer}",
+          registry.getSettings(CLIENT).getRequestHeaders());
+    } finally {
+      JMeterContextService.getContext().setVariables(previous);
     }
   }
 

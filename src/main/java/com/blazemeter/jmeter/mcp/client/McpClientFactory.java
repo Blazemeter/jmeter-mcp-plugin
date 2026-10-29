@@ -39,20 +39,21 @@ public final class McpClientFactory {
    */
   public static McpSyncClient buildAndInitialize(McpClientSettings settings) {
     Objects.requireNonNull(settings, "settings must not be null");
-    settings.resolvePlaceholders();
+    // Leave the caller's instance intact. The registry keeps that template for retries.
+    McpClientSettings resolved = settings.withPlaceholdersResolved();
 
-    McpClientTransport transport = buildTransport(settings);
+    McpClientTransport transport = buildTransport(resolved);
 
     McpSchema.Implementation clientInfo =
         new McpSchema.Implementation(
-            Strings.blankToDefault(settings.getClientName(), "jmeter-mcp-plugin"),
-            Strings.blankToDefault(settings.getClientVersion(), "1.0.0"));
+            Strings.blankToDefault(resolved.getClientName(), "jmeter-mcp-plugin"),
+            Strings.blankToDefault(resolved.getClientVersion(), "1.0.0"));
 
     McpSyncClient client =
         McpClient.sync(transport)
             .clientInfo(clientInfo)
-            .requestTimeout(Duration.ofMillis(settings.getRequestTimeoutMillis()))
-            .initializationTimeout(Duration.ofMillis(settings.getInitializationTimeoutMillis()))
+            .requestTimeout(Duration.ofMillis(resolved.getRequestTimeoutMillis()))
+            .initializationTimeout(Duration.ofMillis(resolved.getInitializationTimeoutMillis()))
             .capabilities(McpSchema.ClientCapabilities.builder().build())
             .build();
 

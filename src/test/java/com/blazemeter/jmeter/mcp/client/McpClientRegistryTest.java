@@ -1,11 +1,15 @@
 package com.blazemeter.jmeter.mcp.client;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.blazemeter.jmeter.mcp.JMeterTestUtils;
+import org.apache.jmeter.threads.JMeterContextService;
+import org.apache.jmeter.threads.JMeterVariables;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
@@ -46,6 +50,46 @@ class McpClientRegistryTest {
   @Test
   void shouldReturnNullWhenGetOrConnectWithBlankName() {
     assertNull(McpClientRegistry.getInstance().getOrConnect("   "));
+  }
+
+  @Test
+  void shouldKeepTemplatesWhenConnectFailsAndResolveAgainOnRetry() {
+    JMeterTestUtils.setupJmeterEnv();
+    JMeterVariables previous = JMeterContextService.getContext().getVariables();
+    JMeterVariables vars = new JMeterVariables();
+    vars.put("mcp_cmd", "   ");
+    vars.put("mcp_bearer", "token-row-1");
+    JMeterContextService.getContext().setVariables(vars);
+    try {
+      McpClientSettings settings = new McpClientSettings();
+      settings.setName(CLIENT);
+      settings.setTransport(TransportType.STDIO);
+      settings.setStdioCommand("${mcp_cmd}");
+      settings.setRequestHeaders("Authorization=Bearer ${mcp_bearer}");
+      McpClientRegistry registry = McpClientRegistry.getInstance();
+      registry.registerDeferred(CLIENT, settings);
+
+      assertThrows(IllegalArgumentException.class, () -> registry.getOrConnect(CLIENT));
+      assertSame(settings, registry.getSettings(CLIENT));
+      assertEquals("${mcp_cmd}", settings.getStdioCommand());
+      assertEquals("Authorization=Bearer ${mcp_bearer}", settings.getRequestHeaders());
+      assertEquals("   ", registry.getResolvedSettings(CLIENT).getStdioCommand());
+      assertEquals(
+          "Authorization=Bearer token-row-1",
+          registry.getResolvedSettings(CLIENT).getRequestHeaders());
+
+      vars.put("mcp_cmd", " \t ");
+      vars.put("mcp_bearer", "token-row-2");
+      assertThrows(IllegalArgumentException.class, () -> registry.getOrConnect(CLIENT));
+      assertSame(settings, registry.getSettings(CLIENT));
+      assertEquals("${mcp_cmd}", settings.getStdioCommand());
+      assertEquals(" \t ", registry.getResolvedSettings(CLIENT).getStdioCommand());
+      assertEquals(
+          "Authorization=Bearer token-row-2",
+          registry.getResolvedSettings(CLIENT).getRequestHeaders());
+    } finally {
+      JMeterContextService.getContext().setVariables(previous);
+    }
   }
 
   @Test
