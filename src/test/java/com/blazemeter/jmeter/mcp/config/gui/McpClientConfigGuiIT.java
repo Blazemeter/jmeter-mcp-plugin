@@ -5,11 +5,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.blazemeter.jmeter.mcp.JMeterTestUtils;
+import com.blazemeter.jmeter.mcp.SwingGuiTests;
 import com.blazemeter.jmeter.mcp.SwingTestRunner;
+import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import com.blazemeter.jmeter.mcp.config.McpClientConfig;
+import com.blazemeter.jmeter.mcp.config.McpClientConfigTest;
 import java.util.List;
 import org.apache.jmeter.testelement.TestElement;
+import org.apache.jmeter.util.JMeterUtils;
 import org.assertj.swing.fixture.FrameFixture;
 import org.junit.After;
 import org.junit.Before;
@@ -156,6 +160,65 @@ public class McpClientConfigGuiIT {
         "Authorization=Bearer token",
         saved.getPropertyAsString(McpClientConfig.REQUEST_HEADERS));
     assertEquals(List.of(), saved.getHeaderManagerPath());
+  }
+
+  @Test
+  public void shouldResolvePropertyExpressionsWhenReadingConnectSettings() throws Exception {
+    McpClientConfigTest.registerPropertyFunction();
+    String urlKey = "mcp.url.gui";
+    String endpointKey = "mcp.endpoint.gui";
+    String commandKey = "mcp.stdio.command.gui";
+    String argsKey = "mcp.stdio.args.gui";
+    String envKey = "mcp.stdio.env.gui";
+    JMeterUtils.getJMeterProperties().remove(urlKey);
+    JMeterUtils.getJMeterProperties().remove(endpointKey);
+    JMeterUtils.getJMeterProperties().remove(commandKey);
+    JMeterUtils.getJMeterProperties().remove(argsKey);
+    JMeterUtils.getJMeterProperties().remove(envKey);
+    try {
+      SwingGuiTests.selectComboItem(
+          frame, "mcpClientConfig.transport", TransportType.STREAMABLE_HTTP);
+      frame.textBox("mcpClientConfig.serverUrl").requireVisible();
+      String urlExpression = "${__P(" + urlKey + ",https://mcp.perfectomobile.com)}";
+      String endpointExpression = "${__P(" + endpointKey + ",/mcp)}";
+      frame.textBox("mcpClientConfig.serverUrl").setText(urlExpression);
+      frame.textBox("mcpClientConfig.endpoint").setText(endpointExpression);
+
+      McpClientSettings defaults = gui.readSettingsFromGui();
+      assertEquals("https://mcp.perfectomobile.com", defaults.getServerUrl());
+      assertEquals("/mcp", defaults.getEndpoint());
+
+      JMeterUtils.setProperty(urlKey, "https://mcp.example.test");
+      assertEquals("https://mcp.example.test", gui.readSettingsFromGui().getServerUrl());
+
+      SwingGuiTests.selectComboItem(frame, "mcpClientConfig.transport", TransportType.STDIO);
+      frame.textBox("mcpClientConfig.stdioCommand").requireVisible();
+      String commandExpression = "${__P(" + commandKey + ",npx)}";
+      frame.textBox("mcpClientConfig.stdioCommand").setText(commandExpression);
+      frame.textBox("mcpClientConfig.stdioArgs").setText("${__P(" + argsKey + ",--mcp)}");
+      frame.textBox("mcpClientConfig.stdioEnv").setText("${__P(" + envKey + ",A=1)}");
+
+      McpClientSettings stdioDefaults = gui.readSettingsFromGui();
+      assertEquals("npx", stdioDefaults.getStdioCommand());
+      assertEquals("--mcp", stdioDefaults.getStdioArgs());
+      assertEquals("A=1", stdioDefaults.getStdioEnv());
+      assertEquals("https://mcp.example.test", stdioDefaults.getServerUrl());
+
+      JMeterUtils.setProperty(commandKey, "node");
+      assertEquals("node", gui.readSettingsFromGui().getStdioCommand());
+
+      McpClientConfig saved = new McpClientConfig();
+      gui.modifyTestElement(saved);
+      assertEquals(urlExpression, saved.getPropertyAsString(McpClientConfig.SERVER_URL));
+      assertEquals(endpointExpression, saved.getPropertyAsString(McpClientConfig.ENDPOINT));
+      assertEquals(commandExpression, saved.getPropertyAsString(McpClientConfig.STDIO_COMMAND));
+    } finally {
+      JMeterUtils.getJMeterProperties().remove(urlKey);
+      JMeterUtils.getJMeterProperties().remove(endpointKey);
+      JMeterUtils.getJMeterProperties().remove(commandKey);
+      JMeterUtils.getJMeterProperties().remove(argsKey);
+      JMeterUtils.getJMeterProperties().remove(envKey);
+    }
   }
 
   @Test
