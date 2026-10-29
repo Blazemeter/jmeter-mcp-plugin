@@ -27,7 +27,7 @@ import org.apache.jorphan.collections.HashTree;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-class McpClientConfigTest {
+public class McpClientConfigTest {
 
   @BeforeAll
   static void jmeterEnv() {
@@ -139,7 +139,7 @@ class McpClientConfigTest {
    * A full JMeter install loads the real function the same way.
    */
   @SuppressWarnings("unchecked")
-  private static void registerPropertyFunction() throws Exception {
+  public static void registerPropertyFunction() throws Exception {
     Field field = CompoundVariable.class.getDeclaredField("functions");
     field.setAccessible(true);
     Map<String, Class<? extends Function>> functions =

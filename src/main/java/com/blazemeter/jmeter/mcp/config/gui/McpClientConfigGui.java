@@ -342,7 +342,8 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     }
   }
 
-  private McpClientSettings readSettingsFromGui() {
+  /** Settings passed to Connect and Stop. Package-visible for GUI tests. */
+  McpClientSettings readSettingsFromGui() {
     McpClientSettings s = new McpClientSettings();
     s.setName(Strings.trimToDefault(nameField.getText(), "mcpClient"));
     TransportType selected = (TransportType) transportCombo.getSelectedItem();
