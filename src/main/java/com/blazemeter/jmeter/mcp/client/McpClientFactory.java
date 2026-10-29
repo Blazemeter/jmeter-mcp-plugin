@@ -39,6 +39,7 @@ public final class McpClientFactory {
    */
   public static McpSyncClient buildAndInitialize(McpClientSettings settings) {
     Objects.requireNonNull(settings, "settings must not be null");
+    settings.resolvePlaceholders();
 
     McpClientTransport transport = buildTransport(settings);
 

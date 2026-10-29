@@ -15,6 +15,7 @@ import org.apache.jmeter.protocol.http.control.Header;
 import org.apache.jmeter.protocol.http.control.HeaderManager;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.threads.JMeterContextService;
+import org.apache.jmeter.threads.JMeterVariables;
 import org.apache.jorphan.collections.HashTree;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -132,6 +133,25 @@ class McpClientConfigTest {
     HashTree root = new HashTree();
     root.add(plan).add(manager);
     return root;
+  }
+
+  @Test
+  void shouldResolveCsvVariableWhenConnecting() {
+    JMeterVariables previous = JMeterContextService.getContext().getVariables();
+    JMeterVariables vars = new JMeterVariables();
+    vars.put("mcp_bearer", "token-from-csv");
+    vars.put("mcp_url", "https://mcp.perfectomobile.com");
+    JMeterContextService.getContext().setVariables(vars);
+    try {
+      McpClientSettings settings = new McpClientSettings();
+      settings.setServerUrl("${mcp_url}");
+      settings.setRequestHeaders("Authorization=Bearer ${mcp_bearer}");
+      settings.resolvePlaceholders();
+      assertEquals("https://mcp.perfectomobile.com", settings.getServerUrl());
+      assertEquals("Authorization=Bearer token-from-csv", settings.getRequestHeaders());
+    } finally {
+      JMeterContextService.getContext().setVariables(previous);
+    }
   }
 
   @Test

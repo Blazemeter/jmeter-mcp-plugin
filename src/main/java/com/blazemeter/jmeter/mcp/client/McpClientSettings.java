@@ -1,6 +1,7 @@
 package com.blazemeter.jmeter.mcp.client;
 
 import java.io.Serializable;
+import org.apache.jmeter.engine.util.CompoundVariable;
 
 /**
  * Plain value object holding the resolved configuration for an MCP client.
@@ -210,5 +211,30 @@ public final class McpClientSettings implements Serializable {
 
   public void setServerStartupWaitMs(long serverStartupWaitMs) {
     this.serverStartupWaitMs = serverStartupWaitMs;
+  }
+
+  /**
+   * Expand {@code ${mcp_bearer}} and {@code ${__P(...)}} using the current thread.
+   * CSV Data Set variables exist only after the thread starts, so this runs at connect time.
+   */
+  public void resolvePlaceholders() {
+    serverUrl = resolve(serverUrl);
+    endpoint = resolve(endpoint);
+    requestHeaders = resolve(requestHeaders);
+    stdioCommand = resolve(stdioCommand);
+    stdioArgs = resolve(stdioArgs);
+    stdioEnv = resolve(stdioEnv);
+  }
+
+  private static String resolve(String raw) {
+    if (raw == null || raw.isEmpty() || !raw.contains("${")) {
+      return raw == null ? "" : raw;
+    }
+    try {
+      String resolved = new CompoundVariable(raw).execute();
+      return resolved != null ? resolved : raw;
+    } catch (Exception ex) {
+      return raw;
+    }
   }
 }
