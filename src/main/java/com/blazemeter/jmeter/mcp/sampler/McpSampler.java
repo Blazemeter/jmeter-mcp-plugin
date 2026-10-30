@@ -57,6 +57,7 @@ public class McpSampler extends AbstractSampler {
 
     boolean[] sampleStarted = {false};
     long[] connectMillis = new long[1];
+    McpClientSettings[] attemptSettings = new McpClientSettings[1];
     try {
       SampleResult sample =
           McpClientRegistry.getInstance()
@@ -90,7 +91,8 @@ public class McpSampler extends AbstractSampler {
                     }
                     return result;
                   },
-                  connectMillis);
+                  connectMillis,
+                  attemptSettings);
       if (connectMillis[0] > 0) {
         sample.setConnectTime(connectMillis[0]);
       }
@@ -115,9 +117,8 @@ public class McpSampler extends AbstractSampler {
       if (sampleStarted[0]) {
         result.sampleEnd();
       }
-      // Lazy connect expands ${...} inside withClient. Read headers after that so the first
-      // sample reports the values that were sent, not the CSV placeholder.
-      result.setRequestHeaders(requestHeadersFor(configName));
+      // Taken under the connect lock for this attempt, so a later thread cannot replace it.
+      result.setRequestHeaders(requestHeadersFor(configName, attemptSettings[0]));
     }
   }
 
@@ -125,11 +126,10 @@ public class McpSampler extends AbstractSampler {
    * HTTP headers configured on the client (Header Manager), in the {@code Name: value} form View
    * Results Tree shows under Request headers.
    */
-  private static String requestHeadersFor(String configName) {
-    McpClientRegistry registry = McpClientRegistry.getInstance();
-    McpClientSettings settings = registry.getResolvedSettings(configName);
+  private static String requestHeadersFor(String configName, McpClientSettings attempt) {
+    McpClientSettings settings = attempt;
     if (settings == null) {
-      settings = registry.getSettings(configName);
+      settings = McpClientRegistry.getInstance().getSettings(configName);
     }
     if (settings == null) {
       return "";

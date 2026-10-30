@@ -69,7 +69,10 @@ class McpClientRegistryTest {
       McpClientRegistry registry = McpClientRegistry.getInstance();
       registry.registerDeferred(CLIENT, settings);
 
-      assertThrows(IllegalArgumentException.class, () -> registry.getOrConnect(CLIENT));
+      McpClientSettings[] attempt = new McpClientSettings[1];
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> registry.withClient(CLIENT, client -> client, null, attempt));
       assertSame(settings, registry.getSettings(CLIENT));
       assertEquals("${mcp_cmd}", settings.getStdioCommand());
       assertEquals("Authorization=Bearer ${mcp_bearer}", settings.getRequestHeaders());
@@ -77,6 +80,8 @@ class McpClientRegistryTest {
       assertEquals(
           "Authorization=Bearer token-row-1",
           registry.getResolvedSettings(CLIENT).getRequestHeaders());
+      assertEquals(
+          "Authorization=Bearer token-row-1", attempt[0].getRequestHeaders());
 
       vars.put("mcp_cmd", " \t ");
       vars.put("mcp_bearer", "token-row-2");
@@ -86,6 +91,38 @@ class McpClientRegistryTest {
       assertEquals(" \t ", registry.getResolvedSettings(CLIENT).getStdioCommand());
       assertEquals(
           "Authorization=Bearer token-row-2",
+          registry.getResolvedSettings(CLIENT).getRequestHeaders());
+      assertEquals(
+          "Authorization=Bearer token-row-1", attempt[0].getRequestHeaders());
+    } finally {
+      JMeterContextService.getContext().setVariables(previous);
+    }
+  }
+
+  @Test
+  void shouldKeepLiteralPlaceholderWhenResolvedValueContainsVariableSyntax() {
+    JMeterTestUtils.setupJmeterEnv();
+    JMeterVariables previous = JMeterContextService.getContext().getVariables();
+    JMeterVariables vars = new JMeterVariables();
+    vars.put("other", "secret");
+    vars.put("mcp_token", "literal-${other}");
+    JMeterContextService.getContext().setVariables(vars);
+    try {
+      McpClientSettings settings = new McpClientSettings();
+      settings.setName(CLIENT);
+      settings.setTransport(TransportType.STREAMABLE_HTTP);
+      settings.setServerUrl("http://127.0.0.1:9");
+      settings.setRequestHeaders("Authorization=Bearer ${mcp_token}");
+      McpClientRegistry registry = McpClientRegistry.getInstance();
+      registry.registerDeferred(CLIENT, settings);
+
+      McpAuthorizationException ex =
+          assertThrows(McpAuthorizationException.class, () -> registry.getOrConnect(CLIENT));
+      assertTrue(ex.getMessage().contains("literal-${other}"));
+      assertEquals(
+          "Authorization=Bearer ${mcp_token}", registry.getSettings(CLIENT).getRequestHeaders());
+      assertEquals(
+          "Authorization=Bearer literal-${other}",
           registry.getResolvedSettings(CLIENT).getRequestHeaders());
     } finally {
       JMeterContextService.getContext().setVariables(previous);

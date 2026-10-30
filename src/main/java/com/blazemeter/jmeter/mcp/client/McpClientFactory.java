@@ -34,13 +34,23 @@ public final class McpClientFactory {
   /**
    * Build, initialize and return a connected sync MCP client.
    *
-   * @param settings the resolved client settings
+   * @param settings client settings; placeholders are expanded once
    * @return an initialized {@link McpSyncClient} that is ready to use
    */
   public static McpSyncClient buildAndInitialize(McpClientSettings settings) {
     Objects.requireNonNull(settings, "settings must not be null");
-    // Leave the caller's instance intact. The registry keeps that template for retries.
-    McpClientSettings resolved = settings.withPlaceholdersResolved();
+    return buildAndInitializeResolved(settings.withPlaceholdersResolved());
+  }
+
+  /**
+   * Build from settings that already have placeholders expanded.
+   * A value that still contains {@code ${...}} is sent as written.
+   *
+   * @param resolved expanded settings for this connection attempt
+   * @return an initialized {@link McpSyncClient} that is ready to use
+   */
+  static McpSyncClient buildAndInitializeResolved(McpClientSettings resolved) {
+    Objects.requireNonNull(resolved, "settings must not be null");
 
     McpClientTransport transport = buildTransport(resolved);
 
