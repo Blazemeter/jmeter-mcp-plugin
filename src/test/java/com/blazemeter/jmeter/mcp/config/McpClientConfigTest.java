@@ -9,11 +9,13 @@ import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.jmeter.config.ConfigTestElement;
 import org.apache.jmeter.engine.StandardJMeterEngine;
 import org.apache.jmeter.protocol.http.control.Header;
 import org.apache.jmeter.protocol.http.control.HeaderManager;
 import org.apache.jmeter.testelement.TestElement;
+import org.apache.jmeter.testelement.TestPlan;
 import org.apache.jmeter.threads.JMeterContextService;
 import org.apache.jorphan.collections.HashTree;
 import org.junit.jupiter.api.BeforeAll;
@@ -124,6 +126,64 @@ class McpClientConfigTest {
     } finally {
       testField.set(engine, previous);
     }
+  }
+
+  @Test
+  void shouldApplyHeaderManagerWhenEngineThreadHasNoContextEngine() throws Exception {
+    HeaderManager manager = new HeaderManager();
+    manager.setName("HTTP Header Manager - Perfecto");
+    manager.add(new Header("Authorization", "Bearer from-manager"));
+    manager.add(new Header("Perfecto-Cloud-Name", "beta"));
+
+    TestPlan plan = new TestPlan();
+    plan.setName("Perfecto MCP User Flow");
+    HashTree tree = new HashTree();
+    tree.add(plan).add(manager);
+
+    McpClientConfig config = new McpClientConfig();
+    config.setProperty(McpClientConfig.NAME, "mcpClient");
+    config.setHeaderManagerPath(List.of(
+        "Test Plan", "Perfecto MCP User Flow", "HTTP Header Manager - Perfecto"));
+
+    // Non-GUI testStarted() runs on StandardJMeterEngine's executor. That thread's
+    // context has no engine and there is no GUI tree.
+    StandardJMeterEngine previous = sharedEngine();
+    StandardJMeterEngine engine = new StandardJMeterEngine();
+    engine.configure(tree);
+    AtomicReference<String> headers = new AtomicReference<>();
+    AtomicReference<Throwable> failure = new AtomicReference<>();
+    Thread engineThread = new Thread(() -> {
+      try {
+        headers.set(config.toSettings().getRequestHeaders());
+      } catch (Throwable thrown) {
+        failure.set(thrown);
+      }
+    }, "StandardJMeterEngine-test");
+    engineThread.start();
+    engineThread.join(10_000);
+    try {
+      assertFalse(engineThread.isAlive(), "engine thread did not finish");
+      if (failure.get() != null) {
+        throw new Exception(failure.get());
+      }
+      assertEquals(
+          "Authorization=Bearer from-manager\nPerfecto-Cloud-Name=beta",
+          headers.get());
+    } finally {
+      restoreSharedEngine(previous);
+    }
+  }
+
+  private static StandardJMeterEngine sharedEngine() throws Exception {
+    Field field = StandardJMeterEngine.class.getDeclaredField("engine");
+    field.setAccessible(true);
+    return (StandardJMeterEngine) field.get(null);
+  }
+
+  private static void restoreSharedEngine(StandardJMeterEngine engine) throws Exception {
+    Field field = StandardJMeterEngine.class.getDeclaredField("engine");
+    field.setAccessible(true);
+    field.set(null, engine);
   }
 
   private static HashTree planContaining(HeaderManager manager) {
