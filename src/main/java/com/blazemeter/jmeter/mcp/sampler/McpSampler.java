@@ -52,12 +52,12 @@ public class McpSampler extends AbstractSampler {
     SampleResult result = new SampleResult();
     result.setSampleLabel(getName());
     result.setSamplerData(samplerData(configName, operation));
-    result.setRequestHeaders(requestHeadersFor(configName));
     result.setDataType(SampleResult.TEXT);
     result.setContentType(CONTENT_TYPE_JSON);
 
     boolean[] sampleStarted = {false};
     long[] connectMillis = new long[1];
+    McpClientSettings[] attemptSettings = new McpClientSettings[1];
     try {
       SampleResult sample =
           McpClientRegistry.getInstance()
@@ -91,7 +91,8 @@ public class McpSampler extends AbstractSampler {
                     }
                     return result;
                   },
-                  connectMillis);
+                  connectMillis,
+                  attemptSettings);
       if (connectMillis[0] > 0) {
         sample.setConnectTime(connectMillis[0]);
       }
@@ -116,6 +117,8 @@ public class McpSampler extends AbstractSampler {
       if (sampleStarted[0]) {
         result.sampleEnd();
       }
+      // Taken under the connect lock for this attempt, so a later thread cannot replace it.
+      result.setRequestHeaders(requestHeadersFor(configName, attemptSettings[0]));
     }
   }
 
@@ -123,8 +126,11 @@ public class McpSampler extends AbstractSampler {
    * HTTP headers configured on the client (Header Manager), in the {@code Name: value} form View
    * Results Tree shows under Request headers.
    */
-  private static String requestHeadersFor(String configName) {
-    McpClientSettings settings = McpClientRegistry.getInstance().getSettings(configName);
+  private static String requestHeadersFor(String configName, McpClientSettings attempt) {
+    McpClientSettings settings = attempt;
+    if (settings == null) {
+      settings = McpClientRegistry.getInstance().getSettings(configName);
+    }
     if (settings == null) {
       return "";
     }

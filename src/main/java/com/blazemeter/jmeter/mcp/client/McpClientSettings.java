@@ -1,6 +1,7 @@
 package com.blazemeter.jmeter.mcp.client;
 
 import java.io.Serializable;
+import org.apache.jmeter.engine.util.CompoundVariable;
 
 /**
  * Plain value object holding the resolved configuration for an MCP client.
@@ -210,5 +211,62 @@ public final class McpClientSettings implements Serializable {
 
   public void setServerStartupWaitMs(long serverStartupWaitMs) {
     this.serverStartupWaitMs = serverStartupWaitMs;
+  }
+
+  /**
+   * Copy with {@code ${mcp_bearer}} and {@code ${__P(...)}} expanded on the current thread.
+   * CSV variables exist only after the thread starts, so callers do this at connect time.
+   * This object stays unchanged so a failed attempt can retry with the next CSV row.
+   */
+  public McpClientSettings withPlaceholdersResolved() {
+    McpClientSettings copy = copy();
+    copy.resolvePlaceholders();
+    return copy;
+  }
+
+  private McpClientSettings copy() {
+    McpClientSettings copy = new McpClientSettings();
+    copy.name = name;
+    copy.transport = transport;
+    copy.serverUrl = serverUrl;
+    copy.endpoint = endpoint;
+    copy.requestHeaders = requestHeaders;
+    copy.stdioCommand = stdioCommand;
+    copy.stdioArgs = stdioArgs;
+    copy.stdioEnv = stdioEnv;
+    copy.clientName = clientName;
+    copy.clientVersion = clientVersion;
+    copy.requestTimeoutMillis = requestTimeoutMillis;
+    copy.initializationTimeoutMillis = initializationTimeoutMillis;
+    copy.connectOnStartup = connectOnStartup;
+    copy.keepServerRunningAfterTest = keepServerRunningAfterTest;
+    copy.serverLaunchCommand = serverLaunchCommand;
+    copy.serverLaunchArgs = serverLaunchArgs;
+    copy.serverLaunchEnv = serverLaunchEnv;
+    copy.serverReadyHost = serverReadyHost;
+    copy.serverReadyPort = serverReadyPort;
+    copy.serverStartupWaitMs = serverStartupWaitMs;
+    return copy;
+  }
+
+  private void resolvePlaceholders() {
+    serverUrl = resolve(serverUrl);
+    endpoint = resolve(endpoint);
+    requestHeaders = resolve(requestHeaders);
+    stdioCommand = resolve(stdioCommand);
+    stdioArgs = resolve(stdioArgs);
+    stdioEnv = resolve(stdioEnv);
+  }
+
+  private static String resolve(String raw) {
+    if (raw == null || raw.isEmpty() || !raw.contains("${")) {
+      return raw == null ? "" : raw;
+    }
+    try {
+      String resolved = new CompoundVariable(raw).execute();
+      return resolved != null ? resolved : raw;
+    } catch (Exception ex) {
+      return raw;
+    }
   }
 }

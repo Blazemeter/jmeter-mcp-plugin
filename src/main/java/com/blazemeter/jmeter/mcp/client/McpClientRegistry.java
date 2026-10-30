@@ -49,6 +49,8 @@ public final class McpClientRegistry {
   private static final Object STDIO_CONNECT_LOCK = new Object();
 
   private final Map<String, McpClientSettings> deferredSettings = new ConcurrentHashMap<>();
+  /** Placeholders expanded for the latest connect attempt. Not the registered templates. */
+  private final Map<String, McpClientSettings> resolvedSettings = new ConcurrentHashMap<>();
   private final Map<String, McpSyncClient> clients = new ConcurrentHashMap<>();
   private final Map<String, Object> connectLocks = new ConcurrentHashMap<>();
   private final Map<String, CompletableFuture<McpSyncClient>> pendingConnects =
@@ -101,6 +103,20 @@ public final class McpClientRegistry {
       return null;
     }
     return deferredSettings.get(name);
+  }
+
+  /**
+   * Latest connection attempt, with placeholders already expanded.
+   * Another thread can replace this as soon as the connect lock is released.
+   * Samples use the per-attempt value captured under that lock.
+   * {@code null} until the first attempt. Registered templates stay on
+   * {@link #getSettings(String)}.
+   */
+  public McpClientSettings getResolvedSettings(String name) {
+    if (name == null || name.isBlank()) {
+      return null;
+    }
+    return resolvedSettings.get(name);
   }
 
   /**
@@ -199,25 +215,45 @@ public final class McpClientRegistry {
   * while holding the per-client lock so only one thread uses the transport at a time.
   */
   public <T> T withClient(String name, Function<McpSyncClient, T> action) {
-    return withClient(name, action, null);
+    return withClient(name, action, null, null);
   }
 
   /**
    * @param connectMillisHolder if non-null and length &gt; 0, receives time spent in
-   *                            {@link #resolveClient(String)} (connect / wait for startup connect)
+   *                            {@link #resolveClient(String, McpClientSettings[])}
+   *                            (connect / wait for startup connect)
    */
   public <T> T withClient(
       String name, Function<McpSyncClient, T> action, long[] connectMillisHolder) {
+    return withClient(name, action, connectMillisHolder, null);
+  }
+
+  /**
+   * @param connectMillisHolder if non-null and length &gt; 0, receives time spent connecting
+   * @param attemptSettingsHolder if non-null and length &gt; 0, receives this attempt's expanded
+   *                              settings, assigned while the connect lock is held, including
+   *                              when connect fails
+   */
+  public <T> T withClient(
+      String name,
+      Function<McpSyncClient, T> action,
+      long[] connectMillisHolder,
+      McpClientSettings[] attemptSettingsHolder) {
     if (name == null || name.isBlank()) {
       return action.apply(null);
     }
     long connectStart = System.currentTimeMillis();
-    McpSyncClient client = resolveClient(name);
+    McpSyncClient client = resolveClient(name, attemptSettingsHolder);
     if (connectMillisHolder != null && connectMillisHolder.length > 0) {
       connectMillisHolder[0] = System.currentTimeMillis() - connectStart;
     }
     Object lock = connectLocks.computeIfAbsent(name, k -> new Object());
     synchronized (lock) {
+      if (attemptSettingsHolder != null
+          && attemptSettingsHolder.length > 0
+          && attemptSettingsHolder[0] == null) {
+        attemptSettingsHolder[0] = resolvedSettings.get(name);
+      }
       return action.apply(client);
     }
   }
@@ -237,7 +273,7 @@ public final class McpClientRegistry {
     }
   }
 
-  private McpSyncClient resolveClient(String name) {
+  private McpSyncClient resolveClient(String name, McpClientSettings[] attemptSettingsHolder) {
     McpSyncClient existing = clients.get(name);
     if (existing != null) {
       return existing;
@@ -254,16 +290,21 @@ public final class McpClientRegistry {
         Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
         LOG.warn("Startup connect failed for MCP client '{}': {} — retrying",
             name, cause.getMessage());
-        return connectClientUnderLock(name, "retry after failed startup");
+        return connectClientUnderLock(name, "retry after failed startup", attemptSettingsHolder);
       }
     }
-    return connectClientUnderLock(name, "lazy init");
+    return connectClientUnderLock(name, "lazy init", attemptSettingsHolder);
   }
 
   private McpSyncClient connectClientUnderLock(String name, String reason) {
+    return connectClientUnderLock(name, reason, null);
+  }
+
+  private McpSyncClient connectClientUnderLock(
+      String name, String reason, McpClientSettings[] attemptSettingsHolder) {
     Object lock = connectLocks.computeIfAbsent(name, k -> new Object());
     synchronized (lock) {
-      return connectClient(name, reason);
+      return connectClient(name, reason, attemptSettingsHolder);
     }
   }
 
@@ -272,15 +313,21 @@ public final class McpClientRegistry {
         () -> connectClientUnderLock(name, "startup connect"), CONNECT_EXECUTOR);
   }
 
-  private McpSyncClient connectClient(String name, String reason) {
+  private McpSyncClient connectClient(
+      String name, String reason, McpClientSettings[] attemptSettingsHolder) {
     McpSyncClient existing = clients.get(name);
     if (existing != null) {
+      rememberAttempt(attemptSettingsHolder, resolvedSettings.get(name));
       return existing;
     }
     McpClientSettings settings = deferredSettings.get(name);
     if (settings == null) {
       return null;
     }
+    // Expand once and build from that object. A later ${...} inside a CSV value stays literal.
+    McpClientSettings resolved = settings.withPlaceholdersResolved();
+    rememberAttempt(attemptSettingsHolder, resolved);
+    resolvedSettings.put(name, resolved);
     LOG.info("Connecting MCP client '{}' ({}, transport {})",
         name, reason, settings.getTransport());
     McpSdkLogSilencer.ensureApplied();
@@ -288,10 +335,10 @@ public final class McpClientRegistry {
     try {
       if (settings.getTransport() == TransportType.STDIO) {
         synchronized (STDIO_CONNECT_LOCK) {
-          client = McpClientFactory.buildAndInitialize(settings);
+          client = McpClientFactory.buildAndInitializeResolved(resolved);
         }
       } else {
-        client = McpClientFactory.buildAndInitialize(settings);
+        client = McpClientFactory.buildAndInitializeResolved(resolved);
       }
     } catch (RuntimeException ex) {
       if (client != null) {
@@ -308,6 +355,13 @@ public final class McpClientRegistry {
     return client;
   }
 
+  private static void rememberAttempt(
+      McpClientSettings[] attemptSettingsHolder, McpClientSettings resolved) {
+    if (attemptSettingsHolder != null && attemptSettingsHolder.length > 0) {
+      attemptSettingsHolder[0] = resolved;
+    }
+  }
+
   /** Remove and close the client registered under the given name. */
   public void remove(String name) {
     if (name == null || name.isBlank()) {
@@ -320,6 +374,7 @@ public final class McpClientRegistry {
         pending.cancel(true);
       }
       deferredSettings.remove(name);
+      resolvedSettings.remove(name);
       McpSyncClient client = clients.remove(name);
       if (client != null) {
         closeQuietly(client);
@@ -384,6 +439,7 @@ public final class McpClientRegistry {
         pending.cancel(true);
       }
       deferredSettings.remove(name);
+      resolvedSettings.remove(name);
       McpSyncClient client = clients.remove(name);
       if (client != null) {
         closeAbruptly(client);
