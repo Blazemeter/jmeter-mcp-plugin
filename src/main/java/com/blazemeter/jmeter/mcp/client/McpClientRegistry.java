@@ -37,6 +37,8 @@ public final class McpClientRegistry {
 
   private static final Logger LOG = LoggerFactory.getLogger(McpClientRegistry.class);
 
+  private static final String STARTUP_CONNECT = "startup connect";
+
   private static final ExecutorService CONNECT_EXECUTOR = Executors.newCachedThreadPool(r -> {
     Thread t = new Thread(r, "mcp-client-connect");
     t.setDaemon(true);
@@ -310,7 +312,12 @@ public final class McpClientRegistry {
 
   private CompletableFuture<McpSyncClient> scheduleConnect(String name) {
     return CompletableFuture.supplyAsync(
-        () -> connectClientUnderLock(name, "startup connect"), CONNECT_EXECUTOR);
+        () -> connectClientUnderLock(name, STARTUP_CONNECT), CONNECT_EXECUTOR);
+  }
+
+  /** In-flight startup connect, for tests that need the background failure. */
+  CompletableFuture<McpSyncClient> pendingConnect(String name) {
+    return pendingConnects.get(name);
   }
 
   private McpSyncClient connectClient(
@@ -326,6 +333,12 @@ public final class McpClientRegistry {
     }
     // Expand once and build from that object. A later ${...} inside a CSV value stays literal.
     McpClientSettings resolved = settings.withPlaceholdersResolved();
+    // This thread has no CSV row. Connecting anyway would cache a client the sampler only reuses.
+    if (STARTUP_CONNECT.equals(reason) && resolved.hasUnresolvedPlaceholder()) {
+      throw new IllegalStateException(
+          "MCP client '" + name + "' still has unresolved ${...} on the startup thread. "
+              + "CSV and other thread variables are applied when the sampler connects.");
+    }
     rememberAttempt(attemptSettingsHolder, resolved);
     resolvedSettings.put(name, resolved);
     LOG.info("Connecting MCP client '{}' ({}, transport {})",

@@ -2,14 +2,21 @@ package com.blazemeter.jmeter.mcp.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.blazemeter.jmeter.mcp.JMeterTestUtils;
 import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import org.apache.jmeter.config.ConfigTestElement;
+import org.apache.jmeter.engine.util.CompoundVariable;
+import org.apache.jmeter.functions.Function;
+import org.apache.jmeter.samplers.SampleResult;
+import org.apache.jmeter.samplers.Sampler;
 import org.apache.jmeter.engine.StandardJMeterEngine;
 import org.apache.jmeter.protocol.http.control.Header;
 import org.apache.jmeter.protocol.http.control.HeaderManager;
@@ -153,6 +160,63 @@ class McpClientConfigTest {
       assertEquals("Authorization=Bearer token-from-csv", resolved.getRequestHeaders());
     } finally {
       JMeterContextService.getContext().setVariables(previous);
+    }
+  }
+
+  @Test
+  void shouldThrowWhenPlaceholderFunctionFails() throws Exception {
+    registerFunction("__explode", ExplodingFunction.class);
+    try {
+      McpClientSettings settings = new McpClientSettings();
+      settings.setServerUrl("http://${__explode()}");
+      IllegalArgumentException ex =
+          assertThrows(IllegalArgumentException.class, settings::withPlaceholdersResolved);
+      assertTrue(ex.getMessage().contains("http://${__explode()}"));
+      assertTrue(ex.getMessage().contains("placeholder exploded"));
+      assertEquals("http://${__explode()}", settings.getServerUrl());
+    } finally {
+      unregisterFunction("__explode");
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void registerFunction(String name, Class<? extends Function> type)
+      throws Exception {
+    functionMap().put(name, type);
+  }
+
+  private static void unregisterFunction(String name) throws Exception {
+    functionMap().remove(name);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Class<? extends Function>> functionMap() throws Exception {
+    Field field = CompoundVariable.class.getDeclaredField("functions");
+    field.setAccessible(true);
+    return (Map<String, Class<? extends Function>>) field.get(null);
+  }
+
+  /** Function whose execution fails so placeholder resolution must report that error. */
+  public static final class ExplodingFunction implements Function {
+
+    @Override
+    public String execute(SampleResult previousResult, Sampler currentSampler) {
+      throw new IllegalStateException("placeholder exploded");
+    }
+
+    @Override
+    public void setParameters(Collection<CompoundVariable> parameters) {
+      // no arguments
+    }
+
+    @Override
+    public String getReferenceKey() {
+      return "__explode";
+    }
+
+    @Override
+    public List<String> getArgumentDesc() {
+      return List.of();
     }
   }
 

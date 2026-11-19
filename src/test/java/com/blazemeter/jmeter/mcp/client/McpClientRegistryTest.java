@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.blazemeter.jmeter.mcp.JMeterTestUtils;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import org.apache.jmeter.threads.JMeterContextService;
 import org.apache.jmeter.threads.JMeterVariables;
 import org.junit.jupiter.api.AfterEach;
@@ -160,6 +162,61 @@ class McpClientRegistryTest {
     registry.registerDeferred(CLIENT, settings);
     registry.remove(CLIENT);
     assertNull(registry.getOrConnect(CLIENT));
+  }
+
+  @Test
+  void shouldDeferStartupConnectWhenThreadVariableIsUnresolved() throws Exception {
+    JMeterTestUtils.setupJmeterEnv();
+    McpClientSettings settings = new McpClientSettings();
+    settings.setName(CLIENT);
+    settings.setTransport(TransportType.STDIO);
+    settings.setStdioCommand("${mcp_cmd}");
+    settings.setStdioEnv("TOKEN=${mcp_token}");
+    McpClientRegistry registry = McpClientRegistry.getInstance();
+    registry.connectOnStartup(CLIENT, settings);
+
+    ExecutionException startup =
+        assertThrows(
+            ExecutionException.class,
+            () -> registry.pendingConnect(CLIENT).get(10, TimeUnit.SECONDS));
+    assertTrue(startup.getCause() instanceof IllegalStateException);
+    assertTrue(startup.getCause().getMessage().contains("unresolved"));
+    assertEquals("${mcp_cmd}", registry.getSettings(CLIENT).getStdioCommand());
+    assertNull(registry.getResolvedSettings(CLIENT));
+
+    JMeterVariables previous = JMeterContextService.getContext().getVariables();
+    JMeterVariables vars = new JMeterVariables();
+    vars.put("mcp_cmd", "   ");
+    vars.put("mcp_token", "row-1");
+    JMeterContextService.getContext().setVariables(vars);
+    try {
+      IllegalArgumentException retry =
+          assertThrows(IllegalArgumentException.class, () -> registry.getOrConnect(CLIENT));
+      assertTrue(retry.getMessage().contains("command"));
+      assertEquals("${mcp_cmd}", registry.getSettings(CLIENT).getStdioCommand());
+      assertEquals("   ", registry.getResolvedSettings(CLIENT).getStdioCommand());
+      assertEquals("TOKEN=row-1", registry.getResolvedSettings(CLIENT).getStdioEnv());
+    } finally {
+      JMeterContextService.getContext().setVariables(previous);
+    }
+  }
+
+  @Test
+  void shouldConnectOnStartupWhenSettingsHaveNoPlaceholder() throws Exception {
+    McpClientSettings settings = new McpClientSettings();
+    settings.setName(CLIENT);
+    settings.setTransport(TransportType.STDIO);
+    settings.setStdioCommand("   ");
+    McpClientRegistry registry = McpClientRegistry.getInstance();
+    registry.connectOnStartup(CLIENT, settings);
+
+    ExecutionException startup =
+        assertThrows(
+            ExecutionException.class,
+            () -> registry.pendingConnect(CLIENT).get(10, TimeUnit.SECONDS));
+    assertTrue(startup.getCause() instanceof IllegalArgumentException);
+    assertTrue(startup.getCause().getMessage().contains("command"));
+    assertEquals("   ", registry.getResolvedSettings(CLIENT).getStdioCommand());
   }
 
   @Test

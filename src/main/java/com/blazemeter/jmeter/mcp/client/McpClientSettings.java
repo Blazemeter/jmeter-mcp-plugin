@@ -217,6 +217,7 @@ public final class McpClientSettings implements Serializable {
    * Copy with {@code ${mcp_bearer}} and {@code ${__P(...)}} expanded on the current thread.
    * CSV variables exist only after the thread starts, so callers do this at connect time.
    * This object stays unchanged so a failed attempt can retry with the next CSV row.
+   * A {@link CompoundVariable} failure is reported to the caller instead of keeping the raw text.
    */
   public McpClientSettings withPlaceholdersResolved() {
     McpClientSettings copy = copy();
@@ -258,15 +259,36 @@ public final class McpClientSettings implements Serializable {
     stdioEnv = resolve(stdioEnv);
   }
 
+  /**
+   * True when a connection field still contains {@code ${...}} after expansion.
+   * Startup connect runs off the sampler thread, so a CSV variable is still literal there.
+   */
+  boolean hasUnresolvedPlaceholder() {
+    return containsPlaceholder(serverUrl)
+        || containsPlaceholder(endpoint)
+        || containsPlaceholder(requestHeaders)
+        || containsPlaceholder(stdioCommand)
+        || containsPlaceholder(stdioArgs)
+        || containsPlaceholder(stdioEnv);
+  }
+
+  private static boolean containsPlaceholder(String value) {
+    return value != null && value.contains("${");
+  }
+
   private static String resolve(String raw) {
     if (raw == null || raw.isEmpty() || !raw.contains("${")) {
       return raw == null ? "" : raw;
     }
+    // CompoundVariable(String) swallows parse errors and execute() then returns empty.
+    CompoundVariable variable = new CompoundVariable();
     try {
-      String resolved = new CompoundVariable(raw).execute();
+      variable.setParameters(raw);
+      String resolved = variable.execute();
       return resolved != null ? resolved : raw;
     } catch (Exception ex) {
-      return raw;
+      throw new IllegalArgumentException(
+          "Could not resolve JMeter placeholder '" + raw + "': " + ex.getMessage(), ex);
     }
   }
 }
