@@ -251,12 +251,12 @@ public final class McpClientSettings implements Serializable {
   }
 
   private void resolvePlaceholders() {
-    serverUrl = resolve(serverUrl);
-    endpoint = resolve(endpoint);
-    requestHeaders = resolve(requestHeaders);
-    stdioCommand = resolve(stdioCommand);
-    stdioArgs = resolve(stdioArgs);
-    stdioEnv = resolve(stdioEnv);
+    serverUrl = resolve(serverUrl, "server URL");
+    endpoint = resolve(endpoint, "endpoint");
+    requestHeaders = resolve(requestHeaders, "request headers");
+    stdioCommand = resolve(stdioCommand, "stdio command");
+    stdioArgs = resolve(stdioArgs, "stdio arguments");
+    stdioEnv = resolve(stdioEnv, "stdio environment");
   }
 
   /**
@@ -276,7 +276,7 @@ public final class McpClientSettings implements Serializable {
     return value != null && value.contains("${");
   }
 
-  private static String resolve(String raw) {
+  private static String resolve(String raw, String field) {
     if (raw == null || raw.isEmpty() || !raw.contains("${")) {
       return raw == null ? "" : raw;
     }
@@ -287,8 +287,8 @@ public final class McpClientSettings implements Serializable {
       String resolved = variable.execute();
       return resolved != null ? resolved : raw;
     } catch (Exception ex) {
-      throw new IllegalArgumentException(
-          "Could not resolve JMeter placeholder '" + raw + "': " + ex.getMessage(), ex);
+      // Field text and the parser message can contain tokens from other lines in the block.
+      throw new IllegalArgumentException("Could not resolve JMeter placeholder in " + field);
     }
   }
 }

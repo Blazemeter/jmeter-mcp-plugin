@@ -348,11 +348,11 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     s.setName(Strings.trimToDefault(nameField.getText(), "mcpClient"));
     TransportType selected = (TransportType) transportCombo.getSelectedItem();
     s.setTransport(selected != null ? selected : TransportType.STDIO);
-    // Same function expansion as McpClientConfig.toSettings(). Connect runs outside a
-    // test, so field text such as ${__P(mcp.url,https://...)} must be evaluated here.
+    // GUI Connect does not use the registry, so expand placeholders here. A test run
+    // keeps the raw template and expands it once when the client connects.
     s.setServerUrl(McpClientConfig.resolve(serverUrlField.getText()));
     s.setEndpoint(McpClientConfig.resolve(endpointField.getText()));
-    s.setRequestHeaders(headersFromSelection());
+    s.setRequestHeaders(McpClientConfig.resolve(headersFromSelection()));
     s.setStdioCommand(
         Strings.trimToDefault(McpClientConfig.resolve(stdioCommandField.getText()), ""));
     s.setStdioArgs(

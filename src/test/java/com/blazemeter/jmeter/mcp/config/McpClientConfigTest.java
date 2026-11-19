@@ -2,6 +2,7 @@ package com.blazemeter.jmeter.mcp.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -217,8 +218,10 @@ public class McpClientConfigTest {
       settings.setServerUrl("http://${__explode()}");
       IllegalArgumentException ex =
           assertThrows(IllegalArgumentException.class, settings::withPlaceholdersResolved);
-      assertTrue(ex.getMessage().contains("http://${__explode()}"));
-      assertTrue(ex.getMessage().contains("placeholder exploded"));
+      assertTrue(ex.getMessage().contains("server URL"));
+      assertFalse(ex.getMessage().contains("http://${__explode()}"));
+      assertFalse(ex.getMessage().contains("placeholder exploded"));
+      assertNull(ex.getCause());
       assertEquals("http://${__explode()}", settings.getServerUrl());
     } finally {
       unregisterFunction("__explode");
@@ -267,29 +270,16 @@ public class McpClientConfigTest {
   }
 
   @Test
-  void shouldResolvePropertyFunctionInServerUrlWhenToSettings() throws Exception {
-    registerPropertyFunction();
-    String urlKey = "mcp.url.unit";
-    String endpointKey = "mcp.endpoint.unit";
-    JMeterUtils.getJMeterProperties().remove(urlKey);
-    JMeterUtils.getJMeterProperties().remove(endpointKey);
-    try {
-      McpClientConfig config = new McpClientConfig();
-      config.setProperty(
-          McpClientConfig.SERVER_URL,
-          "${__P(" + urlKey + ",https://mcp.perfectomobile.com)}");
-      config.setProperty(McpClientConfig.ENDPOINT, "${__P(" + endpointKey + ",/mcp)}");
+  void shouldKeepPropertyExpressionsWhenToSettings() {
+    McpClientConfig config = new McpClientConfig();
+    String url = "${__P(mcp.url.unit,https://mcp.perfectomobile.com)}";
+    String endpoint = "${__P(mcp.endpoint.unit,/mcp)}";
+    config.setProperty(McpClientConfig.SERVER_URL, url);
+    config.setProperty(McpClientConfig.ENDPOINT, endpoint);
 
-      McpClientSettings defaults = config.toSettings();
-      assertEquals("https://mcp.perfectomobile.com", defaults.getServerUrl());
-      assertEquals("/mcp", defaults.getEndpoint());
-
-      JMeterUtils.setProperty(urlKey, "https://mcp.example.test");
-      assertEquals("https://mcp.example.test", config.toSettings().getServerUrl());
-    } finally {
-      JMeterUtils.getJMeterProperties().remove(urlKey);
-      JMeterUtils.getJMeterProperties().remove(endpointKey);
-    }
+    McpClientSettings settings = config.toSettings();
+    assertEquals(url, settings.getServerUrl());
+    assertEquals(endpoint, settings.getEndpoint());
   }
 
   @Test

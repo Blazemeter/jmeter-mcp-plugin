@@ -8,10 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.blazemeter.jmeter.mcp.JMeterTestUtils;
+import com.blazemeter.jmeter.mcp.config.McpClientConfig;
+import com.blazemeter.jmeter.mcp.config.McpClientConfigTest;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.jmeter.threads.JMeterContextService;
 import org.apache.jmeter.threads.JMeterVariables;
+import org.apache.jmeter.util.JMeterUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
@@ -128,6 +131,45 @@ class McpClientRegistryTest {
           registry.getResolvedSettings(CLIENT).getRequestHeaders());
     } finally {
       JMeterContextService.getContext().setVariables(previous);
+    }
+  }
+
+  @Test
+  void shouldExpandRegisteredPropertyOnceWhenConnecting() throws Exception {
+    JMeterTestUtils.setupJmeterEnv();
+    McpClientConfigTest.registerPropertyFunction();
+    String urlKey = "mcp.url.once";
+    String headerKey = "mcp.header.once";
+    JMeterVariables previous = JMeterContextService.getContext().getVariables();
+    JMeterVariables vars = new JMeterVariables();
+    vars.put("other", "secret");
+    JMeterContextService.getContext().setVariables(vars);
+    JMeterUtils.setProperty(urlKey, "http://127.0.0.1:9");
+    JMeterUtils.setProperty(headerKey, "literal-${other}");
+    try {
+      String urlExpr = "${__P(" + urlKey + ")}";
+      String headerExpr = "X-Token=${__P(" + headerKey + ")}";
+      McpClientConfig config = new McpClientConfig();
+      config.setProperty(McpClientConfig.NAME, CLIENT);
+      config.setProperty(McpClientConfig.TRANSPORT, TransportType.STREAMABLE_HTTP.name());
+      config.setProperty(McpClientConfig.SERVER_URL, urlExpr);
+      config.setProperty(McpClientConfig.REQUEST_HEADERS, headerExpr);
+
+      McpClientSettings settings = config.toSettings();
+      assertEquals(urlExpr, settings.getServerUrl());
+      assertEquals(headerExpr, settings.getRequestHeaders());
+
+      McpClientRegistry registry = McpClientRegistry.getInstance();
+      registry.registerDeferred(CLIENT, settings);
+      assertThrows(RuntimeException.class, () -> registry.getOrConnect(CLIENT));
+      assertEquals(urlExpr, registry.getSettings(CLIENT).getServerUrl());
+      assertEquals("http://127.0.0.1:9", registry.getResolvedSettings(CLIENT).getServerUrl());
+      assertEquals(
+          "X-Token=literal-${other}", registry.getResolvedSettings(CLIENT).getRequestHeaders());
+    } finally {
+      JMeterContextService.getContext().setVariables(previous);
+      JMeterUtils.getJMeterProperties().remove(urlKey);
+      JMeterUtils.getJMeterProperties().remove(headerKey);
     }
   }
 
