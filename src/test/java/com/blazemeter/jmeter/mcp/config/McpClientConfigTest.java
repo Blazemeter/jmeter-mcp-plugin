@@ -2,6 +2,8 @@ package com.blazemeter.jmeter.mcp.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.blazemeter.jmeter.mcp.JMeterTestUtils;
@@ -22,6 +24,7 @@ import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.samplers.Sampler;
 import org.apache.jmeter.testelement.TestElement;
 import org.apache.jmeter.threads.JMeterContextService;
+import org.apache.jmeter.threads.JMeterVariables;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jorphan.collections.HashTree;
 import org.junit.jupiter.api.BeforeAll;
@@ -187,29 +190,96 @@ public class McpClientConfigTest {
   }
 
   @Test
-  void shouldResolvePropertyFunctionInServerUrlWhenToSettings() throws Exception {
-    registerPropertyFunction();
-    String urlKey = "mcp.url.unit";
-    String endpointKey = "mcp.endpoint.unit";
-    JMeterUtils.getJMeterProperties().remove(urlKey);
-    JMeterUtils.getJMeterProperties().remove(endpointKey);
+  void shouldResolveCsvVariableWhenConnecting() {
+    JMeterVariables previous = JMeterContextService.getContext().getVariables();
+    JMeterVariables vars = new JMeterVariables();
+    vars.put("mcp_bearer", "token-from-csv");
+    vars.put("mcp_url", "https://mcp.perfectomobile.com");
+    JMeterContextService.getContext().setVariables(vars);
     try {
-      McpClientConfig config = new McpClientConfig();
-      config.setProperty(
-          McpClientConfig.SERVER_URL,
-          "${__P(" + urlKey + ",https://mcp.perfectomobile.com)}");
-      config.setProperty(McpClientConfig.ENDPOINT, "${__P(" + endpointKey + ",/mcp)}");
-
-      McpClientSettings defaults = config.toSettings();
-      assertEquals("https://mcp.perfectomobile.com", defaults.getServerUrl());
-      assertEquals("/mcp", defaults.getEndpoint());
-
-      JMeterUtils.setProperty(urlKey, "https://mcp.example.test");
-      assertEquals("https://mcp.example.test", config.toSettings().getServerUrl());
+      McpClientSettings settings = new McpClientSettings();
+      settings.setServerUrl("${mcp_url}");
+      settings.setRequestHeaders("Authorization=Bearer ${mcp_bearer}");
+      McpClientSettings resolved = settings.withPlaceholdersResolved();
+      assertEquals("${mcp_url}", settings.getServerUrl());
+      assertEquals("Authorization=Bearer ${mcp_bearer}", settings.getRequestHeaders());
+      assertEquals("https://mcp.perfectomobile.com", resolved.getServerUrl());
+      assertEquals("Authorization=Bearer token-from-csv", resolved.getRequestHeaders());
     } finally {
-      JMeterUtils.getJMeterProperties().remove(urlKey);
-      JMeterUtils.getJMeterProperties().remove(endpointKey);
+      JMeterContextService.getContext().setVariables(previous);
     }
+  }
+
+  @Test
+  void shouldThrowWhenPlaceholderFunctionFails() throws Exception {
+    registerFunction("__explode", ExplodingFunction.class);
+    try {
+      McpClientSettings settings = new McpClientSettings();
+      settings.setServerUrl("http://${__explode()}");
+      IllegalArgumentException ex =
+          assertThrows(IllegalArgumentException.class, settings::withPlaceholdersResolved);
+      assertTrue(ex.getMessage().contains("server URL"));
+      assertFalse(ex.getMessage().contains("http://${__explode()}"));
+      assertFalse(ex.getMessage().contains("placeholder exploded"));
+      assertNull(ex.getCause());
+      assertEquals("http://${__explode()}", settings.getServerUrl());
+    } finally {
+      unregisterFunction("__explode");
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void registerFunction(String name, Class<? extends Function> type)
+      throws Exception {
+    functionMap().put(name, type);
+  }
+
+  private static void unregisterFunction(String name) throws Exception {
+    functionMap().remove(name);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Map<String, Class<? extends Function>> functionMap() throws Exception {
+    Field field = CompoundVariable.class.getDeclaredField("functions");
+    field.setAccessible(true);
+    return (Map<String, Class<? extends Function>>) field.get(null);
+  }
+
+  /** Function whose execution fails so placeholder resolution must report that error. */
+  public static final class ExplodingFunction implements Function {
+
+    @Override
+    public String execute(SampleResult previousResult, Sampler currentSampler) {
+      throw new IllegalStateException("placeholder exploded");
+    }
+
+    @Override
+    public void setParameters(Collection<CompoundVariable> parameters) {
+      // no arguments
+    }
+
+    @Override
+    public String getReferenceKey() {
+      return "__explode";
+    }
+
+    @Override
+    public List<String> getArgumentDesc() {
+      return List.of();
+    }
+  }
+
+  @Test
+  void shouldKeepPropertyExpressionsWhenToSettings() {
+    McpClientConfig config = new McpClientConfig();
+    String url = "${__P(mcp.url.unit,https://mcp.perfectomobile.com)}";
+    String endpoint = "${__P(mcp.endpoint.unit,/mcp)}";
+    config.setProperty(McpClientConfig.SERVER_URL, url);
+    config.setProperty(McpClientConfig.ENDPOINT, endpoint);
+
+    McpClientSettings settings = config.toSettings();
+    assertEquals(url, settings.getServerUrl());
+    assertEquals(endpoint, settings.getEndpoint());
   }
 
   @Test

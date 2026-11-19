@@ -6,12 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.blazemeter.jmeter.mcp.JMeterTestUtils;
 import com.blazemeter.jmeter.mcp.server.McpServerProcessManager;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
 import io.modelcontextprotocol.client.transport.StdioClientTransport;
 import java.util.List;
 import java.util.Map;
+import org.apache.jmeter.threads.JMeterContextService;
+import org.apache.jmeter.threads.JMeterVariables;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
@@ -235,6 +238,37 @@ class McpClientFactoryTest {
             McpAuthorizationException.class,
             () -> McpClientFactoryTestSupport.buildTransport(s));
     assertTrue(ex.getMessage().contains("empty"));
+  }
+
+  @Test
+  void shouldExpandPlaceholdersOnceWhenBuildingClient() {
+    JMeterTestUtils.setupJmeterEnv();
+    JMeterVariables previous = JMeterContextService.getContext().getVariables();
+    JMeterVariables vars = new JMeterVariables();
+    vars.put("other", "secret");
+    vars.put("mcp_token", "literal-${other}");
+    JMeterContextService.getContext().setVariables(vars);
+    try {
+      McpClientSettings settings =
+          streamableHttpWithHeaders("Authorization=Bearer ${mcp_token}");
+      McpClientSettings once = settings.withPlaceholdersResolved();
+
+      McpAuthorizationException resolvedPath =
+          assertThrows(
+              McpAuthorizationException.class,
+              () -> McpClientFactory.buildAndInitializeResolved(once));
+      assertTrue(resolvedPath.getMessage().contains("literal-${other}"));
+      assertEquals("Authorization=Bearer literal-${other}", once.getRequestHeaders());
+
+      McpAuthorizationException direct =
+          assertThrows(
+              McpAuthorizationException.class,
+              () -> McpClientFactory.buildAndInitialize(settings));
+      assertTrue(direct.getMessage().contains("literal-${other}"));
+      assertEquals("Authorization=Bearer ${mcp_token}", settings.getRequestHeaders());
+    } finally {
+      JMeterContextService.getContext().setVariables(previous);
+    }
   }
 
   @Test

@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.jmeter.config.ConfigElement;
 import org.apache.jmeter.config.ConfigTestElement;
-import org.apache.jmeter.engine.util.CompoundVariable;
 import org.apache.jmeter.testelement.TestStateListener;
 import org.apache.jmeter.testelement.property.CollectionProperty;
 import org.apache.jmeter.testelement.property.JMeterProperty;
@@ -67,14 +66,14 @@ public class McpClientConfig extends ConfigTestElement
     s.setName(getPropertyAsString(NAME, "mcpClient"));
     s.setTransport(TransportType.fromString(getPropertyAsString(TRANSPORT,
         TransportType.STDIO.name())));
-    // testStarted() has no thread variables, so mixed strings like
-    // "Authorization=Bearer ${MCP_BEARER}" stay literal unless we evaluate them.
-    s.setServerUrl(resolve(getPropertyAsString(SERVER_URL, "")));
-    s.setEndpoint(resolve(getPropertyAsString(ENDPOINT, "")));
-    s.setRequestHeaders(resolve(requestHeaders()));
-    s.setStdioCommand(Strings.trimToDefault(resolve(getPropertyAsString(STDIO_COMMAND, "")), ""));
-    s.setStdioArgs(Strings.trimToDefault(resolve(getPropertyAsString(STDIO_ARGS, "")), ""));
-    s.setStdioEnv(resolve(getPropertyAsString(STDIO_ENV, "")));
+    // Keep ${...} in the registered template. Connect expands each field once, so a
+    // property value that itself contains ${...} is not expanded again.
+    s.setServerUrl(getPropertyAsString(SERVER_URL, ""));
+    s.setEndpoint(getPropertyAsString(ENDPOINT, ""));
+    s.setRequestHeaders(requestHeaders());
+    s.setStdioCommand(Strings.trimToDefault(getPropertyAsString(STDIO_COMMAND, ""), ""));
+    s.setStdioArgs(Strings.trimToDefault(getPropertyAsString(STDIO_ARGS, ""), ""));
+    s.setStdioEnv(getPropertyAsString(STDIO_ENV, ""));
     s.setClientName(getPropertyAsString(CLIENT_NAME, "jmeter-mcp-plugin"));
     s.setClientVersion(getPropertyAsString(CLIENT_VERSION, "1.0.0"));
     s.setRequestTimeoutMillis(getPropertyAsLong(REQUEST_TIMEOUT_MS, 30_000L));
@@ -127,28 +126,6 @@ public class McpClientConfig extends ConfigTestElement
         getPropertyAsString(NAME, "mcpClient"),
         String.join(" > ", path));
     return "";
-  }
-
-  /**
-   * Evaluate {@code ${...}} / {@code ${__P(...)}} in config strings.
-   *
-   * <p>{@link #testStarted()} runs before thread-level {@code ValueReplacer}, so
-   * {@code getPropertyAsString} leaves mixed strings (e.g. {@code Authorization=Bearer
-   * ${MCP_BEARER}}) unresolved. GUI Connect reads the same raw field text. {@link
-   * CompoundVariable} still resolves {@code __P} and JMeter properties, including the
-   * function default when the property is unset.
-   */
-  public static String resolve(String raw) {
-    if (raw == null || raw.isEmpty() || !raw.contains("${")) {
-      return raw == null ? "" : raw;
-    }
-    try {
-      String resolved = new CompoundVariable(raw).execute();
-      return resolved != null ? resolved : raw;
-    } catch (Exception ex) {
-      LOG.debug("Could not resolve JMeter functions in config value: {}", ex.getMessage());
-      return raw;
-    }
   }
 
   @Override
