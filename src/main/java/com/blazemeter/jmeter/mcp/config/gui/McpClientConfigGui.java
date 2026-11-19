@@ -342,17 +342,22 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     }
   }
 
-  private McpClientSettings readSettingsFromGui() {
+  /** Settings passed to Connect and Stop. Package-visible for GUI tests. */
+  McpClientSettings readSettingsFromGui() {
     McpClientSettings s = new McpClientSettings();
     s.setName(Strings.trimToDefault(nameField.getText(), "mcpClient"));
     TransportType selected = (TransportType) transportCombo.getSelectedItem();
     s.setTransport(selected != null ? selected : TransportType.STDIO);
-    s.setServerUrl(serverUrlField.getText());
-    s.setEndpoint(endpointField.getText());
+    // Same function expansion as McpClientConfig.toSettings(). Connect runs outside a
+    // test, so field text such as ${__P(mcp.url,https://...)} must be evaluated here.
+    s.setServerUrl(McpClientConfig.resolve(serverUrlField.getText()));
+    s.setEndpoint(McpClientConfig.resolve(endpointField.getText()));
     s.setRequestHeaders(headersFromSelection());
-    s.setStdioCommand(stdioCommandField.getText());
-    s.setStdioArgs(stdioArgsField.getText());
-    s.setStdioEnv(stdioEnvArea.getText());
+    s.setStdioCommand(
+        Strings.trimToDefault(McpClientConfig.resolve(stdioCommandField.getText()), ""));
+    s.setStdioArgs(
+        Strings.trimToDefault(McpClientConfig.resolve(stdioArgsField.getText()), ""));
+    s.setStdioEnv(McpClientConfig.resolve(stdioEnvArea.getText()));
     s.setClientName(Strings.trimToDefault(clientNameField.getText(), "jmeter-mcp-plugin"));
     s.setClientVersion(Strings.trimToDefault(clientVersionField.getText(), "1.0.0"));
     s.setRequestTimeoutMillis(GridBagForm.parseLong(requestTimeoutField.getText(), 30_000L));
