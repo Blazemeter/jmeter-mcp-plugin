@@ -244,6 +244,39 @@ class McpClientRegistryTest {
   }
 
   @Test
+  void shouldConnectOnStartupWhenUnusedTransportStillHasPlaceholder() throws Exception {
+    McpClientSettings stdio = new McpClientSettings();
+    stdio.setName(CLIENT);
+    stdio.setTransport(TransportType.STDIO);
+    stdio.setStdioCommand("   ");
+    stdio.setRequestHeaders("X-Token=${http_token}");
+    McpClientRegistry registry = McpClientRegistry.getInstance();
+    registry.connectOnStartup(CLIENT, stdio);
+
+    ExecutionException stdioStartup =
+        assertThrows(
+            ExecutionException.class,
+            () -> registry.pendingConnect(CLIENT).get(10, TimeUnit.SECONDS));
+    assertTrue(stdioStartup.getCause() instanceof IllegalArgumentException);
+    assertTrue(stdioStartup.getCause().getMessage().contains("command"));
+
+    registry.remove(CLIENT);
+    McpClientSettings http = new McpClientSettings();
+    http.setName(CLIENT);
+    http.setTransport(TransportType.STREAMABLE_HTTP);
+    http.setServerUrl("http://127.0.0.1:9");
+    http.setStdioCommand("${unused_cmd}");
+    registry.connectOnStartup(CLIENT, http);
+
+    ExecutionException httpStartup =
+        assertThrows(
+            ExecutionException.class,
+            () -> registry.pendingConnect(CLIENT).get(10, TimeUnit.SECONDS));
+    assertTrue(!(httpStartup.getCause() instanceof IllegalStateException));
+    assertEquals("http://127.0.0.1:9", registry.getResolvedSettings(CLIENT).getServerUrl());
+  }
+
+  @Test
   void shouldConnectOnStartupWhenSettingsHaveNoPlaceholder() throws Exception {
     McpClientSettings settings = new McpClientSettings();
     settings.setName(CLIENT);

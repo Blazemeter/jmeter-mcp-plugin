@@ -342,22 +342,22 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     }
   }
 
-  /** Settings passed to Connect and Stop. Package-visible for GUI tests. */
+  /**
+   * Settings passed to Connect and Stop. Placeholders stay raw so
+   * {@link com.blazemeter.jmeter.mcp.client.McpClientRegistry} expands them once.
+   * Package-visible for GUI tests.
+   */
   McpClientSettings readSettingsFromGui() {
     McpClientSettings s = new McpClientSettings();
     s.setName(Strings.trimToDefault(nameField.getText(), "mcpClient"));
     TransportType selected = (TransportType) transportCombo.getSelectedItem();
     s.setTransport(selected != null ? selected : TransportType.STDIO);
-    // GUI Connect does not use the registry, so expand placeholders here. A test run
-    // keeps the raw template and expands it once when the client connects.
-    s.setServerUrl(McpClientConfig.resolve(serverUrlField.getText()));
-    s.setEndpoint(McpClientConfig.resolve(endpointField.getText()));
-    s.setRequestHeaders(McpClientConfig.resolve(headersFromSelection()));
-    s.setStdioCommand(
-        Strings.trimToDefault(McpClientConfig.resolve(stdioCommandField.getText()), ""));
-    s.setStdioArgs(
-        Strings.trimToDefault(McpClientConfig.resolve(stdioArgsField.getText()), ""));
-    s.setStdioEnv(McpClientConfig.resolve(stdioEnvArea.getText()));
+    s.setServerUrl(serverUrlField.getText());
+    s.setEndpoint(endpointField.getText());
+    s.setRequestHeaders(headersFromSelection());
+    s.setStdioCommand(Strings.trimToDefault(stdioCommandField.getText(), ""));
+    s.setStdioArgs(Strings.trimToDefault(stdioArgsField.getText(), ""));
+    s.setStdioEnv(stdioEnvArea.getText());
     s.setClientName(Strings.trimToDefault(clientNameField.getText(), "jmeter-mcp-plugin"));
     s.setClientVersion(Strings.trimToDefault(clientVersionField.getText(), "1.0.0"));
     s.setRequestTimeoutMillis(GridBagForm.parseLong(requestTimeoutField.getText(), 30_000L));

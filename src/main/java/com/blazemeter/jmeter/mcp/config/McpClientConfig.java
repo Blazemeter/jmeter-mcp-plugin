@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.jmeter.config.ConfigElement;
 import org.apache.jmeter.config.ConfigTestElement;
-import org.apache.jmeter.engine.util.CompoundVariable;
 import org.apache.jmeter.testelement.TestStateListener;
 import org.apache.jmeter.testelement.property.CollectionProperty;
 import org.apache.jmeter.testelement.property.JMeterProperty;
@@ -127,28 +126,6 @@ public class McpClientConfig extends ConfigTestElement
         getPropertyAsString(NAME, "mcpClient"),
         String.join(" > ", path));
     return "";
-  }
-
-  /**
-   * Evaluate {@code ${...}} / {@code ${__P(...)}} for GUI Connect.
-   *
-   * <p>Connect from the GUI does not go through the registry, so field text such as
-   * {@code ${__P(mcp.url,https://...)}} is expanded here. A test run keeps the raw
-   * template from {@link #toSettings()} and expands it once when the client connects.
-   * {@link CompoundVariable} resolves {@code __P} and JMeter properties, including the
-   * function default when the property is unset.
-   */
-  public static String resolve(String raw) {
-    if (raw == null || raw.isEmpty() || !raw.contains("${")) {
-      return raw == null ? "" : raw;
-    }
-    try {
-      String resolved = new CompoundVariable(raw).execute();
-      return resolved != null ? resolved : raw;
-    } catch (Exception ex) {
-      LOG.debug("Could not resolve JMeter functions in config value: {}", ex.getMessage());
-      return raw;
-    }
   }
 
   @Override

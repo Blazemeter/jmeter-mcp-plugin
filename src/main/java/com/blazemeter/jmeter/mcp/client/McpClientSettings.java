@@ -260,16 +260,19 @@ public final class McpClientSettings implements Serializable {
   }
 
   /**
-   * True when a connection field still contains {@code ${...}} after expansion.
+   * True when a field for {@link #getTransport()} still contains {@code ${...}}.
+   * The GUI keeps both HTTP and STDIO values, so an unused field must not defer startup.
    * Startup connect runs off the sampler thread, so a CSV variable is still literal there.
    */
   boolean hasUnresolvedPlaceholder() {
+    if (transport == TransportType.STDIO) {
+      return containsPlaceholder(stdioCommand)
+          || containsPlaceholder(stdioArgs)
+          || containsPlaceholder(stdioEnv);
+    }
     return containsPlaceholder(serverUrl)
         || containsPlaceholder(endpoint)
-        || containsPlaceholder(requestHeaders)
-        || containsPlaceholder(stdioCommand)
-        || containsPlaceholder(stdioArgs)
-        || containsPlaceholder(stdioEnv);
+        || containsPlaceholder(requestHeaders);
   }
 
   private static boolean containsPlaceholder(String value) {
