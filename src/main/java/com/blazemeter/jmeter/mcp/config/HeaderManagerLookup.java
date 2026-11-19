@@ -22,6 +22,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>While a test is running the lookup uses the engine tree, so substituted header values on the
  * compiled plan are the ones that are sent. Otherwise it uses the open test plan in the GUI.
+ * Non-GUI {@code testStarted()} runs on the engine executor thread, whose {@code JMeterContext}
+ * has no engine. That thread uses the process-wide engine JMeter keeps for {@code stopEngine()}.
  */
 public final class HeaderManagerLookup {
 
@@ -256,10 +258,30 @@ public final class HeaderManagerLookup {
   }
 
   private static StandardJMeterEngine currentEngine() {
-    if (JMeterContextService.getContext() == null) {
-      return null;
+    StandardJMeterEngine fromContext = JMeterContextService.getContext().getEngine();
+    if (fromContext != null) {
+      return fromContext;
     }
-    return JMeterContextService.getContext().getEngine();
+    return singletonEngine();
+  }
+
+  /**
+   * Sampler threads receive the engine through {@code JMeterContext#setEngine}. The thread that
+   * calls {@code testStarted()} does not. {@link StandardJMeterEngine} stores that instance
+   * statically so {@code stopEngine()} can reach it.
+   */
+  private static StandardJMeterEngine singletonEngine() {
+    try {
+      Field field = StandardJMeterEngine.class.getDeclaredField("engine");
+      field.setAccessible(true);
+      Object value = field.get(null);
+      if (value instanceof StandardJMeterEngine engine) {
+        return engine;
+      }
+    } catch (ReflectiveOperationException ex) {
+      LOG.debug("Could not read the running JMeter engine: {}", ex.toString());
+    }
+    return null;
   }
 
   /**
