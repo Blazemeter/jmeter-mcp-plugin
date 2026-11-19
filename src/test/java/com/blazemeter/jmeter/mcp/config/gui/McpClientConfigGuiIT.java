@@ -2,14 +2,21 @@ package com.blazemeter.jmeter.mcp.config.gui;
 
 import static org.assertj.swing.fixture.Containers.showInFrame;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import com.blazemeter.jmeter.mcp.JMeterTestUtils;
+import com.blazemeter.jmeter.mcp.SwingGuiTests;
 import com.blazemeter.jmeter.mcp.SwingTestRunner;
+import com.blazemeter.jmeter.mcp.client.McpClientLauncher;
+import com.blazemeter.jmeter.mcp.client.McpClientRegistry;
+import com.blazemeter.jmeter.mcp.client.McpClientSettings;
 import com.blazemeter.jmeter.mcp.client.TransportType;
 import com.blazemeter.jmeter.mcp.config.McpClientConfig;
+import com.blazemeter.jmeter.mcp.config.McpClientConfigTest;
 import java.util.List;
 import org.apache.jmeter.testelement.TestElement;
+import org.apache.jmeter.util.JMeterUtils;
 import org.assertj.swing.fixture.FrameFixture;
 import org.junit.After;
 import org.junit.Before;
@@ -156,6 +163,71 @@ public class McpClientConfigGuiIT {
         "Authorization=Bearer token",
         saved.getPropertyAsString(McpClientConfig.REQUEST_HEADERS));
     assertEquals(List.of(), saved.getHeaderManagerPath());
+  }
+
+  @Test
+  public void shouldExpandPropertyExpressionsOnceWhenGuiConnects() throws Exception {
+    McpClientConfigTest.registerPropertyFunction();
+    String clientName = "gui-connect-once";
+    String urlKey = "mcp.url.gui";
+    String endpointKey = "mcp.endpoint.gui";
+    String commandKey = "mcp.stdio.command.gui";
+    String argsKey = "mcp.stdio.args.gui";
+    String envKey = "mcp.stdio.env.gui";
+    JMeterUtils.setProperty(urlKey, "http://127.0.0.1:9");
+    JMeterUtils.setProperty(endpointKey, "literal-${__P(other,changed)}");
+    JMeterUtils.setProperty(commandKey, "node");
+    JMeterUtils.getJMeterProperties().remove(argsKey);
+    JMeterUtils.getJMeterProperties().remove(envKey);
+    try {
+      frame.textBox("mcpClientConfig.name").setText(clientName);
+      SwingGuiTests.selectComboItem(
+          frame, "mcpClientConfig.transport", TransportType.STREAMABLE_HTTP);
+      frame.textBox("mcpClientConfig.serverUrl").requireVisible();
+      String urlExpression = "${__P(" + urlKey + ")}";
+      String endpointExpression = "${__P(" + endpointKey + ")}";
+      frame.textBox("mcpClientConfig.serverUrl").setText(urlExpression);
+      frame.textBox("mcpClientConfig.endpoint").setText(endpointExpression);
+
+      McpClientSettings raw = gui.readSettingsFromGui();
+      assertEquals(urlExpression, raw.getServerUrl());
+      assertEquals(endpointExpression, raw.getEndpoint());
+
+      assertThrows(Exception.class, () -> McpClientLauncher.connect(raw));
+      McpClientSettings resolved =
+          McpClientRegistry.getInstance().getResolvedSettings(clientName);
+      assertEquals("http://127.0.0.1:9", resolved.getServerUrl());
+      assertEquals("literal-${__P(other,changed)}", resolved.getEndpoint());
+      assertEquals(urlExpression, McpClientRegistry.getInstance().getSettings(clientName)
+          .getServerUrl());
+
+      SwingGuiTests.selectComboItem(frame, "mcpClientConfig.transport", TransportType.STDIO);
+      frame.textBox("mcpClientConfig.stdioCommand").requireVisible();
+      String commandExpression = "${__P(" + commandKey + ",npx)}";
+      String argsExpression = "${__P(" + argsKey + ",--mcp)}";
+      String envExpression = "${__P(" + envKey + ",A=1)}";
+      frame.textBox("mcpClientConfig.stdioCommand").setText(commandExpression);
+      frame.textBox("mcpClientConfig.stdioArgs").setText(argsExpression);
+      frame.textBox("mcpClientConfig.stdioEnv").setText(envExpression);
+
+      McpClientSettings stdioRaw = gui.readSettingsFromGui();
+      assertEquals(commandExpression, stdioRaw.getStdioCommand());
+      assertEquals(argsExpression, stdioRaw.getStdioArgs());
+      assertEquals(envExpression, stdioRaw.getStdioEnv());
+
+      McpClientConfig saved = new McpClientConfig();
+      gui.modifyTestElement(saved);
+      assertEquals(urlExpression, saved.getPropertyAsString(McpClientConfig.SERVER_URL));
+      assertEquals(endpointExpression, saved.getPropertyAsString(McpClientConfig.ENDPOINT));
+      assertEquals(commandExpression, saved.getPropertyAsString(McpClientConfig.STDIO_COMMAND));
+    } finally {
+      McpClientRegistry.getInstance().remove(clientName);
+      JMeterUtils.getJMeterProperties().remove(urlKey);
+      JMeterUtils.getJMeterProperties().remove(endpointKey);
+      JMeterUtils.getJMeterProperties().remove(commandKey);
+      JMeterUtils.getJMeterProperties().remove(argsKey);
+      JMeterUtils.getJMeterProperties().remove(envKey);
+    }
   }
 
   @Test

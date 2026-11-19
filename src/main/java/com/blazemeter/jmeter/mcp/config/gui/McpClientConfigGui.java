@@ -342,7 +342,12 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     }
   }
 
-  private McpClientSettings readSettingsFromGui() {
+  /**
+   * Settings passed to Connect and Stop. Placeholders stay raw so
+   * {@link com.blazemeter.jmeter.mcp.client.McpClientRegistry} expands them once.
+   * Package-visible for GUI tests.
+   */
+  McpClientSettings readSettingsFromGui() {
     McpClientSettings s = new McpClientSettings();
     s.setName(Strings.trimToDefault(nameField.getText(), "mcpClient"));
     TransportType selected = (TransportType) transportCombo.getSelectedItem();
@@ -350,8 +355,8 @@ public class McpClientConfigGui extends AbstractConfigGui implements Scrollable 
     s.setServerUrl(serverUrlField.getText());
     s.setEndpoint(endpointField.getText());
     s.setRequestHeaders(headersFromSelection());
-    s.setStdioCommand(stdioCommandField.getText());
-    s.setStdioArgs(stdioArgsField.getText());
+    s.setStdioCommand(Strings.trimToDefault(stdioCommandField.getText(), ""));
+    s.setStdioArgs(Strings.trimToDefault(stdioArgsField.getText(), ""));
     s.setStdioEnv(stdioEnvArea.getText());
     s.setClientName(Strings.trimToDefault(clientNameField.getText(), "jmeter-mcp-plugin"));
     s.setClientVersion(Strings.trimToDefault(clientVersionField.getText(), "1.0.0"));

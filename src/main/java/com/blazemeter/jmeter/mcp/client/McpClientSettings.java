@@ -1,6 +1,7 @@
 package com.blazemeter.jmeter.mcp.client;
 
 import java.io.Serializable;
+import org.apache.jmeter.engine.util.CompoundVariable;
 
 /**
  * Plain value object holding the resolved configuration for an MCP client.
@@ -210,5 +211,87 @@ public final class McpClientSettings implements Serializable {
 
   public void setServerStartupWaitMs(long serverStartupWaitMs) {
     this.serverStartupWaitMs = serverStartupWaitMs;
+  }
+
+  /**
+   * Copy with {@code ${mcp_bearer}} and {@code ${__P(...)}} expanded on the current thread.
+   * CSV variables exist only after the thread starts, so callers do this at connect time.
+   * This object stays unchanged so a failed attempt can retry with the next CSV row.
+   * A {@link CompoundVariable} failure is reported to the caller instead of keeping the raw text.
+   */
+  public McpClientSettings withPlaceholdersResolved() {
+    McpClientSettings copy = copy();
+    copy.resolvePlaceholders();
+    return copy;
+  }
+
+  private McpClientSettings copy() {
+    McpClientSettings copy = new McpClientSettings();
+    copy.name = name;
+    copy.transport = transport;
+    copy.serverUrl = serverUrl;
+    copy.endpoint = endpoint;
+    copy.requestHeaders = requestHeaders;
+    copy.stdioCommand = stdioCommand;
+    copy.stdioArgs = stdioArgs;
+    copy.stdioEnv = stdioEnv;
+    copy.clientName = clientName;
+    copy.clientVersion = clientVersion;
+    copy.requestTimeoutMillis = requestTimeoutMillis;
+    copy.initializationTimeoutMillis = initializationTimeoutMillis;
+    copy.connectOnStartup = connectOnStartup;
+    copy.keepServerRunningAfterTest = keepServerRunningAfterTest;
+    copy.serverLaunchCommand = serverLaunchCommand;
+    copy.serverLaunchArgs = serverLaunchArgs;
+    copy.serverLaunchEnv = serverLaunchEnv;
+    copy.serverReadyHost = serverReadyHost;
+    copy.serverReadyPort = serverReadyPort;
+    copy.serverStartupWaitMs = serverStartupWaitMs;
+    return copy;
+  }
+
+  private void resolvePlaceholders() {
+    serverUrl = resolve(serverUrl, "server URL");
+    endpoint = resolve(endpoint, "endpoint");
+    requestHeaders = resolve(requestHeaders, "request headers");
+    stdioCommand = resolve(stdioCommand, "stdio command");
+    stdioArgs = resolve(stdioArgs, "stdio arguments");
+    stdioEnv = resolve(stdioEnv, "stdio environment");
+  }
+
+  /**
+   * True when a field for {@link #getTransport()} still contains {@code ${...}}.
+   * The GUI keeps both HTTP and STDIO values, so an unused field must not defer startup.
+   * Startup connect runs off the sampler thread, so a CSV variable is still literal there.
+   */
+  boolean hasUnresolvedPlaceholder() {
+    if (transport == TransportType.STDIO) {
+      return containsPlaceholder(stdioCommand)
+          || containsPlaceholder(stdioArgs)
+          || containsPlaceholder(stdioEnv);
+    }
+    return containsPlaceholder(serverUrl)
+        || containsPlaceholder(endpoint)
+        || containsPlaceholder(requestHeaders);
+  }
+
+  private static boolean containsPlaceholder(String value) {
+    return value != null && value.contains("${");
+  }
+
+  private static String resolve(String raw, String field) {
+    if (raw == null || raw.isEmpty() || !raw.contains("${")) {
+      return raw == null ? "" : raw;
+    }
+    // CompoundVariable(String) swallows parse errors and execute() then returns empty.
+    CompoundVariable variable = new CompoundVariable();
+    try {
+      variable.setParameters(raw);
+      String resolved = variable.execute();
+      return resolved != null ? resolved : raw;
+    } catch (Exception ex) {
+      // Field text and the parser message can contain tokens from other lines in the block.
+      throw new IllegalArgumentException("Could not resolve JMeter placeholder in " + field);
+    }
   }
 }
